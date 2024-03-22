@@ -47,14 +47,26 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
     private static SongPlayerFrame instance;
     private static SoundSystem forcedSoundSystem;
+    private static Point lastPosition;
+    private static int lastMaxSounds = 256;
+    private static int lastVolume = 50;
 
     public static void open(final ListFrame.LoadedSong song) {
         open(song, song.getSong().getView());
     }
 
     public static void open(final ListFrame.LoadedSong song, final SongView<?> view) {
-        if (instance != null) instance.dispose();
+        if (instance != null && instance.isVisible()) {
+            lastPosition = instance.getLocation();
+            lastMaxSounds = (int) instance.maxSoundsSpinner.getValue();
+            lastVolume = instance.volumeSlider.getValue();
+            instance.dispose();
+        }
         instance = new SongPlayerFrame(song, view);
+        if (lastPosition != null) instance.setLocation(lastPosition);
+        instance.maxSoundsSpinner.setValue(lastMaxSounds);
+        instance.volumeSlider.setValue(lastVolume);
+        instance.setVisible(true);
     }
 
 
@@ -63,7 +75,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
     private final Timer updateTimer;
     private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{SoundSystem.OPENAL.getName(), SoundSystem.JAVAX.getName()});
     private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 8192, 64));
-    private final JSlider volumeSlider = new JSlider(0, 100, 100);
+    private final JSlider volumeSlider = new JSlider(0, 100, 50);
     private final JButton playStopButton = new JButton("Play");
     private final JButton pauseResumeButton = new JButton("Pause");
     private final JSlider progressSlider = new JSlider(0, 100, 0);
@@ -94,7 +106,6 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
         this.playStopButton.doClick();
 
         this.setMinimumSize(this.getSize());
-        this.setVisible(true);
     }
 
     private SongView<?> getSongView(final SongView<?> view) {
@@ -119,7 +130,11 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.soundSystemComboBox);
 
             GBC.create(northPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
-            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSoundsSpinner);
+            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSoundsSpinner, () -> {
+                this.maxSoundsSpinner.addChangeListener(e -> {
+                    lastMaxSounds = (int) this.maxSoundsSpinner.getValue();
+                });
+            });
 
             GBC.create(northPanel).grid(0, gridy).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(new JLabel("Volume:"));
             GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.volumeSlider, () -> {
@@ -130,6 +145,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
                 this.volumeSlider.addChangeListener(e -> {
                     this.volume = this.volumeSlider.getValue() / 100F;
                     if (this.soundSystem.equals(SoundSystem.OPENAL)) OpenALSoundSystem.setMasterVolume(this.volume);
+                    lastVolume = this.volumeSlider.getValue();
                 });
             });
         }
@@ -237,6 +253,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             @Override
             public void windowClosing(WindowEvent e) {
                 SongPlayerFrame.this.dispose();
+                lastPosition = SongPlayerFrame.this.getLocation();
             }
 
             @Override
