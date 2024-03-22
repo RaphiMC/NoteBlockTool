@@ -21,14 +21,10 @@ configurations {
 
 repositories {
     mavenCentral()
-    maven {
-        name = "Lenni0451"
-        url "https://maven.lenni0451.net/everything"
-    }
 }
 
 dependencies {
-    include "net.raphimc:NoteBlockLib:2.0.6-SNAPSHOT"
+    include "net.raphimc:NoteBlockLib:2.0.6"
     include "com.formdev:flatlaf:3.4"
     include "net.lenni0451.commons:swing:1.5.0"
     include "org.lwjgl:lwjgl:3.3.3"
