@@ -1,0 +1,67 @@
+plugins {
+    id "java"
+    id "application"
+}
+
+base {
+    java.toolchain.languageVersion = JavaLanguageVersion.of(8)
+    compileJava.options.encoding = compileTestJava.options.encoding = javadoc.options.encoding = "UTF-8"
+
+    group = project.maven_group ?: rootProject.maven_group
+    archivesName = project.maven_name ?: rootProject.maven_name
+    version = project.maven_version ?: rootProject.maven_version
+}
+
+configurations {
+    include
+
+    implementation.extendsFrom include
+    api.extendsFrom include
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "Lenni0451"
+        url "https://maven.lenni0451.net/everything"
+    }
+}
+
+dependencies {
+    include "net.raphimc:NoteBlockLib:2.0.6-SNAPSHOT"
+    include "com.formdev:flatlaf:3.4"
+    include "net.lenni0451.commons:swing:1.5.0"
+    include "org.lwjgl:lwjgl:3.3.3"
+    include "org.lwjgl:lwjgl-openal:3.3.3"
+    ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64", "natives-macos", "natives-macos-arm64"].each {
+        include "org.lwjgl:lwjgl:3.3.3:$it"
+        include "org.lwjgl:lwjgl-openal:3.3.3:$it"
+    }
+}
+
+application {
+    mainClass = "net.raphimc.noteblocktool.Main"
+}
+
+java {
+    withSourcesJar()
+}
+
+jar {
+    dependsOn configurations.include
+    from {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        configurations.include.collect {
+            zipTree(it)
+        }
+    } {
+        exclude "META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA"
+    }
+
+    manifest {
+        attributes(
+                "Main-Class": application.mainClass,
+                "Multi-Release": "true"
+        )
+    }
+}
