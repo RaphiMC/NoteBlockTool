@@ -39,7 +39,7 @@ public abstract class EditTab extends JPanel {
         this.songs = songs;
 
         this.setLayout(new BorderLayout());
-        JScrollPane scrollPane = new FastScrollPane();
+        JScrollPane scrollPane = new FastScrollPane().setDefaultBorder();
         this.center = new ScrollPaneSizedPanel(scrollPane);
         this.center.setLayout(new VerticalLayout(5, 5));
         scrollPane.setViewportView(this.center);

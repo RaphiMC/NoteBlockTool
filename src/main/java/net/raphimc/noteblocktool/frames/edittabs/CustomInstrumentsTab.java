@@ -23,6 +23,7 @@ import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.SongUtil;
+import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.instruments.InstrumentsTable;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
@@ -43,7 +44,7 @@ public class CustomInstrumentsTab extends EditTab {
         this.removeAll();
 
         this.table = new InstrumentsTable(true);
-        this.add(new JScrollPane(this.table));
+        this.add(new FastScrollPane(this.table));
         this.usedInstruments = SongUtil.getUsedCustomInstruments(this.songs.get(0).getSong().getView());
         NbsData data = (NbsData) this.songs.get(0).getSong().getData();
         for (Integer instrument : this.usedInstruments) {

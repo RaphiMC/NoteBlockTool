@@ -18,8 +18,32 @@
 package net.raphimc.noteblocktool.elements;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import java.awt.*;
 
 public class FastScrollPane extends JScrollPane {
+
+    private final Border defaultBorder = this.getBorder();
+
+    public FastScrollPane() {
+    }
+
+    public FastScrollPane(final Component view) {
+        super(view);
+    }
+
+    {
+        this.setBorder(BorderFactory.createEmptyBorder());
+    }
+
+    public FastScrollPane setDefaultBorder() {
+        this.setBorder(this.defaultBorder);
+        return this;
+    }
+
+    public Border getDefaultBorder() {
+        return this.defaultBorder;
+    }
 
     @Override
     public JScrollBar createVerticalScrollBar() {
