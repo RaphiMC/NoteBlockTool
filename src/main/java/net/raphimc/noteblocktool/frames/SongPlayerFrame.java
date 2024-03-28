@@ -18,6 +18,7 @@
 package net.raphimc.noteblocktool.frames;
 
 import net.lenni0451.commons.swing.GBC;
+import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.raphimc.noteblocklib.format.nbs.NbsDefinitions;
 import net.raphimc.noteblocklib.format.nbs.NbsSong;
 import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
@@ -32,6 +33,8 @@ import net.raphimc.noteblocklib.util.MinecraftDefinitions;
 import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.JavaxSoundSystem;
 import net.raphimc.noteblocktool.audio.OpenALSoundSystem;
+import net.raphimc.noteblocktool.elements.FastScrollPane;
+import net.raphimc.noteblocktool.elements.NewLineLabel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -157,40 +160,42 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             });
         }
         { //Center Panel
-            final JPanel centerPanel = new JPanel();
+            final JScrollPane centerScrollPane = new FastScrollPane();
+            final JPanel centerPanel = new ScrollPaneSizedPanel(centerScrollPane);
+            centerScrollPane.setViewportView(centerPanel);
             centerPanel.setLayout(new GridBagLayout());
-            root.add(centerPanel, BorderLayout.CENTER);
+            root.add(centerScrollPane, BorderLayout.CENTER);
 
             int gridy = 0;
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Title:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(this.songPlayer.getSongView().getTitle()));
+            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Title:"));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.songPlayer.getSongView().getTitle()));
 
             Optional<String> author = this.song.getAuthor();
             if (author.isPresent()) {
-                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Author:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(author.get()));
+                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Author:"));
+                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(author.get()));
             }
 
             Optional<String> originalAuthor = this.song.getOriginalAuthor();
             if (originalAuthor.isPresent()) {
-                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Original Author:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(originalAuthor.get()));
+                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Original Author:"));
+                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(originalAuthor.get()));
             }
 
             Optional<String> description = this.song.getDescription();
             if (description.isPresent()) {
-                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Description:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(description.get()));
+                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Description:"));
+                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(description.get()));
             }
 
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Length:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(this.song.getLength(this.songPlayer.getSongView())));
+            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Length:"));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getLength(this.songPlayer.getSongView())));
 
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Note count:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(DECIMAL_FORMAT.format(this.song.getNoteCount(this.songPlayer.getSongView()))));
+            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Note count:"));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(DECIMAL_FORMAT.format(this.song.getNoteCount(this.songPlayer.getSongView()))));
 
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Speed:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(DECIMAL_FORMAT.format(this.songPlayer.getSongView().getSpeed())));
+            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Speed:"));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(DECIMAL_FORMAT.format(this.songPlayer.getSongView().getSpeed())));
 
             GBC.fillVerticalSpace(centerPanel);
         }
