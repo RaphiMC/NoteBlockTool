@@ -44,9 +44,11 @@ import java.util.function.IntSupplier;
 
 public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
 
+    private static final String UNAVAILABLE_MESSAGE = "Your system does not support any sound system.\nPlaying songs is not supported.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
     private static SongPlayerFrame instance;
     private static SoundSystem forcedSoundSystem;
+    private static boolean songPlayerUnavailable;
     private static Point lastPosition;
     private static int lastMaxSounds = 256;
     private static int lastVolume = 50;
@@ -63,6 +65,10 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             instance.dispose();
         }
         instance = new SongPlayerFrame(song, view);
+        if (songPlayerUnavailable) {
+            JOptionPane.showMessageDialog(instance, UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         if (lastPosition != null) instance.setLocation(lastPosition);
         instance.maxSoundsSpinner.setValue(lastMaxSounds);
         instance.volumeSlider.setValue(lastVolume);
@@ -143,6 +149,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
                 this.volumeSlider.setMajorTickSpacing(25);
                 this.volumeSlider.setMinorTickSpacing(5);
                 this.volumeSlider.addChangeListener(e -> {
+                    if (songPlayerUnavailable) return;
                     this.volume = this.volumeSlider.getValue() / 100F;
                     if (this.soundSystem.equals(SoundSystem.OPENAL)) OpenALSoundSystem.setMasterVolume(this.volume);
                     lastVolume = this.volumeSlider.getValue();
@@ -197,6 +204,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
 
             GBC.create(southPanel).grid(0, gridy++).insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.progressSlider, () -> {
                 this.progressSlider.addChangeListener(e -> {
+                    if (songPlayerUnavailable) return;
                     //Skip updates if the value is set directly
                     if (!this.progressSlider.getValueIsAdjusting()) return;
                     if (!this.songPlayer.isRunning()) {
@@ -211,6 +219,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             buttonPanel.setLayout(new GridLayout(1, 3, 5, 0));
             buttonPanel.add(this.playStopButton);
             this.playStopButton.addActionListener(e -> {
+                if (songPlayerUnavailable) return;
                 if (this.songPlayer.isRunning()) {
                     this.songPlayer.stop();
                     this.songPlayer.setTick(0);
@@ -226,11 +235,17 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
                     } catch (Throwable t) {
                         t.printStackTrace();
                         JOptionPane.showMessageDialog(this, "Failed to initialize the " + this.soundSystem.getName() + " sound system:\n" + t.getClass().getSimpleName() + ": " + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                        this.soundSystem = SoundSystem.values()[(this.soundSystem.ordinal() + 1) % SoundSystem.values().length];
-                        this.soundSystem.init((int) this.maxSoundsSpinner.getValue());
-                        forcedSoundSystem = this.soundSystem;
-                        this.soundSystemComboBox.setEnabled(false);
-                        this.soundSystemComboBox.setSelectedIndex(this.soundSystem.ordinal());
+                        try {
+                            this.soundSystem = SoundSystem.values()[(this.soundSystem.ordinal() + 1) % SoundSystem.values().length];
+                            this.soundSystem.init((int) this.maxSoundsSpinner.getValue());
+                            forcedSoundSystem = this.soundSystem;
+                            this.soundSystemComboBox.setEnabled(false);
+                            this.soundSystemComboBox.setSelectedIndex(this.soundSystem.ordinal());
+                        } catch (Throwable ex) {
+                            ex.printStackTrace();
+                            songPlayerUnavailable = true;
+                            return;
+                        }
                     }
                     if (this.soundSystem.equals(SoundSystem.OPENAL)) OpenALSoundSystem.setMasterVolume(this.volume);
                     this.songPlayer.play();
@@ -293,6 +308,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
 
     @Override
     public void playNote(Note note) {
+        if (songPlayerUnavailable) return;
         if (note.getInstrument() >= Instrument.values().length) return;
 
         final float volume;
