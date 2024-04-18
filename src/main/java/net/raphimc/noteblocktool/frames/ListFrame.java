@@ -26,6 +26,7 @@ import net.raphimc.noteblocklib.format.nbs.NbsSong;
 import net.raphimc.noteblocklib.format.nbs.model.NbsHeader;
 import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.model.SongView;
+import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NoteBlockFileFilter;
 import net.raphimc.noteblocktool.elements.TextOverlayPanel;
 import net.raphimc.noteblocktool.elements.drag.DragTable;
@@ -77,7 +78,7 @@ public class ListFrame extends JFrame {
         root.setLayout(new BorderLayout());
         this.setContentPane(root);
 
-        root.add(new JScrollPane(this.table), BorderLayout.CENTER);
+        root.add(new FastScrollPane(this.table), BorderLayout.CENTER);
         this.dropTarget = new DropTarget(this, new DragTableDropTargetListener(this, this::load));
         this.table.getSelectionModel().addListSelectionListener(e -> this.refreshButtons());
         this.table.addKeyListener(new KeyAdapter() {

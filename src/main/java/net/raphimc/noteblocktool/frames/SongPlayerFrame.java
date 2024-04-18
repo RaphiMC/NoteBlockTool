@@ -18,6 +18,7 @@
 package net.raphimc.noteblocktool.frames;
 
 import net.lenni0451.commons.swing.GBC;
+import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.raphimc.noteblocklib.format.nbs.NbsDefinitions;
 import net.raphimc.noteblocklib.format.nbs.NbsSong;
 import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
@@ -32,6 +33,8 @@ import net.raphimc.noteblocklib.util.MinecraftDefinitions;
 import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.JavaxSoundSystem;
 import net.raphimc.noteblocktool.audio.OpenALSoundSystem;
+import net.raphimc.noteblocktool.elements.FastScrollPane;
+import net.raphimc.noteblocktool.elements.NewLineLabel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -44,9 +47,11 @@ import java.util.function.IntSupplier;
 
 public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
 
+    private static final String UNAVAILABLE_MESSAGE = "Your system does not support any sound system.\nPlaying songs is not supported.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
     private static SongPlayerFrame instance;
     private static SoundSystem forcedSoundSystem;
+    private static boolean songPlayerUnavailable;
     private static Point lastPosition;
     private static int lastMaxSounds = 512;
     private static int lastVolume = 50;
@@ -63,6 +68,10 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             instance.dispose();
         }
         instance = new SongPlayerFrame(song, view);
+        if (songPlayerUnavailable) {
+            JOptionPane.showMessageDialog(instance, UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         if (lastPosition != null) instance.setLocation(lastPosition);
         instance.maxSoundsSpinner.setValue(lastMaxSounds);
         instance.volumeSlider.setValue(lastVolume);
@@ -143,6 +152,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
                 this.volumeSlider.setMajorTickSpacing(25);
                 this.volumeSlider.setMinorTickSpacing(5);
                 this.volumeSlider.addChangeListener(e -> {
+                    if (songPlayerUnavailable) return;
                     this.volume = this.volumeSlider.getValue() / 100F;
                     if (this.soundSystem.equals(SoundSystem.OPENAL)) OpenALSoundSystem.setMasterVolume(this.volume);
                     lastVolume = this.volumeSlider.getValue();
@@ -150,40 +160,42 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             });
         }
         { //Center Panel
-            final JPanel centerPanel = new JPanel();
+            final JScrollPane centerScrollPane = new FastScrollPane();
+            final JPanel centerPanel = new ScrollPaneSizedPanel(centerScrollPane);
+            centerScrollPane.setViewportView(centerPanel);
             centerPanel.setLayout(new GridBagLayout());
-            root.add(centerPanel, BorderLayout.CENTER);
+            root.add(centerScrollPane, BorderLayout.CENTER);
 
             int gridy = 0;
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Title:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(this.songPlayer.getSongView().getTitle()));
+            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Title:"));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.songPlayer.getSongView().getTitle()));
 
             Optional<String> author = this.song.getAuthor();
             if (author.isPresent()) {
-                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Author:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(author.get()));
+                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Author:"));
+                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(author.get()));
             }
 
             Optional<String> originalAuthor = this.song.getOriginalAuthor();
             if (originalAuthor.isPresent()) {
-                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Original Author:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(originalAuthor.get()));
+                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Original Author:"));
+                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(originalAuthor.get()));
             }
 
             Optional<String> description = this.song.getDescription();
             if (description.isPresent()) {
-                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Description:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(description.get()));
+                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Description:"));
+                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(description.get()));
             }
 
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Length:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(this.song.getLength(this.songPlayer.getSongView())));
+            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Length:"));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getLength(this.songPlayer.getSongView())));
 
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Note count:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(DECIMAL_FORMAT.format(this.song.getNoteCount(this.songPlayer.getSongView()))));
+            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Note count:"));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(DECIMAL_FORMAT.format(this.song.getNoteCount(this.songPlayer.getSongView()))));
 
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Speed:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JLabel(DECIMAL_FORMAT.format(this.songPlayer.getSongView().getSpeed())));
+            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Speed:"));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(DECIMAL_FORMAT.format(this.songPlayer.getSongView().getSpeed())));
 
             GBC.fillVerticalSpace(centerPanel);
         }
@@ -197,6 +209,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
 
             GBC.create(southPanel).grid(0, gridy++).insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.progressSlider, () -> {
                 this.progressSlider.addChangeListener(e -> {
+                    if (songPlayerUnavailable) return;
                     //Skip updates if the value is set directly
                     if (!this.progressSlider.getValueIsAdjusting()) return;
                     if (!this.songPlayer.isRunning()) {
@@ -211,6 +224,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             buttonPanel.setLayout(new GridLayout(1, 3, 5, 0));
             buttonPanel.add(this.playStopButton);
             this.playStopButton.addActionListener(e -> {
+                if (songPlayerUnavailable) return;
                 if (this.songPlayer.isRunning()) {
                     this.songPlayer.stop();
                     this.songPlayer.setTick(0);
@@ -226,11 +240,17 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
                     } catch (Throwable t) {
                         t.printStackTrace();
                         JOptionPane.showMessageDialog(this, "Failed to initialize the " + this.soundSystem.getName() + " sound system:\n" + t.getClass().getSimpleName() + ": " + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                        this.soundSystem = SoundSystem.values()[(this.soundSystem.ordinal() + 1) % SoundSystem.values().length];
-                        this.soundSystem.init((int) this.maxSoundsSpinner.getValue());
-                        forcedSoundSystem = this.soundSystem;
-                        this.soundSystemComboBox.setEnabled(false);
-                        this.soundSystemComboBox.setSelectedIndex(this.soundSystem.ordinal());
+                        try {
+                            this.soundSystem = SoundSystem.values()[(this.soundSystem.ordinal() + 1) % SoundSystem.values().length];
+                            this.soundSystem.init((int) this.maxSoundsSpinner.getValue());
+                            forcedSoundSystem = this.soundSystem;
+                            this.soundSystemComboBox.setEnabled(false);
+                            this.soundSystemComboBox.setSelectedIndex(this.soundSystem.ordinal());
+                        } catch (Throwable ex) {
+                            ex.printStackTrace();
+                            songPlayerUnavailable = true;
+                            return;
+                        }
                     }
                     if (this.soundSystem.equals(SoundSystem.OPENAL)) OpenALSoundSystem.setMasterVolume(this.volume);
                     this.songPlayer.play();
@@ -293,6 +313,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
 
     @Override
     public void playNote(Note note) {
+        if (songPlayerUnavailable) return;
         if (note.getInstrument() >= Instrument.values().length) return;
 
         final float volume;

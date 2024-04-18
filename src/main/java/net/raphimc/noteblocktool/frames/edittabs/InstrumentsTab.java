@@ -21,6 +21,7 @@ import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.SongUtil;
+import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.instruments.InstrumentsTable;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
@@ -41,7 +42,7 @@ public class InstrumentsTab extends EditTab {
         this.removeAll();
 
         this.table = new InstrumentsTable(false);
-        this.add(new JScrollPane(this.table));
+        this.add(new FastScrollPane(this.table));
         this.usedInstruments = this.songs.stream()
                 .map(song -> SongUtil.getUsedVanillaInstruments(song.getSong().getView()))
                 .reduce(EnumSet.noneOf(Instrument.class), (a, b) -> {
