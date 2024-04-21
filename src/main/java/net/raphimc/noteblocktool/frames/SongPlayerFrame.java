@@ -53,7 +53,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
     private static SoundSystem forcedSoundSystem;
     private static boolean songPlayerUnavailable;
     private static Point lastPosition;
-    private static int lastMaxSounds = 512;
+    private static int lastMaxSounds = 256;
     private static int lastVolume = 50;
 
     public static void open(final ListFrame.LoadedSong song) {
@@ -83,7 +83,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
     private final SongPlayer songPlayer;
     private final Timer updateTimer;
     private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{SoundSystem.OPENAL.getName(), SoundSystem.JAVAX.getName()});
-    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(512, 64, 8192, 64));
+    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 8192, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, 50);
     private final JButton playStopButton = new JButton("Play");
     private final JButton pauseResumeButton = new JButton("Pause");

@@ -39,7 +39,7 @@ public class OpenALSoundSystem {
     private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("OpenAL Sound System").setDaemon(true).build());
     private static final Map<Instrument, Integer> INSTRUMENT_BUFFERS = new EnumMap<>(Instrument.class);
     private static final List<Integer> PLAYING_SOURCES = new CopyOnWriteArrayList<>();
-    private static int MAX_MONO_SOURCES = 512;
+    private static int MAX_MONO_SOURCES = 256;
     private static long DEVICE = 0L;
     private static long CONTEXT = 0L;
     private static ScheduledFuture<?> TICK_TASK;

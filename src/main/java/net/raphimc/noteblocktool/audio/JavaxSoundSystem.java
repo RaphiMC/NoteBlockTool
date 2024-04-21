@@ -37,7 +37,7 @@ public class JavaxSoundSystem {
     private static final Map<Instrument, Sound> SOUNDS = new HashMap<>();
     private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("Javax Sound System").setDaemon(true).build());
     private static final List<Clip> PLAYING_SOUNDS = new CopyOnWriteArrayList<>();
-    private static int MAX_SOUNDS = 512;
+    private static int MAX_SOUNDS = 256;
     private static ScheduledFuture<?> TICK_TASK;
 
     public static void init(final int maxSounds) {
