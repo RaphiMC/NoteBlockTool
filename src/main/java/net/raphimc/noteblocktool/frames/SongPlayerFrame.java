@@ -75,6 +75,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
         if (lastPosition != null) instance.setLocation(lastPosition);
         instance.maxSoundsSpinner.setValue(lastMaxSounds);
         instance.volumeSlider.setValue(lastVolume);
+        instance.playStopButton.doClick();
         instance.setVisible(true);
     }
 
@@ -111,8 +112,6 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             this.soundSystem = forcedSoundSystem;
             this.soundSystemComboBox.setSelectedIndex(this.soundSystem.ordinal());
         }
-
-        this.playStopButton.doClick();
 
         this.setMinimumSize(this.getSize());
     }
