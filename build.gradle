@@ -26,7 +26,7 @@ repositories {
 dependencies {
     include "net.raphimc:NoteBlockLib:2.0.6"
     include "com.formdev:flatlaf:3.4.1"
-    include "net.lenni0451.commons:swing:1.5.0"
+    include "net.lenni0451.commons:swing:1.5.1"
     include "org.lwjgl:lwjgl:3.3.3"
     include "org.lwjgl:lwjgl-openal:3.3.3"
     ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64", "natives-macos", "natives-macos-arm64"].each {
