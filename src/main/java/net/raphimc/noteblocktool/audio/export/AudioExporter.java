@@ -56,13 +56,14 @@ public abstract class AudioExporter {
         this.samplesPerTick = (int) (format.getSampleRate() / songView.getSpeed());
     }
 
-    public void render() {
+    public void render() throws InterruptedException {
         for (int tick = 0; tick <= this.songView.getLength(); tick++) {
             List<? extends Note> notes = this.songView.getNotesAtTick(tick);
             this.processNotes(notes);
             this.writeSamples();
 
             this.progressConsumer.accept((float) this.processedNotes / this.noteCount);
+            if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
         }
         this.finish();
     }
@@ -74,8 +75,9 @@ public abstract class AudioExporter {
         audioInputStream.close();
     }
 
-    private void processNotes(final List<? extends Note> notes) {
+    private void processNotes(final List<? extends Note> notes) throws InterruptedException {
         for (Note note : notes) {
+            if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
             if (note.getInstrument() >= Instrument.values().length) continue;
             final float volume;
             if (note instanceof NoteWithVolume) {
@@ -104,8 +106,8 @@ public abstract class AudioExporter {
             final float playerPanning = panning / 100F;
 
             this.processNote(instrument, playerVolume, pitch, playerPanning);
-            this.processedNotes++;
         }
+        this.processedNotes += notes.size();
     }
 
     protected abstract void processNote(final Instrument instrument, final float volume, final float pitch, final float panning);
