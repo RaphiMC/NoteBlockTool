@@ -43,6 +43,7 @@ public class OpenALAudioExporter extends AudioExporter {
 
     @Override
     protected void finish() {
+        OpenALSoundSystem.stopAllSources();
     }
 
 }

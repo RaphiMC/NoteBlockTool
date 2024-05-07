@@ -79,6 +79,10 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
         instance.setVisible(true);
     }
 
+    public static void close() {
+        if (instance != null) instance.dispose();
+    }
+
 
     private final ListFrame.LoadedSong song;
     private final SongPlayer songPlayer;

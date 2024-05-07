@@ -21,17 +21,15 @@ import net.lenni0451.commons.swing.GBC;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.format.mcsp.McSpSong;
-import net.raphimc.noteblocklib.format.mcsp.model.McSpHeader;
 import net.raphimc.noteblocklib.format.nbs.NbsSong;
-import net.raphimc.noteblocklib.format.nbs.model.NbsHeader;
 import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
-import net.raphimc.noteblocktool.elements.NoteBlockFileFilter;
 import net.raphimc.noteblocktool.elements.TextOverlayPanel;
 import net.raphimc.noteblocktool.elements.drag.DragTable;
 import net.raphimc.noteblocktool.elements.drag.DragTableDropTargetListener;
 import net.raphimc.noteblocktool.elements.drag.DragTableModel;
+import net.raphimc.noteblocktool.util.filefilter.NoteBlockFileFilter;
 
 import javax.swing.*;
 import javax.swing.event.PopupMenuEvent;
@@ -55,7 +53,7 @@ public class ListFrame extends JFrame {
     private final JButton removeButton = new JButton("Remove");
     private final JButton editButton = new JButton("Edit");
     private final JButton playButton = new JButton("Play");
-    private final JButton exportButton = new JButton("Export NBS");
+    private final JButton exportButton = new JButton("Export");
     private DropTarget dropTarget;
     private TextOverlayPanel textOverlayPanel;
 
@@ -136,34 +134,12 @@ public class ListFrame extends JFrame {
         });
         GBC.create(buttonPanel).gridx(5).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.exportButton, () -> {
             this.exportButton.addActionListener(e -> {
+                SongPlayerFrame.close();
+                this.setEnabled(false);
                 final int[] rows = this.table.getSelectedRows();
-                if (rows.length == 1) {
-                    final LoadedSong song = (LoadedSong) this.table.getValueAt(rows[0], 0);
-                    final JFileChooser fileChooser = new JFileChooser();
-                    fileChooser.setDialogTitle("Export Song");
-                    fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                    fileChooser.setMultiSelectionEnabled(false);
-                    fileChooser.setAcceptAllFileFilterUsed(false);
-                    fileChooser.setFileFilter(new NoteBlockFileFilter(SongFormat.NBS));
-                    if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-                        File file = fileChooser.getSelectedFile();
-                        if (!file.getName().toLowerCase().endsWith(".nbs")) file = new File(file.getParentFile(), file.getName() + ".nbs");
-                        this.exportSong(song, file);
-                    }
-                } else if (rows.length > 1) {
-                    final JFileChooser fileChooser = new JFileChooser();
-                    fileChooser.setDialogTitle("Export Songs");
-                    fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                    fileChooser.setMultiSelectionEnabled(false);
-                    if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-                        final File directory = fileChooser.getSelectedFile();
-                        for (int row : rows) {
-                            final LoadedSong song = (LoadedSong) this.table.getValueAt(row, 0);
-                            final File file = new File(directory, song.getFile().getName().substring(0, song.getFile().getName().lastIndexOf('.')) + ".nbs");
-                            this.exportSong(song, file);
-                        }
-                    }
-                }
+                List<LoadedSong> songs = new ArrayList<>();
+                for (int row : rows) songs.add((LoadedSong) this.table.getValueAt(row, 0));
+                new ExportFrame(this, songs);
             });
         });
         root.add(buttonPanel, BorderLayout.SOUTH);
@@ -203,7 +179,7 @@ public class ListFrame extends JFrame {
         contextMenuPlay.addActionListener(e -> this.playButton.doClick());
         contextMenu.add(contextMenuPlay);
         this.table.getSelectionModel().addListSelectionListener(e -> contextMenuPlay.setEnabled(this.table.getSelectedRows().length == 1));
-        JMenuItem contextMenuExport = new JMenuItem("Export NBS");
+        JMenuItem contextMenuExport = new JMenuItem("Export");
         contextMenuExport.addActionListener(e -> this.exportButton.doClick());
         contextMenu.add(contextMenuExport);
         this.table.setComponentPopupMenu(contextMenu);
@@ -282,50 +258,6 @@ public class ListFrame extends JFrame {
             } catch (Throwable t) {
                 throw new RuntimeException("Failed to run task", t);
             }
-        }
-    }
-
-    private void exportSong(final LoadedSong song, final File file) {
-        try {
-            final Song<?, ?, ?> exportSong = NoteBlockLib.createSongFromView(song.getSong().getView(), SongFormat.NBS);
-            final NbsSong exportNbsSong = (NbsSong) exportSong;
-            final NbsHeader exportNbsHeader = exportNbsSong.getHeader();
-            if (song.getSong() instanceof NbsSong) {
-                final NbsSong nbsSong = (NbsSong) song.getSong();
-                final NbsHeader nbsHeader = ((NbsSong) song.getSong()).getHeader();
-                exportNbsHeader.setVersion((byte) Math.max(nbsHeader.getVersion(), exportNbsHeader.getVersion()));
-                exportNbsHeader.setAuthor(nbsHeader.getAuthor());
-                exportNbsHeader.setOriginalAuthor(nbsHeader.getOriginalAuthor());
-                exportNbsHeader.setDescription(nbsHeader.getDescription());
-                exportNbsHeader.setAutoSave(nbsHeader.isAutoSave());
-                exportNbsHeader.setAutoSaveInterval(nbsHeader.getAutoSaveInterval());
-                exportNbsHeader.setTimeSignature(nbsHeader.getTimeSignature());
-                exportNbsHeader.setMinutesSpent(nbsHeader.getMinutesSpent());
-                exportNbsHeader.setLeftClicks(nbsHeader.getLeftClicks());
-                exportNbsHeader.setRightClicks(nbsHeader.getRightClicks());
-                exportNbsHeader.setNoteBlocksAdded(nbsHeader.getNoteBlocksAdded());
-                exportNbsHeader.setNoteBlocksRemoved(nbsHeader.getNoteBlocksRemoved());
-                exportNbsHeader.setSourceFileName(nbsHeader.getSourceFileName());
-                exportNbsHeader.setLoop(nbsHeader.isLoop());
-                exportNbsHeader.setMaxLoopCount(nbsHeader.getMaxLoopCount());
-                exportNbsHeader.setLoopStartTick(nbsHeader.getLoopStartTick());
-                exportNbsSong.getData().setCustomInstruments(nbsSong.getData().getCustomInstruments());
-            } else if (song.getSong() instanceof McSpSong) {
-                final McSpHeader mcSpHeader = ((McSpSong) song.getSong()).getHeader();
-                exportNbsHeader.setAuthor(mcSpHeader.getAuthor());
-                exportNbsHeader.setOriginalAuthor(mcSpHeader.getOriginalAuthor());
-                exportNbsHeader.setAutoSave(mcSpHeader.getAutoSaveInterval() != 0);
-                exportNbsHeader.setAutoSaveInterval((byte) mcSpHeader.getAutoSaveInterval());
-                exportNbsHeader.setMinutesSpent(mcSpHeader.getMinutesSpent());
-                exportNbsHeader.setLeftClicks(mcSpHeader.getLeftClicks());
-                exportNbsHeader.setRightClicks(mcSpHeader.getRightClicks());
-                exportNbsHeader.setNoteBlocksAdded(mcSpHeader.getNoteBlocksAdded());
-                exportNbsHeader.setNoteBlocksRemoved(mcSpHeader.getNoteBlocksRemoved());
-            }
-            NoteBlockLib.writeSong(exportSong, file);
-        } catch (Throwable t) {
-            t.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Failed to export song:\n" + song.getFile().getAbsolutePath() + "\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
