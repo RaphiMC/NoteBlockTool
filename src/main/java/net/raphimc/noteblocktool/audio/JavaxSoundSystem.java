@@ -86,10 +86,6 @@ public class JavaxSoundSystem {
         }
     }
 
-    public static int getPlayingSounds() {
-        return PLAYING_SOUNDS.size();
-    }
-
     public static void stopAllSounds() {
         final List<Clip> playingSounds = new ArrayList<>(PLAYING_SOUNDS);
         PLAYING_SOUNDS.clear();
@@ -109,6 +105,10 @@ public class JavaxSoundSystem {
         }
         stopAllSounds();
         SOUNDS.clear();
+    }
+
+    public static int getPlayingSounds() {
+        return PLAYING_SOUNDS.size();
     }
 
     private static void tick() {
