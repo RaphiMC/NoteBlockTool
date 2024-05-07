@@ -8,7 +8,7 @@ Using it is very simple, just run the jar file, and it will start a user interfa
 
 ## Features
 - Reads .nbs, .mcsp2, .mid, .txt and .notebot files
-- Can export all of the above as .nbs
+- Can export all of the above as .nbs, .wav and .aif files
 - Work with multiple songs at once (Batch processing)
 - High performance and accurate song player
   - Lag free playback of very large songs
@@ -29,6 +29,7 @@ Using it is very simple, just run the jar file, and it will start a user interfa
     - Removal of quiet notes (Useful for Black MIDI files)
 - Very fast and efficient
   - Imports and manipulates hundreds of songs in seconds
+  - Can export songs as audio files at multiple times the speed of playback
 
 ### Limitations
 - NBS layers are not preserved when doing anything other than editing the metadata
