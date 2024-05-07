@@ -356,8 +356,8 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
 
 
     private enum SoundSystem {
-        OPENAL("OpenAL", OpenALSoundSystem::initPlayback, OpenALSoundSystem::getMaxMonoSources, OpenALSoundSystem::getPlayingSources, OpenALSoundSystem::stopAllSources, OpenALSoundSystem::destroy),
-        JAVAX("Javax", JavaxSoundSystem::init, JavaxSoundSystem::getMaxSounds, JavaxSoundSystem::getPlayingSounds, JavaxSoundSystem::stopAllSounds, JavaxSoundSystem::destroy);
+        OPENAL("OpenAL (better sound quality)", OpenALSoundSystem::initPlayback, OpenALSoundSystem::getMaxMonoSources, OpenALSoundSystem::getPlayingSources, OpenALSoundSystem::stopAllSources, OpenALSoundSystem::destroy),
+        JAVAX("Javax (better system compatibility)", JavaxSoundSystem::init, JavaxSoundSystem::getMaxSounds, JavaxSoundSystem::getPlayingSounds, JavaxSoundSystem::stopAllSounds, JavaxSoundSystem::destroy);
 
         private final String name;
         private final IntConsumer init;
