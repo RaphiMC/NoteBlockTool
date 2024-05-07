@@ -26,7 +26,10 @@ import net.raphimc.noteblocklib.format.mcsp.McSpSong;
 import net.raphimc.noteblocklib.format.mcsp.model.McSpHeader;
 import net.raphimc.noteblocklib.format.nbs.NbsSong;
 import net.raphimc.noteblocklib.format.nbs.model.NbsHeader;
+import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
 import net.raphimc.noteblocklib.model.Song;
+import net.raphimc.noteblocklib.model.SongView;
+import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.export.impl.JavaxAudioExporter;
 import net.raphimc.noteblocktool.audio.export.impl.OpenALAudioExporter;
@@ -343,9 +346,14 @@ public class ExportFrame extends JFrame {
         if (this.format.getSelectedIndex() == 0) {
             this.writeNbsSong(song, file);
         } else {
+            SongView<?> songView = song.getSong().getView().clone();
+            if (song.getSong() instanceof NbsSong) {
+                SongResampler.applyNbsTempoChangers((NbsSong) song.getSong(), (SongView<NbsNote>) songView);
+            }
+
             AudioExporter exporter;
-            if (this.soundSystem.getSelectedIndex() == 0) exporter = new OpenALAudioExporter(song.getSong().getView(), format, progressConsumer);
-            else exporter = new JavaxAudioExporter(song.getSong().getView(), format, progressConsumer);
+            if (this.soundSystem.getSelectedIndex() == 0) exporter = new OpenALAudioExporter(songView, format, progressConsumer);
+            else exporter = new JavaxAudioExporter(songView, format, progressConsumer);
 
             try {
                 exporter.render();

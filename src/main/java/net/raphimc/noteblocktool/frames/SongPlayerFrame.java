@@ -57,7 +57,7 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
     private static int lastVolume = 50;
 
     public static void open(final ListFrame.LoadedSong song) {
-        open(song, song.getSong().getView());
+        open(song, song.getSong().getView().clone());
     }
 
     public static void open(final ListFrame.LoadedSong song, final SongView<?> view) {
