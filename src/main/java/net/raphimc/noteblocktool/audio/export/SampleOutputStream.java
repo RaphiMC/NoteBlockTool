@@ -15,31 +15,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.audio;
+package net.raphimc.noteblocktool.audio.export;
 
 import javax.sound.sampled.AudioFormat;
-import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 
 public class SampleOutputStream extends OutputStream {
 
-    private final OutputStream outputStream;
+    private final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     private final AudioFormat audioFormat;
 
-    public SampleOutputStream(final OutputStream outputStream, final AudioFormat audioFormat) {
+    public SampleOutputStream(final AudioFormat audioFormat) {
         if (audioFormat.getEncoding() != AudioFormat.Encoding.PCM_SIGNED && audioFormat.getEncoding() != AudioFormat.Encoding.PCM_UNSIGNED) {
             throw new IllegalArgumentException("Unsupported audio format: " + audioFormat);
         }
-        this.outputStream = outputStream;
         this.audioFormat = audioFormat;
     }
 
     @Override
-    public void write(final int b) throws IOException {
+    public void write(final int b) {
         this.outputStream.write(b);
     }
 
-    public void writeSample(final int sample) throws IOException {
+    public void writeSample(final int sample) {
         switch (this.audioFormat.getSampleSizeInBits()) {
             case 8:
                 this.write(sample);
@@ -55,7 +54,11 @@ public class SampleOutputStream extends OutputStream {
         }
     }
 
-    private void write16Bit(final int sample) throws IOException {
+    public byte[] getBytes() {
+        return this.outputStream.toByteArray();
+    }
+
+    private void write16Bit(final int sample) {
         if (this.audioFormat.isBigEndian()) {
             this.write((sample >> 8) & 0xFF);
             this.write(sample & 0xFF);
@@ -65,7 +68,7 @@ public class SampleOutputStream extends OutputStream {
         }
     }
 
-    private void write32Bit(final int sample) throws IOException {
+    private void write32Bit(final int sample) {
         if (this.audioFormat.isBigEndian()) {
             this.write((sample >> 24) & 0xFF);
             this.write((sample >> 16) & 0xFF);

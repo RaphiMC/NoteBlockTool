@@ -15,11 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.audio;
+package net.raphimc.noteblocktool.audio.soundsystem;
 
 import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.raphimc.noteblocklib.util.Instrument;
+import net.raphimc.noteblocktool.audio.SoundMap;
+import net.raphimc.noteblocktool.audio.export.SampleOutputStream;
 import org.lwjgl.openal.*;
 import org.lwjgl.system.MemoryUtil;
 
@@ -27,7 +29,6 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.EnumMap;
@@ -109,22 +110,9 @@ public class OpenALSoundSystem {
         AL10.alListenerfv(AL10.AL_ORIENTATION, new float[]{0F, 0F, -1F, 0F, 1F, 0F});
         checkError("Could not set listener orientation");
 
-        INSTRUMENT_BUFFERS.put(Instrument.HARP, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/harp.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.BASS, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/bass.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.BASS_DRUM, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/bd.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.SNARE, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/snare.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.HAT, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/hat.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.GUITAR, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/guitar.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.FLUTE, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/flute.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.BELL, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/bell.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.CHIME, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/icechime.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.XYLOPHONE, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/xylobone.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.IRON_XYLOPHONE, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/iron_xylophone.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.COW_BELL, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/cow_bell.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.DIDGERIDOO, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/didgeridoo.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.BIT, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/bit.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.BANJO, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/banjo.wav")));
-        INSTRUMENT_BUFFERS.put(Instrument.PLING, loadWav(OpenALSoundSystem.class.getResourceAsStream("/noteblock_sounds/pling.wav")));
+        for (Map.Entry<Instrument, String> entry : SoundMap.SOUNDS.entrySet()) {
+            INSTRUMENT_BUFFERS.put(entry.getKey(), loadWav(OpenALSoundSystem.class.getResourceAsStream(entry.getValue())));
+        }
 
         TICK_TASK = SCHEDULER.scheduleAtFixedRate(OpenALSoundSystem::tick, 0, 100, TimeUnit.MILLISECONDS);
         Runtime.getRuntime().addShutdownHook(SHUTDOWN_HOOK = new Thread(() -> {
@@ -163,7 +151,7 @@ public class OpenALSoundSystem {
         }
     }
 
-    public static void renderSamples(final SampleOutputStream outputStream, final int sampleCount) throws IOException {
+    public static void renderSamples(final SampleOutputStream outputStream, final int sampleCount) {
         final int samplesLength = sampleCount * AUDIO_FORMAT.getChannels();
         if (samplesLength * AUDIO_FORMAT.getSampleSizeInBits() / 8 > CAPTURE_BUFFER.capacity()) {
             throw new IllegalArgumentException("Sample count too high");

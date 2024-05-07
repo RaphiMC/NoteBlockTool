@@ -31,8 +31,8 @@ import net.raphimc.noteblocklib.player.SongPlayer;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.MinecraftDefinitions;
 import net.raphimc.noteblocklib.util.SongResampler;
-import net.raphimc.noteblocktool.audio.JavaxSoundSystem;
-import net.raphimc.noteblocktool.audio.OpenALSoundSystem;
+import net.raphimc.noteblocktool.audio.soundsystem.JavaxSoundSystem;
+import net.raphimc.noteblocktool.audio.soundsystem.OpenALSoundSystem;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
 
