@@ -254,7 +254,7 @@ public class ExportFrame extends JFrame {
                     true,
                     false
             );
-            if (this.soundSystem.getSelectedIndex() == 0) OpenALSoundSystem.initCapture(8192, format);
+            if (this.soundSystem.getSelectedIndex() == 0 && this.format.getSelectedIndex() != 0) OpenALSoundSystem.initCapture(8192, format);
             if (this.loadedSongs.size() == 1) {
                 JPanel songPanel = songPanels.get(this.loadedSongs.get(0));
                 JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
@@ -273,8 +273,12 @@ public class ExportFrame extends JFrame {
                     this.progressPanel.repaint();
                 });
             } else {
-                int threadCount = this.soundSystem.getSelectedIndex() == 0 ? 1 : Math.min(this.loadedSongs.size(), Runtime.getRuntime().availableProcessors());
+                int threadCount;
+                if (this.format.getSelectedIndex() == 0) threadCount = 1;
+                else if (this.soundSystem.getSelectedIndex() == 0) threadCount = 1;
+                else threadCount = Math.min(this.loadedSongs.size(), Runtime.getRuntime().availableProcessors());
                 ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadCount);
+
                 String extension = this.format.getSelectedItem().toString().toLowerCase();
                 for (ListFrame.LoadedSong song : this.loadedSongs) {
                     threadPool.submit(() -> {
@@ -317,7 +321,7 @@ public class ExportFrame extends JFrame {
             t.printStackTrace();
             JOptionPane.showMessageDialog(this, "Failed to export songs:\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
-            if (this.soundSystem.getSelectedIndex() == 0) OpenALSoundSystem.destroy();
+            if (this.soundSystem.getSelectedIndex() == 0 && this.format.getSelectedIndex() != 0) OpenALSoundSystem.destroy();
             SwingUtilities.invokeLater(() -> {
                 this.format.setEnabled(true);
                 this.soundSystem.setEnabled(true);
