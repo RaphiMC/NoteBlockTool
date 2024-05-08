@@ -33,8 +33,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class JavaxSoundSystem extends SoundSystem {
 
@@ -55,7 +55,7 @@ public class JavaxSoundSystem extends SoundSystem {
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
             this.dataLine.start();
-            this.mutationCache = new HashMap<>();
+            this.mutationCache = new ConcurrentHashMap<>();
         } catch (Throwable e) {
             throw new RuntimeException("Could not initialize javax audio system", e);
         }
