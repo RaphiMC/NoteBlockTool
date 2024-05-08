@@ -17,22 +17,15 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
-import com.google.common.io.ByteStreams;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
 import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.SourceDataLine;
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,7 +43,7 @@ public class JavaxSoundSystem extends SoundSystem {
         super(0);
 
         try {
-            this.sounds = this.loadSounds();
+            this.sounds = SoundMap.loadInstrumentSamples(FORMAT);
             this.samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed);
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
@@ -96,36 +89,6 @@ public class JavaxSoundSystem extends SoundSystem {
     public void setMasterVolume(final float volume) {
         super.setMasterVolume(volume);
         this.mutationCache.clear();
-    }
-
-    private Map<Instrument, int[]> loadSounds() {
-        try {
-            final Map<Instrument, int[]> sounds = new EnumMap<>(Instrument.class);
-            for (Map.Entry<Instrument, String> entry : SoundMap.SOUNDS.entrySet()) {
-                sounds.put(entry.getKey(), this.readSound(JavaxSoundSystem.class.getResourceAsStream(entry.getValue())));
-            }
-            return sounds;
-        } catch (Throwable e) {
-            throw new RuntimeException("Could not load audio buffer", e);
-        }
-    }
-
-    private int[] readSound(final InputStream is) {
-        try {
-            AudioInputStream in = AudioSystem.getAudioInputStream(new BufferedInputStream(is));
-            if (!in.getFormat().matches(FORMAT)) in = AudioSystem.getAudioInputStream(FORMAT, in);
-            final byte[] audioBytes = ByteStreams.toByteArray(in);
-
-            final int sampleSize = FORMAT.getSampleSizeInBits() / 8;
-            final int[] samples = new int[audioBytes.length / sampleSize];
-            for (int i = 0; i < samples.length; i++) {
-                samples[i] = ByteBuffer.wrap(audioBytes, i * sampleSize, sampleSize).order(ByteOrder.LITTLE_ENDIAN).getShort();
-            }
-
-            return samples;
-        } catch (Throwable t) {
-            throw new RuntimeException("Could not read sound", t);
-        }
     }
 
     private byte[] write(final long[] samples) {

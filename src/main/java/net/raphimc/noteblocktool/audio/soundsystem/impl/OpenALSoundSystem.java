@@ -21,8 +21,8 @@ import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
-import net.raphimc.noteblocktool.audio.export.SampleOutputStream;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
+import net.raphimc.noteblocktool.util.SampleOutputStream;
 import org.lwjgl.openal.*;
 import org.lwjgl.system.MemoryUtil;
 

@@ -18,7 +18,10 @@
 package net.raphimc.noteblocktool.audio;
 
 import net.raphimc.noteblocklib.util.Instrument;
+import net.raphimc.noteblocktool.audio.soundsystem.impl.JavaxSoundSystem;
+import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
+import javax.sound.sampled.AudioFormat;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -43,6 +46,18 @@ public class SoundMap {
         SOUNDS.put(Instrument.BIT, "/noteblock_sounds/bit.wav");
         SOUNDS.put(Instrument.BANJO, "/noteblock_sounds/banjo.wav");
         SOUNDS.put(Instrument.PLING, "/noteblock_sounds/pling.wav");
+    }
+
+    public static Map<Instrument, int[]> loadInstrumentSamples(final AudioFormat targetFormat) {
+        try {
+            final Map<Instrument, int[]> instrumentSamples = new EnumMap<>(Instrument.class);
+            for (Map.Entry<Instrument, String> entry : SOUNDS.entrySet()) {
+                instrumentSamples.put(entry.getKey(), SoundSampleUtil.readSamples(JavaxSoundSystem.class.getResourceAsStream(entry.getValue()), targetFormat));
+            }
+            return instrumentSamples;
+        } catch (Throwable e) {
+            throw new RuntimeException("Could not load instrument samples", e);
+        }
     }
 
 }

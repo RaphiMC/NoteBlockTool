@@ -17,22 +17,14 @@
  */
 package net.raphimc.noteblocktool.audio.export.impl;
 
-import com.google.common.io.ByteStreams;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.export.AudioMerger;
-import net.raphimc.noteblocktool.audio.soundsystem.impl.JavaxSoundSystem;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
 import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -45,7 +37,7 @@ public class JavaxAudioExporter extends AudioExporter {
 
     public JavaxAudioExporter(final SongView<?> songView, final AudioFormat format, final Consumer<Float> progressConsumer) {
         super(songView, format, progressConsumer);
-        this.sounds = this.loadSounds(format);
+        this.sounds = SoundMap.loadInstrumentSamples(format);
         this.mutationCache = new HashMap<>();
         this.merger = new AudioMerger(this.samplesPerTick * (songView.getLength() + 1));
     }
@@ -81,49 +73,6 @@ public class JavaxAudioExporter extends AudioExporter {
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported sample size: " + this.format.getSampleSizeInBits());
-        }
-    }
-
-    private Map<Instrument, int[]> loadSounds(final AudioFormat format) {
-        try {
-            Map<Instrument, int[]> sounds = new HashMap<>();
-            for (Map.Entry<Instrument, String> entry : SoundMap.SOUNDS.entrySet()) {
-                sounds.put(entry.getKey(), this.readSound(format, JavaxSoundSystem.class.getResourceAsStream(entry.getValue())));
-            }
-            return sounds;
-        } catch (Throwable e) {
-            throw new RuntimeException("Could not load audio buffer", e);
-        }
-    }
-
-    private int[] readSound(final AudioFormat format, final InputStream is) {
-        try {
-            AudioInputStream in = AudioSystem.getAudioInputStream(new BufferedInputStream(is));
-            if (!in.getFormat().matches(format)) in = AudioSystem.getAudioInputStream(format, in);
-            final byte[] audioBytes = ByteStreams.toByteArray(in);
-
-            final int sampleSize = format.getSampleSizeInBits() / 8;
-            final int[] samples = new int[audioBytes.length / sampleSize];
-            for (int i = 0; i < samples.length; i++) {
-                ByteBuffer buffer = ByteBuffer.wrap(audioBytes, i * sampleSize, sampleSize).order(ByteOrder.LITTLE_ENDIAN);
-                switch (format.getSampleSizeInBits()) {
-                    case 8:
-                        samples[i] = buffer.get();
-                        break;
-                    case 16:
-                        samples[i] = buffer.getShort();
-                        break;
-                    case 32:
-                        samples[i] = buffer.getInt();
-                        break;
-                    default:
-                        throw new UnsupportedOperationException("Unsupported sample size: " + format.getSampleSizeInBits());
-                }
-            }
-
-            return samples;
-        } catch (Throwable t) {
-            throw new RuntimeException("Could not read sound", t);
         }
     }
 

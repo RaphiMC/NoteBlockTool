@@ -15,70 +15,64 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.audio.export;
+package net.raphimc.noteblocktool.util;
 
 import javax.sound.sampled.AudioFormat;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 
-public class SampleOutputStream extends OutputStream {
+public class SampleInputStream extends InputStream {
 
-    private final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    private final ByteArrayInputStream bais;
     private final AudioFormat audioFormat;
 
-    public SampleOutputStream(final AudioFormat audioFormat) {
+    public SampleInputStream(final ByteArrayInputStream bais, final AudioFormat audioFormat) {
         if (audioFormat.getEncoding() != AudioFormat.Encoding.PCM_SIGNED && audioFormat.getEncoding() != AudioFormat.Encoding.PCM_UNSIGNED) {
             throw new IllegalArgumentException("Unsupported audio format: " + audioFormat);
         }
+        this.bais = bais;
         this.audioFormat = audioFormat;
     }
 
     @Override
-    public void write(final int b) {
-        this.outputStream.write(b);
+    public int read() {
+        return this.bais.read();
     }
 
-    public void writeSample(final int sample) {
+    public int readSample() {
         switch (this.audioFormat.getSampleSizeInBits()) {
             case 8:
-                this.write(sample);
-                break;
+                return (byte) this.read();
             case 16:
-                this.write16Bit(sample);
-                break;
+                return this.read16Bit();
             case 32:
-                this.write32Bit(sample);
-                break;
+                return this.read32Bit();
             default:
                 throw new UnsupportedOperationException("Unsupported sample size: " + this.audioFormat.getSampleSizeInBits());
         }
     }
 
-    public byte[] getBytes() {
-        return this.outputStream.toByteArray();
-    }
-
-    private void write16Bit(final int sample) {
+    private short read16Bit() {
+        final int b1 = this.read();
+        final int b2 = this.read();
+        if (b1 == -1 || b2 == -1) return -1;
         if (this.audioFormat.isBigEndian()) {
-            this.write((sample >> 8) & 0xFF);
-            this.write(sample & 0xFF);
+            return (short) ((b1 << 8) | b2);
         } else {
-            this.write(sample & 0xFF);
-            this.write((sample >> 8) & 0xFF);
+            return (short) ((b2 << 8) | b1);
         }
     }
 
-    private void write32Bit(final int sample) {
+    private int read32Bit() {
+        final int b1 = this.read();
+        final int b2 = this.read();
+        final int b3 = this.read();
+        final int b4 = this.read();
+        if (b1 == -1 || b2 == -1 || b3 == -1 || b4 == -1) return -1;
         if (this.audioFormat.isBigEndian()) {
-            this.write((sample >> 24) & 0xFF);
-            this.write((sample >> 16) & 0xFF);
-            this.write((sample >> 8) & 0xFF);
-            this.write(sample & 0xFF);
+            return (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
         } else {
-            this.write(sample & 0xFF);
-            this.write((sample >> 8) & 0xFF);
-            this.write((sample >> 16) & 0xFF);
-            this.write((sample >> 24) & 0xFF);
+            return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
         }
     }
 
