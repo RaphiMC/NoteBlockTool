@@ -23,7 +23,7 @@ import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.export.AudioMerger;
-import net.raphimc.noteblocktool.audio.soundsystem.JavaxSoundSystem;
+import net.raphimc.noteblocktool.audio.soundsystem.impl.JavaxSoundSystem;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
 import javax.sound.sampled.AudioFormat;
@@ -88,7 +88,7 @@ public class JavaxAudioExporter extends AudioExporter {
         try {
             Map<Instrument, int[]> sounds = new HashMap<>();
             for (Map.Entry<Instrument, String> entry : SoundMap.SOUNDS.entrySet()) {
-                sounds.put(entry.getKey(), readSound(format, JavaxSoundSystem.class.getResourceAsStream(entry.getValue())));
+                sounds.put(entry.getKey(), this.readSound(format, JavaxSoundSystem.class.getResourceAsStream(entry.getValue())));
             }
             return sounds;
         } catch (Throwable e) {

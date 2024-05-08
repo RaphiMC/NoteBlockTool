@@ -15,11 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.audio.soundsystem;
+package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import com.google.common.io.ByteStreams;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
+import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
 import javax.sound.sampled.AudioFormat;
@@ -31,62 +32,82 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JavaxSoundSystem {
+public class JavaxSoundSystem extends SoundSystem {
 
     private static final AudioFormat FORMAT = new AudioFormat(44100, 16, 1, true, false);
-    private static Map<Instrument, int[]> sounds;
-    private static int samplesPerTick;
-    private static SourceDataLine dataLine;
-    private static long[] buffer = new long[0];
-    private static Map<String, int[]> mutationCache;
 
-    public static void init(final float playbackSpeed) {
+    private final Map<Instrument, int[]> sounds;
+    private final int samplesPerTick;
+    private final SourceDataLine dataLine;
+    private final Map<String, int[]> mutationCache;
+    private long[] buffer = new long[0];
+
+    public JavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
+        super(maxSounds);
+
         try {
-            sounds = loadSounds();
-
-            samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed);
-            dataLine = AudioSystem.getSourceDataLine(FORMAT);
-            dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
-            dataLine.start();
-            mutationCache = new HashMap<>();
-        } catch (Throwable t) {
-            throw new RuntimeException("Could not initialize audio system", t);
+            this.sounds = this.loadSounds();
+            this.samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed);
+            this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
+            this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
+            this.dataLine.start();
+            this.mutationCache = new HashMap<>();
+        } catch (Throwable e) {
+            throw new RuntimeException("Could not initialize javax audio system", e);
         }
     }
 
-    public static void destroy() {
-        dataLine.stop();
-        sounds = null;
-        buffer = new long[0];
-        mutationCache = null;
+    @Override
+    public void playNote(Instrument instrument, float volume, float pitch, float panning) {
+        String key = instrument.ordinal() + "\0" + volume + "\0" + pitch;
+        int[] samples = this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.sounds.get(instrument), volume * this.masterVolume, pitch));
+        if (this.buffer.length < samples.length) this.buffer = Arrays.copyOf(this.buffer, samples.length);
+        for (int i = 0; i < samples.length; i++) this.buffer[i] += samples[i];
     }
 
-    public static void playNote(final Instrument instrument, final float volume, final float pitch) {
-        String key = instrument.name() + "\0" + volume + "\0" + pitch;
-        int[] samples = mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(sounds.get(instrument), volume, pitch));
-        if (buffer.length < samples.length) buffer = Arrays.copyOf(buffer, samples.length);
-        for (int i = 0; i < samples.length; i++) buffer[i] += samples[i];
+    @Override
+    public void writeSamples() {
+        long[] samples = Arrays.copyOfRange(this.buffer, 0, this.samplesPerTick);
+        this.dataLine.write(this.write(samples), 0, samples.length * 2);
+        if (this.buffer.length > this.samplesPerTick) this.buffer = Arrays.copyOfRange(this.buffer, this.samplesPerTick, this.buffer.length);
+        else if (this.buffer.length != 0) this.buffer = new long[0];
     }
 
-    public static void tick() {
-        long[] samples = Arrays.copyOfRange(buffer, 0, samplesPerTick);
-        dataLine.write(write(samples), 0, samples.length * 2);
-        if (buffer.length > samplesPerTick) buffer = Arrays.copyOfRange(buffer, samplesPerTick, buffer.length);
-        else if (buffer.length != 0) buffer = new long[0];
+    @Override
+    public void stopSounds() {
+        this.dataLine.flush();
     }
 
-    public static void flushDataLine() {
-        dataLine.flush();
+    @Override
+    public void close() {
+        this.dataLine.stop();
     }
 
-    private static Map<Instrument, int[]> loadSounds() {
+    @Override
+    public void setMasterVolume(float volume) {
+        super.setMasterVolume(volume);
+        this.mutationCache.clear();
+    }
+
+    @Override
+    public int getMaxSounds() {
+        return 0;
+    }
+
+    @Override
+    public int getSoundCount() {
+        return 0;
+    }
+
+    private Map<Instrument, int[]> loadSounds() {
         try {
-            Map<Instrument, int[]> sounds = new HashMap<>();
+            Map<Instrument, int[]> sounds = new EnumMap<>(Instrument.class);
             for (Map.Entry<Instrument, String> entry : SoundMap.SOUNDS.entrySet()) {
-                sounds.put(entry.getKey(), readSound(JavaxSoundSystem.class.getResourceAsStream(entry.getValue())));
+                sounds.put(entry.getKey(), this.readSound(JavaxSoundSystem.class.getResourceAsStream(entry.getValue())));
             }
             return sounds;
         } catch (Throwable e) {
@@ -94,7 +115,7 @@ public class JavaxSoundSystem {
         }
     }
 
-    private static int[] readSound(final InputStream is) {
+    private int[] readSound(final InputStream is) {
         try {
             AudioInputStream in = AudioSystem.getAudioInputStream(new BufferedInputStream(is));
             if (!in.getFormat().matches(FORMAT)) in = AudioSystem.getAudioInputStream(FORMAT, in);
@@ -103,20 +124,7 @@ public class JavaxSoundSystem {
             final int sampleSize = FORMAT.getSampleSizeInBits() / 8;
             final int[] samples = new int[audioBytes.length / sampleSize];
             for (int i = 0; i < samples.length; i++) {
-                ByteBuffer buffer = ByteBuffer.wrap(audioBytes, i * sampleSize, sampleSize).order(ByteOrder.LITTLE_ENDIAN);
-                switch (FORMAT.getSampleSizeInBits()) {
-                    case 8:
-                        samples[i] = buffer.get();
-                        break;
-                    case 16:
-                        samples[i] = buffer.getShort();
-                        break;
-                    case 32:
-                        samples[i] = buffer.getInt();
-                        break;
-                    default:
-                        throw new UnsupportedOperationException("Unsupported sample size: " + FORMAT.getSampleSizeInBits());
-                }
+                samples[i] = ByteBuffer.wrap(audioBytes, i * sampleSize, sampleSize).order(ByteOrder.LITTLE_ENDIAN).getShort();
             }
 
             return samples;
@@ -125,7 +133,7 @@ public class JavaxSoundSystem {
         }
     }
 
-    private static byte[] write(final long[] samples) {
+    private byte[] write(final long[] samples) {
         byte[] out = new byte[samples.length * 2];
         for (int i = 0; i < samples.length; i++) {
             long sample = samples[i];

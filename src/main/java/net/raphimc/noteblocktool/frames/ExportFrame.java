@@ -33,7 +33,7 @@ import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.export.impl.JavaxAudioExporter;
 import net.raphimc.noteblocktool.audio.export.impl.OpenALAudioExporter;
-import net.raphimc.noteblocktool.audio.soundsystem.OpenALSoundSystem;
+import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
 
 import javax.sound.sampled.AudioFormat;
@@ -240,6 +240,7 @@ public class ExportFrame extends JFrame {
     }
 
     private void doExport(final File outFile) {
+        OpenALSoundSystem openALSoundSystem = null;
         try {
             Map<ListFrame.LoadedSong, JPanel> songPanels = new ConcurrentHashMap<>();
             SwingUtilities.invokeAndWait(() -> {
@@ -266,12 +267,12 @@ public class ExportFrame extends JFrame {
                     true,
                     false
             );
-            if (this.soundSystem.getSelectedIndex() == 0 && this.format.getSelectedIndex() != 0) OpenALSoundSystem.initCapture(8192, format);
+            if (this.soundSystem.getSelectedIndex() == 0 && this.format.getSelectedIndex() != 0) openALSoundSystem = OpenALSoundSystem.createCapture(8192, format);
             if (this.loadedSongs.size() == 1) {
                 JPanel songPanel = songPanels.get(this.loadedSongs.get(0));
                 JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
                 try {
-                    this.exportSong(this.loadedSongs.get(0), format, outFile, progress -> {
+                    this.exportSong(this.loadedSongs.get(0), openALSoundSystem, format, outFile, progress -> {
                         SwingUtilities.invokeLater(() -> {
                             int value = (int) (progress * 100);
                             progressBar.setValue(value);
@@ -302,12 +303,13 @@ public class ExportFrame extends JFrame {
 
                 String extension = this.format.getSelectedItem().toString().toLowerCase();
                 for (ListFrame.LoadedSong song : this.loadedSongs) {
+                    final OpenALSoundSystem finalOpenALSoundSystem = openALSoundSystem;
                     threadPool.submit(() -> {
                         JPanel songPanel = songPanels.get(song);
                         JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
                         try {
                             File file = new File(outFile, song.getFile().getName().substring(0, song.getFile().getName().lastIndexOf('.')) + "." + extension);
-                            this.exportSong(song, format, file, progress -> {
+                            this.exportSong(song, finalOpenALSoundSystem, format, file, progress -> {
                                 uiQueue.offer(() -> {
                                     int value = (int) (progress * 100);
                                     progressBar.setValue(value);
@@ -316,7 +318,7 @@ public class ExportFrame extends JFrame {
                                 });
                             });
                             uiQueue.offer(() -> {
-                                progressPanel.remove(songPanel);
+                                this.progressPanel.remove(songPanel);
                                 this.progressPanel.revalidate();
                                 this.progressPanel.repaint();
                             });
@@ -359,7 +361,7 @@ public class ExportFrame extends JFrame {
             t.printStackTrace();
             JOptionPane.showMessageDialog(this, "Failed to export songs:\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
-            if (this.soundSystem.getSelectedIndex() == 0 && this.format.getSelectedIndex() != 0) OpenALSoundSystem.destroy();
+            if (openALSoundSystem != null) openALSoundSystem.close();
             SwingUtilities.invokeLater(() -> {
                 this.format.setEnabled(true);
                 this.soundSystem.setEnabled(true);
@@ -374,7 +376,7 @@ public class ExportFrame extends JFrame {
         }
     }
 
-    private void exportSong(final ListFrame.LoadedSong song, final AudioFormat format, final File file, final Consumer<Float> progressConsumer) throws InterruptedException, IOException {
+    private void exportSong(final ListFrame.LoadedSong song, final OpenALSoundSystem soundSystem, final AudioFormat format, final File file, final Consumer<Float> progressConsumer) throws InterruptedException, IOException {
         if (this.format.getSelectedIndex() == 0) {
             this.writeNbsSong(song, file);
         } else {
@@ -384,7 +386,7 @@ public class ExportFrame extends JFrame {
             }
 
             AudioExporter exporter;
-            if (this.soundSystem.getSelectedIndex() == 0) exporter = new OpenALAudioExporter(songView, format, progressConsumer);
+            if (this.soundSystem.getSelectedIndex() == 0) exporter = new OpenALAudioExporter(soundSystem, songView, format, progressConsumer);
             else exporter = new JavaxAudioExporter(songView, format, progressConsumer);
 
             exporter.render();

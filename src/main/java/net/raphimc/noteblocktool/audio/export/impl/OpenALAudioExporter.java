@@ -20,30 +20,33 @@ package net.raphimc.noteblocktool.audio.export.impl;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
-import net.raphimc.noteblocktool.audio.soundsystem.OpenALSoundSystem;
+import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
 
 import javax.sound.sampled.AudioFormat;
 import java.util.function.Consumer;
 
 public class OpenALAudioExporter extends AudioExporter {
 
-    public OpenALAudioExporter(final SongView<?> songView, final AudioFormat format, final Consumer<Float> progressConsumer) {
+    private final OpenALSoundSystem soundSystem;
+
+    public OpenALAudioExporter(final OpenALSoundSystem soundSystem, final SongView<?> songView, final AudioFormat format, final Consumer<Float> progressConsumer) {
         super(songView, format, progressConsumer);
+        this.soundSystem = soundSystem;
     }
 
     @Override
     protected void processNote(Instrument instrument, float volume, float pitch, float panning) {
-        OpenALSoundSystem.playNote(instrument, volume, pitch, panning);
+        this.soundSystem.playNote(instrument, volume, pitch, panning);
     }
 
     @Override
     protected void writeSamples() {
-        OpenALSoundSystem.renderSamples(this.sampleOutputStream, this.samplesPerTick);
+        this.soundSystem.renderSamples(this.sampleOutputStream, this.samplesPerTick);
     }
 
     @Override
     protected void finish() {
-        OpenALSoundSystem.stopAllSources();
+        this.soundSystem.stopSounds();
     }
 
 }
