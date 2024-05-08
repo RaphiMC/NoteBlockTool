@@ -47,10 +47,26 @@ public class SoundSampleUtil {
 
     public static int[] mutate(final int[] samples, final float volume, final float pitchChangeFactor) {
         final int[] newSamples = new int[(int) (samples.length / pitchChangeFactor)];
-        for (int i = 0; i < newSamples.length; i++) {
-            // Long to prevent clipping of the index
-            final long index = (long) i * samples.length / newSamples.length;
-            newSamples[i] = (int) (samples[(int) index] * volume);
+        if (pitchChangeFactor < 1) {
+            //Interpolate the samples for better quality
+            for (int i = 0; i < newSamples.length; i++) {
+                final float index = i * pitchChangeFactor;
+                final int lowerIndex = (int) index;
+                final int upperIndex = lowerIndex + 1;
+                final float fraction = index - lowerIndex;
+                if (upperIndex < samples.length) {
+                    newSamples[i] = (int) ((1 - fraction) * samples[lowerIndex] + fraction * samples[upperIndex]);
+                } else {
+                    newSamples[i] = samples[lowerIndex];
+                }
+                newSamples[i] = (int) (newSamples[i] * volume);
+            }
+        } else {
+            for (int i = 0; i < newSamples.length; i++) {
+                // Long to prevent clipping of the index
+                final long index = (long) i * samples.length / newSamples.length;
+                newSamples[i] = (int) (samples[(int) index] * volume);
+            }
         }
         return newSamples;
     }

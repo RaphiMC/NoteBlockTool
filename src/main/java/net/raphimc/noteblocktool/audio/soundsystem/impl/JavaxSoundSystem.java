@@ -26,8 +26,8 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.SourceDataLine;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class JavaxSoundSystem extends SoundSystem {
 
@@ -48,7 +48,7 @@ public class JavaxSoundSystem extends SoundSystem {
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
             this.dataLine.start();
-            this.mutationCache = new HashMap<>();
+            this.mutationCache = new ConcurrentHashMap<>();
         } catch (Throwable e) {
             throw new RuntimeException("Could not initialize javax audio system", e);
         }
