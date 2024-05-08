@@ -70,11 +70,11 @@ public class OpenALSoundSystem extends SoundSystem {
     private Thread shutdownHook;
     private ByteBuffer captureBuffer;
 
-    private OpenALSoundSystem(final int maxSounds) { //Playback
+    private OpenALSoundSystem(final int maxSounds) { // Playback
         this(maxSounds, null);
     }
 
-    private OpenALSoundSystem(final int maxSounds, final AudioFormat captureAudioFormat) { //Capture
+    private OpenALSoundSystem(final int maxSounds, final AudioFormat captureAudioFormat) { // Capture
         super(maxSounds);
 
         this.audioFormat = captureAudioFormat;
@@ -146,7 +146,7 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void playNote(Instrument instrument, float volume, float pitch, float panning) {
+    public void playNote(final Instrument instrument, final float volume, final float pitch, final float panning) {
         if (this.playingSources.size() >= this.maxSounds) {
             AL10.alDeleteSources(this.playingSources.remove(0));
             this.checkError("Could not delete audio source");
@@ -229,14 +229,14 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void setMasterVolume(float volume) {
-        AL10.alListenerf(AL10.AL_GAIN, volume);
-        this.checkError("Could not set listener gain");
+    public int getSoundCount() {
+        return this.playingSources.size();
     }
 
     @Override
-    public int getSoundCount() {
-        return this.playingSources.size();
+    public void setMasterVolume(final float volume) {
+        AL10.alListenerf(AL10.AL_GAIN, volume);
+        this.checkError("Could not set listener gain");
     }
 
     private void tick() {

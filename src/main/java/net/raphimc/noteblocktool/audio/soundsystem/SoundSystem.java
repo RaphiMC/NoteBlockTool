@@ -28,10 +28,6 @@ public abstract class SoundSystem implements AutoCloseable {
         this.maxSounds = maxSounds;
     }
 
-    public void setMasterVolume(final float volume) {
-        this.masterVolume = volume;
-    }
-
     public abstract void playNote(final Instrument instrument, final float volume, final float pitch, final float panning);
 
     public void writeSamples() {
@@ -47,5 +43,9 @@ public abstract class SoundSystem implements AutoCloseable {
     }
 
     public abstract int getSoundCount();
+
+    public void setMasterVolume(final float volume) {
+        this.masterVolume = volume;
+    }
 
 }

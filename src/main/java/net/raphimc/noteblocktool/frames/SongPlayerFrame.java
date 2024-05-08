@@ -245,7 +245,7 @@ public class SongPlayerFrame extends JFrame implements DefaultSongPlayerCallback
                 if (this.soundSystemComboBox.getSelectedIndex() == 0) {
                     this.soundSystem = OpenALSoundSystem.createPlayback(((Number) this.maxSoundsSpinner.getValue()).intValue());
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 1) {
-                    this.soundSystem = new JavaxSoundSystem(((Number) this.maxSoundsSpinner.getValue()).intValue(), this.songPlayer.getSongView().getSpeed());
+                    this.soundSystem = new JavaxSoundSystem(this.songPlayer.getSongView().getSpeed());
                 } else {
                     throw new UnsupportedOperationException(UNAVAILABLE_MESSAGE);
                 }

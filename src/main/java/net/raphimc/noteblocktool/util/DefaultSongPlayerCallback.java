@@ -30,7 +30,7 @@ import net.raphimc.noteblocklib.util.MinecraftDefinitions;
 public interface DefaultSongPlayerCallback extends ISongPlayerCallback {
 
     @Override
-    default void playNote(Note note) {
+    default void playNote(final Note note) {
         if (note.getInstrument() >= Instrument.values().length) return;
         final float volume;
         if (note instanceof NoteWithVolume) {
@@ -61,6 +61,6 @@ public interface DefaultSongPlayerCallback extends ISongPlayerCallback {
         this.playNote(instrument, playerVolume, pitch, playerPanning);
     }
 
-    void playNote(Instrument instrument, float volume, float pitch, float panning);
+    void playNote(final Instrument instrument, final float volume, final float pitch, final float panning);
 
 }

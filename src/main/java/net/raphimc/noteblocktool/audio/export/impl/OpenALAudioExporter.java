@@ -35,7 +35,7 @@ public class OpenALAudioExporter extends AudioExporter {
     }
 
     @Override
-    protected void processNote(Instrument instrument, float volume, float pitch, float panning) {
+    protected void processNote(final Instrument instrument, final float volume, final float pitch, final float panning) {
         this.soundSystem.playNote(instrument, volume, pitch, panning);
     }
 

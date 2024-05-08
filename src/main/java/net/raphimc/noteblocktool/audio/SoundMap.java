@@ -19,12 +19,12 @@ package net.raphimc.noteblocktool.audio;
 
 import net.raphimc.noteblocklib.util.Instrument;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 public class SoundMap {
 
-    public static final Map<Instrument, String> SOUNDS = new HashMap<>();
+    public static final Map<Instrument, String> SOUNDS = new EnumMap<>(Instrument.class);
 
     static {
         SOUNDS.put(Instrument.HARP, "/noteblock_sounds/harp.wav");
