@@ -105,9 +105,20 @@ public class JavaxAudioExporter extends AudioExporter {
             final int sampleSize = format.getSampleSizeInBits() / 8;
             final int[] samples = new int[audioBytes.length / sampleSize];
             for (int i = 0; i < samples.length; i++) {
-                final byte[] sampleBytes = new byte[sampleSize];
-                System.arraycopy(audioBytes, i * sampleSize, sampleBytes, 0, sampleSize);
-                samples[i] = ByteBuffer.wrap(sampleBytes).order(ByteOrder.LITTLE_ENDIAN).getShort();
+                ByteBuffer buffer = ByteBuffer.wrap(audioBytes, i * sampleSize, sampleSize).order(ByteOrder.LITTLE_ENDIAN);
+                switch (format.getSampleSizeInBits()) {
+                    case 8:
+                        samples[i] = buffer.get();
+                        break;
+                    case 16:
+                        samples[i] = buffer.getShort();
+                        break;
+                    case 32:
+                        samples[i] = buffer.getInt();
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported sample size: " + format.getSampleSizeInBits());
+                }
             }
 
             return samples;
