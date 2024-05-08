@@ -61,8 +61,8 @@ public class ExportFrame extends JFrame {
     private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (faster, normalized, multithreaded, mono only)"});
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(44_100, 8_000, 192_000, 1_000));
-    private final JLabel bitDepthLabel = new JLabel("Bit Depth:");
-    private final JComboBox<String> bitDepth = new JComboBox<>(new String[]{"8", "16", "32"});
+    private final JLabel bitDepthLabel = new JLabel("PCM Bit Depth:");
+    private final JComboBox<String> bitDepth = new JComboBox<>(new String[]{"PCM 8", "PCM 16", "PCM 32"});
     private final JLabel channelsLabel = new JLabel("Channels:");
     private final JComboBox<String> channels = new JComboBox<>(new String[]{"Mono", "Stereo"});
     private JPanel progressPanel;
@@ -261,7 +261,7 @@ public class ExportFrame extends JFrame {
 
             AudioFormat format = new AudioFormat(
                     ((Number) this.sampleRate.getValue()).floatValue(),
-                    Integer.parseInt(this.bitDepth.getSelectedItem().toString()),
+                    Integer.parseInt(this.bitDepth.getSelectedItem().toString().substring(4)),
                     this.soundSystem.getSelectedIndex() == 1 ? 1 : this.channels.getSelectedIndex() + 1,
                     true,
                     false
