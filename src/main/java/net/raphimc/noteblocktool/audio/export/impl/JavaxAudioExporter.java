@@ -40,17 +40,20 @@ import java.util.function.Consumer;
 public class JavaxAudioExporter extends AudioExporter {
 
     private final Map<Instrument, int[]> sounds;
+    private final Map<String, int[]> mutationCache;
     private final AudioMerger merger;
 
     public JavaxAudioExporter(final SongView<?> songView, final AudioFormat format, final Consumer<Float> progressConsumer) {
         super(songView, format, progressConsumer);
         this.sounds = this.loadSounds(format);
+        this.mutationCache = new HashMap<>();
         this.merger = new AudioMerger(this.samplesPerTick * (songView.getLength() + 1));
     }
 
     @Override
     protected void processNote(Instrument instrument, float volume, float pitch, float panning) {
-        this.merger.addSamples(SoundSampleUtil.mutate(this.sounds.get(instrument), volume, pitch));
+        String key = instrument + "\0" + volume + "\0" + pitch;
+        this.merger.addSamples(this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.sounds.get(instrument), volume, pitch)));
     }
 
     @Override
