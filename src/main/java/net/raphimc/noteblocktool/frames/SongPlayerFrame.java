@@ -19,22 +19,18 @@ package net.raphimc.noteblocktool.frames;
 
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
-import net.raphimc.noteblocklib.format.nbs.NbsDefinitions;
 import net.raphimc.noteblocklib.format.nbs.NbsSong;
 import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
 import net.raphimc.noteblocklib.model.Note;
-import net.raphimc.noteblocklib.model.NoteWithPanning;
-import net.raphimc.noteblocklib.model.NoteWithVolume;
 import net.raphimc.noteblocklib.model.SongView;
-import net.raphimc.noteblocklib.player.ISongPlayerCallback;
 import net.raphimc.noteblocklib.player.SongPlayer;
 import net.raphimc.noteblocklib.util.Instrument;
-import net.raphimc.noteblocklib.util.MinecraftDefinitions;
 import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.soundsystem.JavaxSoundSystem;
 import net.raphimc.noteblocktool.audio.soundsystem.OpenALSoundSystem;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
+import net.raphimc.noteblocktool.util.DefaultSongPlayerCallback;
 
 import javax.swing.*;
 import java.awt.*;
@@ -42,10 +38,10 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.text.DecimalFormat;
 import java.util.Optional;
-import java.util.function.IntConsumer;
+import java.util.function.BiConsumer;
 import java.util.function.IntSupplier;
 
-public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
+public class SongPlayerFrame extends JFrame implements DefaultSongPlayerCallback {
 
     private static final String UNAVAILABLE_MESSAGE = "Your system does not support any sound system.\nPlaying songs is not supported.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
@@ -239,13 +235,13 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
                         this.soundSystem = selectedSoundSystem;
                     }
                     try {
-                        this.soundSystem.init((int) this.maxSoundsSpinner.getValue());
+                        this.soundSystem.init((int) this.maxSoundsSpinner.getValue(), this.songPlayer.getSongView().getSpeed());
                     } catch (Throwable t) {
                         t.printStackTrace();
                         JOptionPane.showMessageDialog(this, "Failed to initialize the " + this.soundSystem.getName() + " sound system:\n" + t.getClass().getSimpleName() + ": " + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                         try {
                             this.soundSystem = SoundSystem.values()[(this.soundSystem.ordinal() + 1) % SoundSystem.values().length];
-                            this.soundSystem.init((int) this.maxSoundsSpinner.getValue());
+                            this.soundSystem.init((int) this.maxSoundsSpinner.getValue(), this.songPlayer.getSongView().getSpeed());
                             forcedSoundSystem = this.soundSystem;
                             this.soundSystemComboBox.setEnabled(false);
                             this.soundSystemComboBox.setSelectedIndex(this.soundSystem.ordinal());
@@ -308,66 +304,47 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             this.pauseResumeButton.setEnabled(false);
             this.progressSlider.setValue(0);
         }
-        this.soundCount.setText("Sounds: " + DECIMAL_FORMAT.format(this.soundSystem.getSoundCount()) + "/" + DECIMAL_FORMAT.format(this.maxSoundsSpinner.getValue()));
+        if (this.soundSystem.equals(SoundSystem.JAVAX)) {
+            this.soundCount.setText("Sounds: 0/0");
+        } else {
+            this.soundCount.setText("Sounds: " + DECIMAL_FORMAT.format(this.soundSystem.getSoundCount()) + "/" + DECIMAL_FORMAT.format(this.maxSoundsSpinner.getValue()));
+        }
 
         int msLength = (int) (this.songPlayer.getTick() / this.songPlayer.getSongView().getSpeed());
         this.progressLabel.setText("Current Position: " + String.format("%02d:%02d:%02d", msLength / 3600, (msLength / 60) % 60, msLength % 60));
     }
 
     @Override
-    public void playNote(Note note) {
+    public void playNote(Instrument instrument, float volume, float pitch, float panning) {
         if (songPlayerUnavailable) return;
-        if (note.getInstrument() >= Instrument.values().length) return;
 
-        final float volume;
-        if (note instanceof NoteWithVolume) {
-            final NoteWithVolume noteWithVolume = (NoteWithVolume) note;
-            volume = noteWithVolume.getVolume();
-        } else {
-            volume = 100F;
-        }
-        if (volume <= 0) return;
-
-        final float panning;
-        if (note instanceof NoteWithPanning) {
-            final NoteWithPanning noteWithPanning = (NoteWithPanning) note;
-            panning = noteWithPanning.getPanning();
-        } else {
-            panning = 0F;
-        }
-
-        final float pitch;
-        if (note instanceof NbsNote) {
-            final NbsNote nbsNote = (NbsNote) note;
-            pitch = MinecraftDefinitions.nbsPitchToMcPitch(NbsDefinitions.getPitch(nbsNote));
-        } else {
-            pitch = MinecraftDefinitions.mcKeyToMcPitch(MinecraftDefinitions.nbsKeyToMcKey(note.getKey()));
-        }
-
-        final Instrument instrument = Instrument.fromNbsId(note.getInstrument());
-        final float playerVolume = volume / 100F;
-        final float playerPanning = panning / 100F;
         if (this.soundSystem.equals(SoundSystem.OPENAL)) {
-            OpenALSoundSystem.playNote(instrument, playerVolume, pitch, playerPanning);
+            OpenALSoundSystem.playNote(instrument, volume, pitch, panning);
         } else if (this.soundSystem.equals(SoundSystem.JAVAX)) {
-            JavaxSoundSystem.playNote(instrument, playerVolume * this.volume, pitch);
+            JavaxSoundSystem.playNote(instrument, volume * this.volume, pitch);
         }
     }
 
+    @Override
+    public void playNotes(java.util.List<? extends Note> notes) {
+        for (Note note : notes) this.playNote(note);
+
+        if (this.soundSystem.equals(SoundSystem.JAVAX)) JavaxSoundSystem.tick();
+    }
 
     private enum SoundSystem {
-        OPENAL("OpenAL (better sound quality)", OpenALSoundSystem::initPlayback, OpenALSoundSystem::getMaxMonoSources, OpenALSoundSystem::getPlayingSources, OpenALSoundSystem::stopAllSources, OpenALSoundSystem::destroy),
-        JAVAX("Javax (better system compatibility)", JavaxSoundSystem::init, JavaxSoundSystem::getMaxSounds, JavaxSoundSystem::getPlayingSounds, JavaxSoundSystem::stopAllSounds, JavaxSoundSystem::destroy);
+        OPENAL("OpenAL (better sound quality)", (maxSounds, playbackSpeed) -> OpenALSoundSystem.initPlayback(maxSounds), OpenALSoundSystem::getMaxMonoSources, OpenALSoundSystem::getPlayingSources, OpenALSoundSystem::stopAllSources, OpenALSoundSystem::destroy),
+        JAVAX("Javax (better system compatibility, mono only)", (maxSounds, playbackSpeed) -> JavaxSoundSystem.init(playbackSpeed), () -> 0, () -> 0, JavaxSoundSystem::flushDataLine, JavaxSoundSystem::destroy);
 
         private final String name;
-        private final IntConsumer init;
+        private final BiConsumer<Integer, Float> init;
         private final IntSupplier maxSounds;
         private final IntSupplier soundCount;
         private final Runnable stopSounds;
         private final Runnable destroy;
         private boolean initialized;
 
-        SoundSystem(final String name, final IntConsumer init, final IntSupplier maxSounds, final IntSupplier soundCount, final Runnable stopSounds, final Runnable destroy) {
+        SoundSystem(final String name, final BiConsumer<Integer, Float> init, final IntSupplier maxSounds, final IntSupplier soundCount, final Runnable stopSounds, final Runnable destroy) {
             this.name = name;
             this.init = init;
             this.maxSounds = maxSounds;
@@ -380,9 +357,9 @@ public class SongPlayerFrame extends JFrame implements ISongPlayerCallback {
             return this.name;
         }
 
-        public void init(final int maxSounds) {
+        public void init(final int maxSounds, final float playbackSpeed) {
             if (this.initialized) return;
-            this.init.accept(maxSounds);
+            this.init.accept(maxSounds, playbackSpeed);
             this.initialized = true;
         }
 

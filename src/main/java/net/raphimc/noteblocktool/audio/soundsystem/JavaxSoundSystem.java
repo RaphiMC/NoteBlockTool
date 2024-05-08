@@ -18,150 +18,114 @@
 package net.raphimc.noteblocktool.audio.soundsystem;
 
 import com.google.common.io.ByteStreams;
-import com.google.common.io.LittleEndianDataOutputStream;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
-import javax.sound.sampled.*;
-import java.io.*;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.SourceDataLine;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
 
 public class JavaxSoundSystem {
 
-    private static final Map<Instrument, Sound> SOUNDS = new HashMap<>();
-    private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("Javax Sound System").setDaemon(true).build());
-    private static final List<Clip> PLAYING_SOUNDS = new CopyOnWriteArrayList<>();
-    private static int MAX_SOUNDS = 256;
-    private static ScheduledFuture<?> TICK_TASK;
+    private static final AudioFormat FORMAT = new AudioFormat(44100, 16, 1, true, false);
+    private static Map<Instrument, int[]> sounds;
+    private static int samplesPerTick;
+    private static SourceDataLine dataLine;
+    private static long[] buffer = new long[0];
+    private static Map<String, int[]> mutationCache;
 
-    public static void init(final int maxSounds) {
-        MAX_SOUNDS = maxSounds;
+    public static void init(final float playbackSpeed) {
         try {
-            for (Map.Entry<Instrument, String> entry : SoundMap.SOUNDS.entrySet()) {
-                SOUNDS.put(entry.getKey(), readSound(JavaxSoundSystem.class.getResourceAsStream(entry.getValue())));
-            }
-        } catch (Throwable e) {
-            throw new RuntimeException("Could not load audio buffer", e);
-        }
+            sounds = loadSounds();
 
-        TICK_TASK = SCHEDULER.scheduleAtFixedRate(JavaxSoundSystem::tick, 0, 100, TimeUnit.MILLISECONDS);
-    }
-
-    public static int getMaxSounds() {
-        return MAX_SOUNDS;
-    }
-
-    public static void playNote(final Instrument instrument, final float volume, final float pitch) {
-        if (PLAYING_SOUNDS.size() >= MAX_SOUNDS) return;
-        try {
-            final Sound sound = SOUNDS.get(instrument);
-            final int[] samples = SoundSampleUtil.mutate(sound.getSamples(), volume, pitch);
-            final Sound newSound = new Sound(sound.getAudioFormat(), samples);
-            final AudioInputStream audioStream = writeSound(newSound);
-            final Clip clip = AudioSystem.getClip();
-            clip.open(audioStream);
-            clip.start();
-            PLAYING_SOUNDS.add(clip);
+            samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed);
+            dataLine = AudioSystem.getSourceDataLine(FORMAT);
+            dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
+            dataLine.start();
+            mutationCache = new HashMap<>();
         } catch (Throwable t) {
-            throw new RuntimeException("Could not play note", t);
+            throw new RuntimeException("Could not initialize audio system", t);
         }
-    }
-
-    public static void stopAllSounds() {
-        final List<Clip> playingSounds = new ArrayList<>(PLAYING_SOUNDS);
-        PLAYING_SOUNDS.clear();
-        final Thread thread = new Thread(() -> {
-            for (Clip clip : playingSounds) {
-                clip.stop();
-                clip.close();
-            }
-        });
-        thread.start();
     }
 
     public static void destroy() {
-        if (TICK_TASK != null) {
-            TICK_TASK.cancel(true);
-            TICK_TASK = null;
-        }
-        stopAllSounds();
-        SOUNDS.clear();
+        dataLine.stop();
+        sounds = null;
+        buffer = new long[0];
+        mutationCache = null;
     }
 
-    public static int getPlayingSounds() {
-        return PLAYING_SOUNDS.size();
+    public static void playNote(final Instrument instrument, final float volume, final float pitch) {
+        String key = instrument.name() + "\0" + volume + "\0" + pitch;
+        int[] samples = mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(sounds.get(instrument), volume, pitch));
+        if (buffer.length < samples.length) buffer = Arrays.copyOf(buffer, samples.length);
+        for (int i = 0; i < samples.length; i++) buffer[i] += samples[i];
     }
 
-    private static void tick() {
-        PLAYING_SOUNDS.removeIf(clip -> {
-            if (clip.isRunning()) {
-                return false;
-            } else {
-                clip.close();
-                return true;
+    public static void tick() {
+        long[] samples = Arrays.copyOfRange(buffer, 0, samplesPerTick);
+        dataLine.write(write(samples), 0, samples.length * 2);
+        if (buffer.length > samplesPerTick) buffer = Arrays.copyOfRange(buffer, samplesPerTick, buffer.length);
+        else if (buffer.length != 0) buffer = new long[0];
+    }
+
+    public static void flushDataLine() {
+        dataLine.flush();
+    }
+
+    private static Map<Instrument, int[]> loadSounds() {
+        try {
+            Map<Instrument, int[]> sounds = new HashMap<>();
+            for (Map.Entry<Instrument, String> entry : SoundMap.SOUNDS.entrySet()) {
+                sounds.put(entry.getKey(), readSound(JavaxSoundSystem.class.getResourceAsStream(entry.getValue())));
             }
-        });
+            return sounds;
+        } catch (Throwable e) {
+            throw new RuntimeException("Could not load audio buffer", e);
+        }
     }
 
-    private static Sound readSound(final InputStream is) throws UnsupportedAudioFileException, IOException {
-        final AudioInputStream in = AudioSystem.getAudioInputStream(new BufferedInputStream(is));
-        final AudioFormat audioFormat = in.getFormat();
-        final byte[] audioBytes = ByteStreams.toByteArray(in);
+    private static int[] readSound(final InputStream is) {
+        try {
+            AudioInputStream in = AudioSystem.getAudioInputStream(new BufferedInputStream(is));
+            if (!in.getFormat().matches(FORMAT)) in = AudioSystem.getAudioInputStream(FORMAT, in);
+            final byte[] audioBytes = ByteStreams.toByteArray(in);
 
-        final int sampleSize = audioFormat.getSampleSizeInBits() / 8;
-        final int[] samples = new int[audioBytes.length / sampleSize];
+            final int sampleSize = FORMAT.getSampleSizeInBits() / 8;
+            final int[] samples = new int[audioBytes.length / sampleSize];
+            for (int i = 0; i < samples.length; i++) {
+                final byte[] sampleBytes = new byte[sampleSize];
+                System.arraycopy(audioBytes, i * sampleSize, sampleBytes, 0, sampleSize);
+                samples[i] = ByteBuffer.wrap(sampleBytes).order(ByteOrder.LITTLE_ENDIAN).getShort();
+            }
+
+            return samples;
+        } catch (Throwable t) {
+            throw new RuntimeException("Could not read sound", t);
+        }
+    }
+
+    private static byte[] write(final long[] samples) {
+        byte[] out = new byte[samples.length * 2];
         for (int i = 0; i < samples.length; i++) {
-            final byte[] sampleBytes = new byte[sampleSize];
-            System.arraycopy(audioBytes, i * sampleSize, sampleBytes, 0, sampleSize);
-            samples[i] = ByteBuffer.wrap(sampleBytes).order(ByteOrder.LITTLE_ENDIAN).getShort();
+            long sample = samples[i];
+            if (sample > Short.MAX_VALUE) sample = Short.MAX_VALUE;
+            else if (sample < Short.MIN_VALUE) sample = Short.MIN_VALUE;
+
+            short conv = (short) sample;
+            out[i * 2] = (byte) (conv & 0xFF);
+            out[i * 2 + 1] = (byte) ((conv >> 8) & 0xFF);
         }
-
-        return new Sound(audioFormat, samples);
-    }
-
-    private static AudioInputStream writeSound(final Sound sound) throws IOException {
-        final int sampleSize = sound.getAudioFormat().getSampleSizeInBits() / 8;
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream(sound.getSamples().length * sampleSize);
-        final LittleEndianDataOutputStream dos = new LittleEndianDataOutputStream(baos);
-        for (int sample : sound.getSamples()) {
-            dos.writeShort((short) sample);
-        }
-        return new AudioInputStream(new ByteArrayInputStream(baos.toByteArray()), sound.getAudioFormat(), baos.size() / sound.getAudioFormat().getFrameSize());
-    }
-
-
-    private static final class Sound {
-        private AudioFormat audioFormat;
-        private int[] samples;
-
-        private Sound(final AudioFormat audioFormat, final int[] samples) {
-            this.audioFormat = audioFormat;
-            this.samples = samples;
-        }
-
-        public AudioFormat getAudioFormat() {
-            return this.audioFormat;
-        }
-
-        public void setAudioFormat(final AudioFormat audioFormat) {
-            this.audioFormat = audioFormat;
-        }
-
-        public int[] getSamples() {
-            return this.samples;
-        }
-
-        public void setSamples(final int[] samples) {
-            this.samples = samples;
-        }
+        return out;
     }
 
 }
