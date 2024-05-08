@@ -26,10 +26,6 @@ public class AudioMerger {
         this.samples = new long[sampleCount];
     }
 
-    public long[] getSamples() {
-        return this.samples;
-    }
-
     public void addSamples(final int[] samples) {
         for (int i = 0; i < samples.length; i++) {
             int index = this.sampleIndex + i;
@@ -71,7 +67,7 @@ public class AudioMerger {
     }
 
     private long getMax() {
-        long max = 0;
+        long max = 1;
         for (long sample : this.samples) max = Math.max(max, Math.abs(sample));
         return max;
     }
