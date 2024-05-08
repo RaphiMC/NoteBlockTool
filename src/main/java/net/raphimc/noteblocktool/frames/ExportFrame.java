@@ -42,6 +42,7 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -198,6 +199,7 @@ public class ExportFrame extends JFrame {
         this.sampleRate.setEnabled(false);
         this.bitDepth.setEnabled(false);
         this.channels.setEnabled(false);
+        this.progressPanel.removeAll();
         this.exportButton.setText("Cancel");
         this.progressBar.setValue(0);
         this.progressBar.setMaximum(this.loadedSongs.size());
@@ -219,13 +221,18 @@ public class ExportFrame extends JFrame {
             if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
                 if (!file.getName().toLowerCase().endsWith(extension)) file = new File(file.getParentFile(), file.getName() + "." + extension);
+                file.getParentFile().mkdirs();
                 return file;
             }
         } else {
             fileChooser.setDialogTitle("Export Songs");
             fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
             fileChooser.setMultiSelectionEnabled(false);
-            if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) return fileChooser.getSelectedFile();
+            if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                file.mkdirs();
+                return file;
+            }
         }
         return null;
     }
@@ -261,20 +268,28 @@ public class ExportFrame extends JFrame {
             if (this.loadedSongs.size() == 1) {
                 JPanel songPanel = songPanels.get(this.loadedSongs.get(0));
                 JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
-                this.exportSong(this.loadedSongs.get(0), format, outFile, progress -> {
-                    SwingUtilities.invokeLater(() -> {
-                        int value = (int) (progress * 100);
-                        progressBar.setValue(value);
-                        progressBar.revalidate();
-                        progressBar.repaint();
+                try {
+                    this.exportSong(this.loadedSongs.get(0), format, outFile, progress -> {
+                        SwingUtilities.invokeLater(() -> {
+                            int value = (int) (progress * 100);
+                            progressBar.setValue(value);
+                            progressBar.revalidate();
+                            progressBar.repaint();
+                        });
                     });
-                });
-                songPanels.remove(this.loadedSongs.get(0));
-                SwingUtilities.invokeLater(() -> {
-                    this.progressPanel.remove(songPanel);
-                    this.progressPanel.revalidate();
-                    this.progressPanel.repaint();
-                });
+                } catch (InterruptedException e) {
+                    return;
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    JOptionPane.showMessageDialog(this, "Failed to export song:\n" + this.loadedSongs.get(0).getFile().getAbsolutePath() + "\n" + t.getClass().getSimpleName() + ": " + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    songPanels.remove(this.loadedSongs.get(0));
+                    SwingUtilities.invokeLater(() -> {
+                        this.progressPanel.remove(songPanel);
+                        this.progressPanel.revalidate();
+                        this.progressPanel.repaint();
+                    });
+                }
             } else {
                 int threadCount;
                 if (this.format.getSelectedIndex() == 0) threadCount = 1;
@@ -285,27 +300,40 @@ public class ExportFrame extends JFrame {
                 String extension = this.format.getSelectedItem().toString().toLowerCase();
                 for (ListFrame.LoadedSong song : this.loadedSongs) {
                     threadPool.submit(() -> {
-                        File file = new File(outFile, song.getFile().getName().substring(0, song.getFile().getName().lastIndexOf('.')) + "." + extension);
                         JPanel songPanel = songPanels.get(song);
                         JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
-                        this.exportSong(song, format, file, progress -> {
-                            SwingUtilities.invokeLater(() -> {
-                                int value = (int) (progress * 100);
-                                progressBar.setValue(value);
-                                progressBar.revalidate();
-                                progressBar.repaint();
+                        try {
+                            File file = new File(outFile, song.getFile().getName().substring(0, song.getFile().getName().lastIndexOf('.')) + "." + extension);
+                            this.exportSong(song, format, file, progress -> {
+                                SwingUtilities.invokeLater(() -> {
+                                    int value = (int) (progress * 100);
+                                    progressBar.setValue(value);
+                                    progressBar.revalidate();
+                                    progressBar.repaint();
+                                });
                             });
-                        });
-                        songPanels.remove(song);
-                        SwingUtilities.invokeLater(() -> {
-                            progressPanel.remove(songPanel);
-                            this.progressPanel.revalidate();
-                            this.progressPanel.repaint();
+                            songPanels.remove(song);
+                            SwingUtilities.invokeLater(() -> {
+                                progressPanel.remove(songPanel);
+                                this.progressPanel.revalidate();
+                                this.progressPanel.repaint();
 
-                            this.progressBar.setValue(this.loadedSongs.size() - songPanels.size());
-                            this.progressBar.revalidate();
-                            this.progressBar.repaint();
-                        });
+                                this.progressBar.setValue(this.loadedSongs.size() - songPanels.size());
+                                this.progressBar.revalidate();
+                                this.progressBar.repaint();
+                            });
+                        } catch (InterruptedException ignored) {
+                        } catch (Throwable t) {
+                            t.printStackTrace();
+                            SwingUtilities.invokeLater(() -> {
+                                songPanel.remove(progressBar);
+                                GBC.create(songPanel).grid(1, 0).insets(0, 5, 0, 0).weightx(1).fill(GBC.HORIZONTAL).add(() -> {
+                                    JLabel label = new JLabel(t.getClass().getSimpleName() + ":" + t.getMessage());
+                                    label.setForeground(new Color(255, 107, 104));
+                                    return label;
+                                });
+                            });
+                        }
                     });
                 }
 
@@ -331,9 +359,6 @@ public class ExportFrame extends JFrame {
                 this.sampleRate.setEnabled(true);
                 this.bitDepth.setEnabled(true);
                 this.channels.setEnabled(true);
-                this.progressPanel.removeAll();
-                this.progressPanel.revalidate();
-                this.progressPanel.repaint();
                 this.exportButton.setText("Export");
                 this.progressBar.setValue(this.loadedSongs.size());
                 this.progressBar.revalidate();
@@ -342,7 +367,7 @@ public class ExportFrame extends JFrame {
         }
     }
 
-    private void exportSong(final ListFrame.LoadedSong song, final AudioFormat format, final File file, final Consumer<Float> progressConsumer) {
+    private void exportSong(final ListFrame.LoadedSong song, final AudioFormat format, final File file, final Consumer<Float> progressConsumer) throws InterruptedException, IOException {
         if (this.format.getSelectedIndex() == 0) {
             this.writeNbsSong(song, file);
         } else {
@@ -355,14 +380,8 @@ public class ExportFrame extends JFrame {
             if (this.soundSystem.getSelectedIndex() == 0) exporter = new OpenALAudioExporter(songView, format, progressConsumer);
             else exporter = new JavaxAudioExporter(songView, format, progressConsumer);
 
-            try {
-                exporter.render();
-                exporter.write(file);
-            } catch (InterruptedException ignored) {
-            } catch (Throwable t) {
-                t.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Failed to export song:\n" + song.getFile().getAbsolutePath() + "\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
+            exporter.render();
+            exporter.write(file);
         }
     }
 
