@@ -46,8 +46,8 @@ public class JavaxSoundSystem extends SoundSystem {
     private final Map<String, int[]> mutationCache;
     private long[] buffer = new long[0];
 
-    public JavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
-        super(maxSounds);
+    public JavaxSoundSystem(final float playbackSpeed) {
+        super(0);
 
         try {
             this.sounds = this.loadSounds();
@@ -62,16 +62,16 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void playNote(Instrument instrument, float volume, float pitch, float panning) {
-        String key = instrument.ordinal() + "\0" + volume + "\0" + pitch;
-        int[] samples = this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.sounds.get(instrument), volume * this.masterVolume, pitch));
+    public void playNote(final Instrument instrument, final float volume, final float pitch, final float panning) {
+        final String key = instrument.ordinal() + "\0" + volume + "\0" + pitch;
+        final int[] samples = this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.sounds.get(instrument), volume * this.masterVolume, pitch));
         if (this.buffer.length < samples.length) this.buffer = Arrays.copyOf(this.buffer, samples.length);
         for (int i = 0; i < samples.length; i++) this.buffer[i] += samples[i];
     }
 
     @Override
     public void writeSamples() {
-        long[] samples = Arrays.copyOfRange(this.buffer, 0, this.samplesPerTick);
+        final long[] samples = Arrays.copyOfRange(this.buffer, 0, this.samplesPerTick);
         this.dataLine.write(this.write(samples), 0, samples.length * 2);
         if (this.buffer.length > this.samplesPerTick) this.buffer = Arrays.copyOfRange(this.buffer, this.samplesPerTick, this.buffer.length);
         else if (this.buffer.length != 0) this.buffer = new long[0];
@@ -88,24 +88,19 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void setMasterVolume(float volume) {
-        super.setMasterVolume(volume);
-        this.mutationCache.clear();
-    }
-
-    @Override
-    public int getMaxSounds() {
-        return 0;
-    }
-
-    @Override
     public int getSoundCount() {
         return 0;
     }
 
+    @Override
+    public void setMasterVolume(final float volume) {
+        super.setMasterVolume(volume);
+        this.mutationCache.clear();
+    }
+
     private Map<Instrument, int[]> loadSounds() {
         try {
-            Map<Instrument, int[]> sounds = new EnumMap<>(Instrument.class);
+            final Map<Instrument, int[]> sounds = new EnumMap<>(Instrument.class);
             for (Map.Entry<Instrument, String> entry : SoundMap.SOUNDS.entrySet()) {
                 sounds.put(entry.getKey(), this.readSound(JavaxSoundSystem.class.getResourceAsStream(entry.getValue())));
             }
@@ -134,13 +129,13 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     private byte[] write(final long[] samples) {
-        byte[] out = new byte[samples.length * 2];
+        final byte[] out = new byte[samples.length * 2];
         for (int i = 0; i < samples.length; i++) {
             long sample = samples[i];
             if (sample > Short.MAX_VALUE) sample = Short.MAX_VALUE;
             else if (sample < Short.MIN_VALUE) sample = Short.MIN_VALUE;
 
-            short conv = (short) sample;
+            final short conv = (short) sample;
             out[i * 2] = (byte) (conv & 0xFF);
             out[i * 2 + 1] = (byte) ((conv >> 8) & 0xFF);
         }

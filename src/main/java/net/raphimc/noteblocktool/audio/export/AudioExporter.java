@@ -20,6 +20,7 @@ package net.raphimc.noteblocktool.audio.export;
 import net.raphimc.noteblocklib.model.Note;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.Instrument;
+import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.util.DefaultSongPlayerCallback;
 
 import javax.sound.sampled.AudioFileFormat;
@@ -34,7 +35,7 @@ import java.util.function.Consumer;
 
 public abstract class AudioExporter {
 
-    private final DefaultSongPlayerCallback callback = this::processNote;
+    private final DefaultSongPlayerCallback noteConsumer = this::processNote;
     private final SongView<?> songView;
     protected final AudioFormat format;
     private final Consumer<Float> progressConsumer;
@@ -49,16 +50,16 @@ public abstract class AudioExporter {
         this.progressConsumer = progressConsumer;
         this.sampleOutputStream = new SampleOutputStream(format);
 
-        this.noteCount = songView.getNotes().values().stream().mapToLong(List::size).sum();
+        this.noteCount = SongUtil.getNoteCount(songView);
         this.samplesPerTick = (int) (format.getSampleRate() / songView.getSpeed());
     }
 
     public void render() throws InterruptedException {
         for (int tick = 0; tick <= this.songView.getLength(); tick++) {
-            List<? extends Note> notes = this.songView.getNotesAtTick(tick);
+            final List<? extends Note> notes = this.songView.getNotesAtTick(tick);
             for (Note note : notes) {
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
-                this.callback.playNote(note);
+                this.noteConsumer.playNote(note);
             }
             this.processedNotes += notes.size();
             this.writeSamples();
@@ -69,10 +70,10 @@ public abstract class AudioExporter {
         this.finish();
     }
 
-    public void write(final File file) throws IOException {
-        ByteArrayInputStream bais = new ByteArrayInputStream(this.sampleOutputStream.getBytes());
-        AudioInputStream audioInputStream = new AudioInputStream(bais, this.format, bais.available());
-        AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, file);
+    public void write(final AudioFileFormat.Type format, final File file) throws IOException {
+        final ByteArrayInputStream bais = new ByteArrayInputStream(this.sampleOutputStream.getBytes());
+        final AudioInputStream audioInputStream = new AudioInputStream(bais, this.format, bais.available());
+        AudioSystem.write(audioInputStream, format, file);
         audioInputStream.close();
     }
 

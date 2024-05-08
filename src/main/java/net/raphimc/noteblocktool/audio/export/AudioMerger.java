@@ -28,9 +28,9 @@ public class AudioMerger {
 
     public void addSamples(final int[] samples) {
         for (int i = 0; i < samples.length; i++) {
-            int index = this.sampleIndex + i;
+            final int index = this.sampleIndex + i;
             if (index >= this.samples.length) break;
-            int sample = samples[i];
+            final int sample = samples[i];
             this.samples[index] += sample;
         }
     }
@@ -40,8 +40,8 @@ public class AudioMerger {
     }
 
     public byte[] normalizeBytes() {
-        byte[] bytes = new byte[this.samples.length];
-        long max = this.getMax();
+        final byte[] bytes = new byte[this.samples.length];
+        final long max = this.getMax();
         for (int i = 0; i < this.samples.length; i++) {
             bytes[i] = (byte) (this.samples[i] * Byte.MAX_VALUE / max);
         }
@@ -49,8 +49,8 @@ public class AudioMerger {
     }
 
     public short[] normalizeShorts() {
-        short[] shorts = new short[this.samples.length];
-        long max = this.getMax();
+        final short[] shorts = new short[this.samples.length];
+        final long max = this.getMax();
         for (int i = 0; i < this.samples.length; i++) {
             shorts[i] = (short) (this.samples[i] * Short.MAX_VALUE / max);
         }
@@ -58,8 +58,8 @@ public class AudioMerger {
     }
 
     public int[] normalizeInts() {
-        int[] ints = new int[this.samples.length];
-        long max = this.getMax();
+        final int[] ints = new int[this.samples.length];
+        final long max = this.getMax();
         for (int i = 0; i < this.samples.length; i++) {
             ints[i] = (int) (this.samples[i] * Integer.MAX_VALUE / max);
         }

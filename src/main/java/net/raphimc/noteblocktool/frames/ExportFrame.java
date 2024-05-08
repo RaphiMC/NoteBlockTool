@@ -36,6 +36,7 @@ import net.raphimc.noteblocktool.audio.export.impl.OpenALAudioExporter;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
 
+import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.swing.*;
 import java.awt.*;
@@ -58,7 +59,7 @@ public class ExportFrame extends JFrame {
     private final List<ListFrame.LoadedSong> loadedSongs;
     private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "WAV", "AIF"});
     private final JLabel soundSystemLabel = new JLabel("Sound System:");
-    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (faster, normalized, multithreaded, mono only)"});
+    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (faster, normalized, mono only)"});
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(44_100, 8_000, 192_000, 1_000));
     private final JLabel bitDepthLabel = new JLabel("PCM Bit Depth:");
@@ -390,7 +391,7 @@ public class ExportFrame extends JFrame {
             else exporter = new JavaxAudioExporter(songView, format, progressConsumer);
 
             exporter.render();
-            exporter.write(file);
+            exporter.write(this.format.getSelectedIndex() == 1 ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);
         }
     }
 
