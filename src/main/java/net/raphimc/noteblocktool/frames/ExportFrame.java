@@ -45,7 +45,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
@@ -296,6 +298,7 @@ public class ExportFrame extends JFrame {
                 else if (this.soundSystem.getSelectedIndex() == 0) threadCount = 1;
                 else threadCount = Math.min(this.loadedSongs.size(), Runtime.getRuntime().availableProcessors());
                 ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadCount);
+                Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
 
                 String extension = this.format.getSelectedItem().toString().toLowerCase();
                 for (ListFrame.LoadedSong song : this.loadedSongs) {
@@ -305,27 +308,22 @@ public class ExportFrame extends JFrame {
                         try {
                             File file = new File(outFile, song.getFile().getName().substring(0, song.getFile().getName().lastIndexOf('.')) + "." + extension);
                             this.exportSong(song, format, file, progress -> {
-                                SwingUtilities.invokeLater(() -> {
+                                uiQueue.offer(() -> {
                                     int value = (int) (progress * 100);
                                     progressBar.setValue(value);
                                     progressBar.revalidate();
                                     progressBar.repaint();
                                 });
                             });
-                            songPanels.remove(song);
-                            SwingUtilities.invokeLater(() -> {
+                            uiQueue.offer(() -> {
                                 progressPanel.remove(songPanel);
                                 this.progressPanel.revalidate();
                                 this.progressPanel.repaint();
-
-                                this.progressBar.setValue(this.loadedSongs.size() - songPanels.size());
-                                this.progressBar.revalidate();
-                                this.progressBar.repaint();
                             });
                         } catch (InterruptedException ignored) {
                         } catch (Throwable t) {
                             t.printStackTrace();
-                            SwingUtilities.invokeLater(() -> {
+                            uiQueue.offer(() -> {
                                 songPanel.remove(progressBar);
                                 GBC.create(songPanel).grid(1, 0).insets(0, 5, 0, 0).weightx(1).fill(GBC.HORIZONTAL).add(() -> {
                                     JLabel label = new JLabel(t.getClass().getSimpleName() + ":" + t.getMessage());
@@ -333,16 +331,25 @@ public class ExportFrame extends JFrame {
                                     return label;
                                 });
                             });
+                        } finally {
+                            songPanels.remove(song);
                         }
                     });
                 }
 
-                while (threadPool.getCompletedTaskCount() < threadPool.getTaskCount()) {
+                while (threadPool.getCompletedTaskCount() < threadPool.getTaskCount() || !uiQueue.isEmpty()) {
+                    SwingUtilities.invokeAndWait(() -> {
+                        while (!uiQueue.isEmpty()) uiQueue.poll().run();
+
+                        this.progressBar.setValue(this.loadedSongs.size() - songPanels.size());
+                        this.progressBar.setString((this.loadedSongs.size() - songPanels.size()) + " / " + this.loadedSongs.size());
+                        this.progressBar.revalidate();
+                        this.progressBar.repaint();
+                    });
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException e) {
-                        threadPool.shutdownNow();
-                        return;
+                        break;
                     }
                 }
                 threadPool.shutdownNow();
