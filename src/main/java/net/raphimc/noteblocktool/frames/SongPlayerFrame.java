@@ -85,7 +85,6 @@ public class SongPlayerFrame extends JFrame implements DefaultSongPlayerCallback
     private final JLabel soundCount = new JLabel("Sounds: 0/" + DECIMAL_FORMAT.format(this.maxSoundsSpinner.getValue()));
     private final JLabel progressLabel = new JLabel("Current Position: 00:00:00");
     private SoundSystem soundSystem;
-    private float volume = 1F;
 
     private SongPlayerFrame(final ListFrame.LoadedSong song, final SongView<?> view) {
         this.song = song;
@@ -140,8 +139,7 @@ public class SongPlayerFrame extends JFrame implements DefaultSongPlayerCallback
                 this.volumeSlider.setMajorTickSpacing(25);
                 this.volumeSlider.setMinorTickSpacing(5);
                 this.volumeSlider.addChangeListener(e -> {
-                    this.volume = this.volumeSlider.getValue() / 100F;
-                    if (this.soundSystem != null) this.soundSystem.setMasterVolume(this.volume);
+                    if (this.soundSystem != null) this.soundSystem.setMasterVolume(this.volumeSlider.getValue() / 100F);
                     lastVolume = this.volumeSlider.getValue();
                 });
             });
@@ -216,7 +214,7 @@ public class SongPlayerFrame extends JFrame implements DefaultSongPlayerCallback
                     if (this.soundSystem != null) this.soundSystem.stopSounds();
                 } else {
                     if (this.initSoundSystem()) {
-                        this.soundSystem.setMasterVolume(this.volume);
+                        this.soundSystem.setMasterVolume(this.volumeSlider.getValue() / 100F);
                         this.songPlayer.play();
                     }
                 }
