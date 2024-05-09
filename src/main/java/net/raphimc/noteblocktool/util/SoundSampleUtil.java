@@ -115,4 +115,10 @@ public class SoundSampleUtil {
         return newSamples;
     }
 
+    public static long getMax(final long[] samples) {
+        long max = 1;
+        for (long sample : samples) max = Math.max(max, Math.abs(sample));
+        return max;
+    }
+
 }
