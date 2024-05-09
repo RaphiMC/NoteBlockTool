@@ -30,22 +30,22 @@ public class SoundMap {
     public static final Map<Instrument, String> SOUNDS = new EnumMap<>(Instrument.class);
 
     static {
-        SOUNDS.put(Instrument.HARP, "/noteblock_sounds/harp.wav");
-        SOUNDS.put(Instrument.BASS, "/noteblock_sounds/bass.wav");
-        SOUNDS.put(Instrument.BASS_DRUM, "/noteblock_sounds/bd.wav");
-        SOUNDS.put(Instrument.SNARE, "/noteblock_sounds/snare.wav");
-        SOUNDS.put(Instrument.HAT, "/noteblock_sounds/hat.wav");
-        SOUNDS.put(Instrument.GUITAR, "/noteblock_sounds/guitar.wav");
-        SOUNDS.put(Instrument.FLUTE, "/noteblock_sounds/flute.wav");
-        SOUNDS.put(Instrument.BELL, "/noteblock_sounds/bell.wav");
-        SOUNDS.put(Instrument.CHIME, "/noteblock_sounds/icechime.wav");
-        SOUNDS.put(Instrument.XYLOPHONE, "/noteblock_sounds/xylobone.wav");
-        SOUNDS.put(Instrument.IRON_XYLOPHONE, "/noteblock_sounds/iron_xylophone.wav");
-        SOUNDS.put(Instrument.COW_BELL, "/noteblock_sounds/cow_bell.wav");
-        SOUNDS.put(Instrument.DIDGERIDOO, "/noteblock_sounds/didgeridoo.wav");
-        SOUNDS.put(Instrument.BIT, "/noteblock_sounds/bit.wav");
-        SOUNDS.put(Instrument.BANJO, "/noteblock_sounds/banjo.wav");
-        SOUNDS.put(Instrument.PLING, "/noteblock_sounds/pling.wav");
+        SOUNDS.put(Instrument.HARP, "/noteblock_sounds/harp.ogg");
+        SOUNDS.put(Instrument.BASS, "/noteblock_sounds/bass.ogg");
+        SOUNDS.put(Instrument.BASS_DRUM, "/noteblock_sounds/bd.ogg");
+        SOUNDS.put(Instrument.SNARE, "/noteblock_sounds/snare.ogg");
+        SOUNDS.put(Instrument.HAT, "/noteblock_sounds/hat.ogg");
+        SOUNDS.put(Instrument.GUITAR, "/noteblock_sounds/guitar.ogg");
+        SOUNDS.put(Instrument.FLUTE, "/noteblock_sounds/flute.ogg");
+        SOUNDS.put(Instrument.BELL, "/noteblock_sounds/bell.ogg");
+        SOUNDS.put(Instrument.CHIME, "/noteblock_sounds/icechime.ogg");
+        SOUNDS.put(Instrument.XYLOPHONE, "/noteblock_sounds/xylobone.ogg");
+        SOUNDS.put(Instrument.IRON_XYLOPHONE, "/noteblock_sounds/iron_xylophone.ogg");
+        SOUNDS.put(Instrument.COW_BELL, "/noteblock_sounds/cow_bell.ogg");
+        SOUNDS.put(Instrument.DIDGERIDOO, "/noteblock_sounds/didgeridoo.ogg");
+        SOUNDS.put(Instrument.BIT, "/noteblock_sounds/bit.ogg");
+        SOUNDS.put(Instrument.BANJO, "/noteblock_sounds/banjo.ogg");
+        SOUNDS.put(Instrument.PLING, "/noteblock_sounds/pling.ogg");
     }
 
     public static Map<Instrument, int[]> loadInstrumentSamples(final AudioFormat targetFormat) {

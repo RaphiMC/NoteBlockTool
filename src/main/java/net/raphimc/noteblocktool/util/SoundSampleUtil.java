@@ -18,6 +18,10 @@
 package net.raphimc.noteblocktool.util;
 
 import com.google.common.io.ByteStreams;
+import org.lwjgl.PointerBuffer;
+import org.lwjgl.stb.STBVorbis;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -27,11 +31,51 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
+import java.util.Arrays;
 
 public class SoundSampleUtil {
 
+    private static final byte[] OGG_MAGIC = new byte[]{(byte) 'O', (byte) 'g', (byte) 'g', (byte) 'S'};
+
+    public static AudioInputStream readAudioFile(final InputStream inputStream) throws UnsupportedAudioFileException, IOException {
+        final BufferedInputStream bis = new BufferedInputStream(inputStream);
+        final byte[] magic = new byte[4];
+        bis.mark(magic.length);
+        bis.read(magic);
+        bis.reset();
+        if (Arrays.equals(magic, OGG_MAGIC)) {
+            final byte[] data = ByteStreams.toByteArray(bis);
+            final ByteBuffer dataBuffer = (ByteBuffer) MemoryUtil.memAlloc(data.length).put(data).flip();
+            try (MemoryStack memoryStack = MemoryStack.stackPush()) {
+                final IntBuffer channels = memoryStack.callocInt(1);
+                final IntBuffer sampleRate = memoryStack.callocInt(1);
+                final PointerBuffer samples = memoryStack.callocPointer(1);
+
+                final int samplesCount = STBVorbis.stb_vorbis_decode_memory(dataBuffer, channels, sampleRate, samples);
+                if (samplesCount == -1) {
+                    MemoryUtil.memFree(dataBuffer);
+                    throw new RuntimeException("Failed to decode ogg file");
+                }
+
+                final ByteBuffer samplesBuffer = samples.getByteBuffer(samplesCount * 2);
+                final byte[] samplesArray = new byte[samplesCount * 2];
+                samplesBuffer.get(samplesArray);
+
+                MemoryUtil.memFree(dataBuffer);
+                MemoryUtil.memFree(samplesBuffer);
+
+                final AudioFormat audioFormat = new AudioFormat(sampleRate.get(), 16, channels.get(), true, false);
+                return new AudioInputStream(new ByteArrayInputStream(samplesArray), audioFormat, samplesArray.length);
+            }
+        } else {
+            return AudioSystem.getAudioInputStream(new BufferedInputStream(inputStream));
+        }
+    }
+
     public static int[] readSamples(final InputStream inputStream, final AudioFormat targetFormat) throws UnsupportedAudioFileException, IOException {
-        AudioInputStream in = AudioSystem.getAudioInputStream(new BufferedInputStream(inputStream));
+        AudioInputStream in = readAudioFile(inputStream);
         if (!in.getFormat().matches(targetFormat)) in = AudioSystem.getAudioInputStream(targetFormat, in);
         final byte[] audioBytes = ByteStreams.toByteArray(in);
         final SampleInputStream sis = new SampleInputStream(new ByteArrayInputStream(audioBytes), targetFormat);

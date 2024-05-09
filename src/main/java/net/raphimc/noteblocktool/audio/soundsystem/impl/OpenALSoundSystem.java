@@ -23,13 +23,12 @@ import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.SampleOutputStream;
+import net.raphimc.noteblocktool.util.SoundSampleUtil;
 import org.lwjgl.openal.*;
 import org.lwjgl.system.MemoryUtil;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.EnumMap;
@@ -129,7 +128,7 @@ public class OpenALSoundSystem extends SoundSystem {
         this.checkError("Could not set listener orientation");
 
         for (Map.Entry<Instrument, String> entry : SoundMap.SOUNDS.entrySet()) {
-            this.instrumentBuffers.put(entry.getKey(), this.loadWav(OpenALSoundSystem.class.getResourceAsStream(entry.getValue())));
+            this.instrumentBuffers.put(entry.getKey(), this.loadAudioFile(OpenALSoundSystem.class.getResourceAsStream(entry.getValue())));
         }
 
         this.scheduler.scheduleAtFixedRate(this::tick, 0, 100, TimeUnit.MILLISECONDS);
@@ -253,11 +252,11 @@ public class OpenALSoundSystem extends SoundSystem {
         });
     }
 
-    private int loadWav(final InputStream inputStream) {
+    private int loadAudioFile(final InputStream inputStream) {
         final int buffer = AL10.alGenBuffers();
         this.checkError("Could not generate audio buffer");
         try {
-            final AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new BufferedInputStream(inputStream));
+            final AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(inputStream);
             final AudioFormat audioFormat = audioInputStream.getFormat();
 
             final byte[] audioBytes = ByteStreams.toByteArray(audioInputStream);
