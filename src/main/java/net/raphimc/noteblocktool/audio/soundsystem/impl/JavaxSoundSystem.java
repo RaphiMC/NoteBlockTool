@@ -45,7 +45,7 @@ public class JavaxSoundSystem extends SoundSystem {
 
         try {
             this.sounds = SoundMap.loadInstrumentSamples(FORMAT);
-            this.samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed * FORMAT.getChannels());
+            this.samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed) * FORMAT.getChannels();
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
             this.dataLine.start();
