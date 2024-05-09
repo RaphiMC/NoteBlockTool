@@ -44,8 +44,8 @@ public class JavaxAudioExporter extends AudioExporter {
 
     @Override
     protected void processNote(final Instrument instrument, final float volume, final float pitch, final float panning) {
-        String key = instrument + "\0" + volume + "\0" + pitch;
-        this.merger.addSamples(this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.sounds.get(instrument), volume, pitch)));
+        String key = instrument + "\0" + volume + "\0" + pitch + "\0" + panning;
+        this.merger.addSamples(this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.format, this.sounds.get(instrument), volume, pitch, panning)));
     }
 
     @Override

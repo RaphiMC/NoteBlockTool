@@ -141,7 +141,6 @@ public class ExportFrame extends JFrame {
 
     private void updateVisibility() {
         boolean isNbs = this.format.getSelectedIndex() == 0;
-        boolean isJavax = this.soundSystem.getSelectedIndex() == 1;
 
         this.soundSystemLabel.setVisible(!isNbs);
         this.soundSystem.setVisible(!isNbs);
@@ -152,8 +151,8 @@ public class ExportFrame extends JFrame {
         this.bitDepthLabel.setVisible(!isNbs);
         this.bitDepth.setVisible(!isNbs);
 
-        this.channelsLabel.setVisible(!isNbs && !isJavax);
-        this.channels.setVisible(!isNbs && !isJavax);
+        this.channelsLabel.setVisible(!isNbs);
+        this.channels.setVisible(!isNbs);
     }
 
     private void initFrameHandler() {
@@ -264,7 +263,7 @@ public class ExportFrame extends JFrame {
             AudioFormat format = new AudioFormat(
                     ((Number) this.sampleRate.getValue()).floatValue(),
                     Integer.parseInt(this.bitDepth.getSelectedItem().toString().substring(4)),
-                    this.soundSystem.getSelectedIndex() == 1 ? 1 : this.channels.getSelectedIndex() + 1,
+                    this.channels.getSelectedIndex() + 1,
                     true,
                     false
             );
@@ -387,8 +386,13 @@ public class ExportFrame extends JFrame {
             }
 
             AudioExporter exporter;
-            if (this.soundSystem.getSelectedIndex() == 0) exporter = new OpenALAudioExporter(soundSystem, songView, format, progressConsumer);
-            else exporter = new JavaxAudioExporter(songView, format, progressConsumer);
+            if (this.soundSystem.getSelectedIndex() == 0) {
+                exporter = new OpenALAudioExporter(soundSystem, songView, format, progressConsumer);
+            } else if (this.soundSystem.getSelectedIndex() == 1) {
+                exporter = new JavaxAudioExporter(songView, format, progressConsumer);
+            } else {
+                throw new UnsupportedOperationException("Unsupported sound system: " + this.soundSystem.getSelectedIndex());
+            }
 
             exporter.render();
             exporter.write(this.format.getSelectedIndex() == 1 ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);

@@ -89,27 +89,32 @@ public class SoundSampleUtil {
         return samples;
     }
 
-    public static int[] mutate(final int[] samples, final float volume, final float pitchChangeFactor) {
-        final int[] newSamples = new int[(int) (samples.length / pitchChangeFactor)];
-        if (pitchChangeFactor < 1) {
+    public static int[] mutate(final AudioFormat format, final int[] samples, final float volume, final float pitch, final float panning) {
+        final int[] newSamples = new int[(int) ((float) samples.length / format.getChannels() / pitch * format.getChannels())];
+
+        for (int channel = 0; channel < format.getChannels(); channel++) {
             //Interpolate the samples for better quality
-            for (int i = 0; i < newSamples.length; i++) {
-                final float index = i * pitchChangeFactor;
-                final int lowerIndex = (int) index;
-                final int upperIndex = lowerIndex + 1;
-                final float fraction = index - lowerIndex;
+            for (int i = channel; i < newSamples.length; i += format.getChannels()) {
+                float index = (float) i / format.getChannels() * pitch;
+                int lowerIndex = (int) index;
+                int upperIndex = (lowerIndex + 1) * (channel + 1);
+                float fraction = index - lowerIndex;
+                int lowerSample = samples[lowerIndex * (channel + 1)];
                 if (upperIndex < samples.length) {
-                    newSamples[i] = (int) ((1 - fraction) * samples[lowerIndex] + fraction * samples[upperIndex]);
+                    newSamples[i] = (int) ((1 - fraction) * lowerSample + fraction * samples[upperIndex]);
                 } else {
-                    newSamples[i] = samples[lowerIndex];
+                    newSamples[i] = lowerSample;
                 }
-                newSamples[i] = (int) (newSamples[i] * volume);
-            }
-        } else {
-            for (int i = 0; i < newSamples.length; i++) {
-                // Long to prevent clipping of the index
-                final long index = (long) i * samples.length / newSamples.length;
-                newSamples[i] = (int) (samples[(int) index] * volume);
+
+                float channelVolume = volume;
+                if (format.getChannels() > 1) {
+                    if (channel == 0) { //left channel
+                        channelVolume *= 1 - Math.max(0, panning);
+                    } else {
+                        channelVolume *= 1 - Math.max(0, -panning);
+                    }
+                }
+                newSamples[i] = (int) (newSamples[i] * channelVolume);
             }
         }
         return newSamples;

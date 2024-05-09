@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class JavaxSoundSystem extends SoundSystem {
 
-    private static final AudioFormat FORMAT = new AudioFormat(44100, 16, 1, true, false);
+    private static final AudioFormat FORMAT = new AudioFormat(44100, 16, 2, true, false);
 
     private final Map<Instrument, int[]> sounds;
     private final int samplesPerTick;
@@ -44,7 +44,7 @@ public class JavaxSoundSystem extends SoundSystem {
 
         try {
             this.sounds = SoundMap.loadInstrumentSamples(FORMAT);
-            this.samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed);
+            this.samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed * FORMAT.getChannels());
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
             this.dataLine.start();
@@ -55,9 +55,9 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void playNote(final Instrument instrument, final float volume, final float pitch, final float panning) {
-        final String key = instrument.ordinal() + "\0" + volume + "\0" + pitch;
-        final int[] samples = this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.sounds.get(instrument), volume * this.masterVolume, pitch));
+    public void playNote(final Instrument instrument, final float volume, final float pitch, float panning) {
+        final String key = instrument.ordinal() + "\0" + volume + "\0" + pitch + "\0" + panning;
+        final int[] samples = this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(FORMAT, this.sounds.get(instrument), volume * this.masterVolume, pitch, panning));
         if (this.buffer.length < samples.length) this.buffer = Arrays.copyOf(this.buffer, samples.length);
         for (int i = 0; i < samples.length; i++) this.buffer[i] += samples[i];
     }
