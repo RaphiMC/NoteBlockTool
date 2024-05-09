@@ -90,33 +90,28 @@ public class SoundSampleUtil {
     }
 
     public static int[] mutate(final AudioFormat format, final int[] samples, final float volume, final float pitch, final float panning) {
-        final int[] newSamples = new int[(int) ((float) samples.length / format.getChannels() / pitch * format.getChannels())];
+        final int newLength = (int) ((float) samples.length / format.getChannels() / pitch * format.getChannels());
+        final int[] newSamples = new int[newLength];
 
         for (int channel = 0; channel < format.getChannels(); channel++) {
-            //Interpolate the samples for better quality
-            for (int i = channel; i < newSamples.length; i += format.getChannels()) {
-                float index = (float) i / format.getChannels() * pitch;
-                int lowerIndex = (int) index;
-                int upperIndex = (lowerIndex + 1) * (channel + 1);
-                float fraction = index - lowerIndex;
-                int lowerSample = samples[lowerIndex * (channel + 1)];
-                if (upperIndex < samples.length) {
-                    newSamples[i] = (int) ((1 - fraction) * lowerSample + fraction * samples[upperIndex]);
-                } else {
-                    newSamples[i] = lowerSample;
-                }
+            float channelVolume = volume;
+            if (format.getChannels() == 2) {
+                if (channel == 0) channelVolume *= 1 - panning;
+                else channelVolume *= 1 + panning;
+            }
 
-                float channelVolume = volume;
-                if (format.getChannels() > 1) {
-                    if (channel == 0) { //left channel
-                        channelVolume *= 1 - Math.max(0, panning);
-                    } else {
-                        channelVolume *= 1 - Math.max(0, -panning);
-                    }
+            for (int i = 0; i < newLength / format.getChannels(); i++) {
+                int oldIndex = (int) (i * pitch) * format.getChannels() + channel;
+                if (pitch < 1 && oldIndex < samples.length - format.getChannels()) {
+                    // Interpolate between the current sample and the next one
+                    float ratio = (i * pitch) % 1;
+                    newSamples[i * format.getChannels() + channel] = (int) ((samples[oldIndex] * (1 - ratio) + samples[oldIndex + format.getChannels()] * ratio) * channelVolume);
+                } else if (oldIndex < samples.length) {
+                    newSamples[i * format.getChannels() + channel] = (int) (samples[oldIndex] * channelVolume);
                 }
-                newSamples[i] = (int) (newSamples[i] * channelVolume);
             }
         }
+
         return newSamples;
     }
 
