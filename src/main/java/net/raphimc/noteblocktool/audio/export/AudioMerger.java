@@ -17,6 +17,8 @@
  */
 package net.raphimc.noteblocktool.audio.export;
 
+import net.raphimc.noteblocktool.util.SoundSampleUtil;
+
 public class AudioMerger {
 
     private final long[] samples;
@@ -41,7 +43,7 @@ public class AudioMerger {
 
     public byte[] normalizeBytes() {
         final byte[] bytes = new byte[this.samples.length];
-        final long max = this.getMax();
+        final long max = SoundSampleUtil.getMax(this.samples);
         for (int i = 0; i < this.samples.length; i++) {
             bytes[i] = (byte) (this.samples[i] * Byte.MAX_VALUE / max);
         }
@@ -50,7 +52,7 @@ public class AudioMerger {
 
     public short[] normalizeShorts() {
         final short[] shorts = new short[this.samples.length];
-        final long max = this.getMax();
+        final long max = SoundSampleUtil.getMax(this.samples);
         for (int i = 0; i < this.samples.length; i++) {
             shorts[i] = (short) (this.samples[i] * Short.MAX_VALUE / max);
         }
@@ -59,17 +61,11 @@ public class AudioMerger {
 
     public int[] normalizeInts() {
         final int[] ints = new int[this.samples.length];
-        final long max = this.getMax();
+        final long max = SoundSampleUtil.getMax(this.samples);
         for (int i = 0; i < this.samples.length; i++) {
             ints[i] = (int) (this.samples[i] * Integer.MAX_VALUE / max);
         }
         return ints;
-    }
-
-    private long getMax() {
-        long max = 1;
-        for (long sample : this.samples) max = Math.max(max, Math.abs(sample));
-        return max;
     }
 
 }

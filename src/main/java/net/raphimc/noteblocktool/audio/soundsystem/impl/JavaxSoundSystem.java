@@ -93,12 +93,10 @@ public class JavaxSoundSystem extends SoundSystem {
 
     private byte[] write(final long[] samples) {
         final byte[] out = new byte[samples.length * 2];
+        final long max = SoundSampleUtil.getMax(samples);
+        final float div = Math.max(1, (float) max / Short.MAX_VALUE);
         for (int i = 0; i < samples.length; i++) {
-            long sample = samples[i];
-            if (sample > Short.MAX_VALUE) sample = Short.MAX_VALUE;
-            else if (sample < Short.MIN_VALUE) sample = Short.MIN_VALUE;
-
-            final short conv = (short) sample;
+            final short conv = (short) (samples[i] / div);
             out[i * 2] = (byte) (conv & 0xFF);
             out[i * 2 + 1] = (byte) ((conv >> 8) & 0xFF);
         }
