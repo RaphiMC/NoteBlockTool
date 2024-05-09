@@ -101,10 +101,10 @@ public class SoundSampleUtil {
             }
 
             for (int i = 0; i < newLength / format.getChannels(); i++) {
-                int oldIndex = (int) (i * pitch) * format.getChannels() + channel;
+                final int oldIndex = (int) (i * pitch) * format.getChannels() + channel;
                 if (pitch < 1 && oldIndex < samples.length - format.getChannels()) {
                     // Interpolate between the current sample and the next one
-                    float ratio = (i * pitch) % 1;
+                    final float ratio = (i * pitch) % 1;
                     newSamples[i * format.getChannels() + channel] = (int) ((samples[oldIndex] * (1 - ratio) + samples[oldIndex + format.getChannels()] * ratio) * channelVolume);
                 } else if (oldIndex < samples.length) {
                     newSamples[i * format.getChannels() + channel] = (int) (samples[oldIndex] * channelVolume);
