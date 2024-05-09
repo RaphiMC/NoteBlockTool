@@ -17,11 +17,11 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
-import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
+import net.raphimc.noteblocktool.util.IOUtil;
 import net.raphimc.noteblocktool.util.SampleOutputStream;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 import org.lwjgl.openal.*;
@@ -259,7 +259,7 @@ public class OpenALSoundSystem extends SoundSystem {
             final AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(inputStream);
             final AudioFormat audioFormat = audioInputStream.getFormat();
 
-            final byte[] audioBytes = ByteStreams.toByteArray(audioInputStream);
+            final byte[] audioBytes = IOUtil.readFully(audioInputStream);
             final ByteBuffer audioBuffer = MemoryUtil.memAlloc(audioBytes.length).put(audioBytes);
             audioBuffer.flip();
             AL10.alBufferData(buffer, this.getAlAudioFormat(audioFormat), audioBuffer, (int) audioFormat.getSampleRate());

@@ -17,7 +17,6 @@
  */
 package net.raphimc.noteblocktool.util;
 
-import com.google.common.io.ByteStreams;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.stb.STBVorbis;
 import org.lwjgl.system.MemoryStack;
@@ -46,7 +45,7 @@ public class SoundSampleUtil {
         bis.read(magic);
         bis.reset();
         if (Arrays.equals(magic, OGG_MAGIC)) {
-            final byte[] data = ByteStreams.toByteArray(bis);
+            final byte[] data = IOUtil.readFully(bis);
             final ByteBuffer dataBuffer = (ByteBuffer) MemoryUtil.memAlloc(data.length).put(data).flip();
             try (MemoryStack memoryStack = MemoryStack.stackPush()) {
                 final IntBuffer channels = memoryStack.callocInt(1);
@@ -77,7 +76,7 @@ public class SoundSampleUtil {
     public static int[] readSamples(final InputStream inputStream, final AudioFormat targetFormat) throws UnsupportedAudioFileException, IOException {
         AudioInputStream in = readAudioFile(inputStream);
         if (!in.getFormat().matches(targetFormat)) in = AudioSystem.getAudioInputStream(targetFormat, in);
-        final byte[] audioBytes = ByteStreams.toByteArray(in);
+        final byte[] audioBytes = IOUtil.readFully(in);
         final SampleInputStream sis = new SampleInputStream(new ByteArrayInputStream(audioBytes), targetFormat);
 
         final int sampleSize = targetFormat.getSampleSizeInBits() / 8;
@@ -86,6 +85,7 @@ public class SoundSampleUtil {
             samples[i] = sis.readSample();
         }
 
+        sis.close();
         return samples;
     }
 
