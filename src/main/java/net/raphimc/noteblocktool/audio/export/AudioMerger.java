@@ -42,30 +42,38 @@ public class AudioMerger {
     }
 
     public byte[] normalizeBytes() {
+        this.normalize(Byte.MAX_VALUE);
         final byte[] bytes = new byte[this.samples.length];
-        final long max = SoundSampleUtil.getMax(this.samples);
         for (int i = 0; i < this.samples.length; i++) {
-            bytes[i] = (byte) (this.samples[i] * Byte.MAX_VALUE / max);
+            bytes[i] = (byte) this.samples[i];
         }
         return bytes;
     }
 
     public short[] normalizeShorts() {
+        this.normalize(Short.MAX_VALUE);
         final short[] shorts = new short[this.samples.length];
-        final long max = SoundSampleUtil.getMax(this.samples);
         for (int i = 0; i < this.samples.length; i++) {
-            shorts[i] = (short) (this.samples[i] * Short.MAX_VALUE / max);
+            shorts[i] = (short) this.samples[i];
         }
         return shorts;
     }
 
     public int[] normalizeInts() {
+        this.normalize(Integer.MAX_VALUE);
         final int[] ints = new int[this.samples.length];
-        final long max = SoundSampleUtil.getMax(this.samples);
         for (int i = 0; i < this.samples.length; i++) {
-            ints[i] = (int) (this.samples[i] * Integer.MAX_VALUE / max);
+            ints[i] = (int) this.samples[i];
         }
         return ints;
+    }
+
+    private void normalize(final long maxValue) {
+        long max = SoundSampleUtil.getMax(this.samples);
+        float factor = (float) maxValue / max;
+        for (int i = 0; i < this.samples.length; i++) {
+            this.samples[i] = (long) (this.samples[i] * factor);
+        }
     }
 
 }
