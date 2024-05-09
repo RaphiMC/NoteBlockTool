@@ -22,7 +22,6 @@ import net.raphimc.noteblocklib.util.Instrument;
 public abstract class SoundSystem implements AutoCloseable {
 
     protected final int maxSounds;
-    protected float masterVolume = 1F;
 
     public SoundSystem(final int maxSounds) {
         this.maxSounds = maxSounds;
@@ -44,8 +43,6 @@ public abstract class SoundSystem implements AutoCloseable {
 
     public abstract int getSoundCount();
 
-    public void setMasterVolume(final float volume) {
-        this.masterVolume = volume;
-    }
+    public abstract void setMasterVolume(final float volume);
 
 }

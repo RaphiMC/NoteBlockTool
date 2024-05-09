@@ -37,6 +37,7 @@ public class JavaxSoundSystem extends SoundSystem {
     private final int samplesPerTick;
     private final SourceDataLine dataLine;
     private final Map<String, int[]> mutationCache;
+    private float masterVolume = 1F;
     private long[] buffer = new long[0];
 
     public JavaxSoundSystem(final float playbackSpeed) {
@@ -50,7 +51,7 @@ public class JavaxSoundSystem extends SoundSystem {
             this.dataLine.start();
             this.mutationCache = new ConcurrentHashMap<>();
         } catch (Throwable e) {
-            throw new RuntimeException("Could not initialize javax audio system", e);
+            throw new RuntimeException("Could not initialize javax sound system", e);
         }
     }
 
@@ -87,7 +88,7 @@ public class JavaxSoundSystem extends SoundSystem {
 
     @Override
     public void setMasterVolume(final float volume) {
-        super.setMasterVolume(volume);
+        this.masterVolume = volume;
         this.mutationCache.clear();
     }
 
