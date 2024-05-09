@@ -56,7 +56,7 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void playNote(final Instrument instrument, final float volume, final float pitch, float panning) {
+    public void playNote(final Instrument instrument, final float volume, final float pitch, final float panning) {
         final String key = instrument.ordinal() + "\0" + volume + "\0" + pitch + "\0" + panning;
         final int[] samples = this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(FORMAT, this.sounds.get(instrument), volume * this.masterVolume, pitch, panning));
         if (this.buffer.length < samples.length) this.buffer = Arrays.copyOf(this.buffer, samples.length);
