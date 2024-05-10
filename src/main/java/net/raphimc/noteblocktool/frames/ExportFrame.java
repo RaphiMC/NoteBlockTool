@@ -405,7 +405,6 @@ public class ExportFrame extends JFrame {
             final NbsSong exportNbsSong = (NbsSong) exportSong;
             final NbsHeader exportNbsHeader = exportNbsSong.getHeader();
             if (song.getSong() instanceof NbsSong) {
-                final NbsSong nbsSong = (NbsSong) song.getSong();
                 final NbsHeader nbsHeader = ((NbsSong) song.getSong()).getHeader();
                 exportNbsHeader.setVersion((byte) Math.max(nbsHeader.getVersion(), exportNbsHeader.getVersion()));
                 exportNbsHeader.setAuthor(nbsHeader.getAuthor());
@@ -423,7 +422,6 @@ public class ExportFrame extends JFrame {
                 exportNbsHeader.setLoop(nbsHeader.isLoop());
                 exportNbsHeader.setMaxLoopCount(nbsHeader.getMaxLoopCount());
                 exportNbsHeader.setLoopStartTick(nbsHeader.getLoopStartTick());
-                exportNbsSong.getData().setCustomInstruments(nbsSong.getData().getCustomInstruments());
             } else if (song.getSong() instanceof McSpSong) {
                 final McSpHeader mcSpHeader = ((McSpSong) song.getSong()).getHeader();
                 exportNbsHeader.setAuthor(mcSpHeader.getAuthor());

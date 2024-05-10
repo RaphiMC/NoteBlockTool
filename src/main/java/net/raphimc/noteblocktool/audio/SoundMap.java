@@ -18,45 +18,77 @@
 package net.raphimc.noteblocktool.audio;
 
 import net.raphimc.noteblocklib.util.Instrument;
-import net.raphimc.noteblocktool.audio.soundsystem.impl.JavaxSoundSystem;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
 import javax.sound.sampled.AudioFormat;
+import java.io.File;
+import java.net.URL;
+import java.nio.file.Files;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 
 public class SoundMap {
 
-    public static final Map<Instrument, String> SOUNDS = new EnumMap<>(Instrument.class);
+    public static final Map<Instrument, String> INSTRUMENT_SOUNDS = new EnumMap<>(Instrument.class);
+    public static final Map<String, URL> SOUND_LOCATIONS = new HashMap<>();
 
     static {
-        SOUNDS.put(Instrument.HARP, "/noteblock_sounds/harp.ogg");
-        SOUNDS.put(Instrument.BASS, "/noteblock_sounds/bass.ogg");
-        SOUNDS.put(Instrument.BASS_DRUM, "/noteblock_sounds/bd.ogg");
-        SOUNDS.put(Instrument.SNARE, "/noteblock_sounds/snare.ogg");
-        SOUNDS.put(Instrument.HAT, "/noteblock_sounds/hat.ogg");
-        SOUNDS.put(Instrument.GUITAR, "/noteblock_sounds/guitar.ogg");
-        SOUNDS.put(Instrument.FLUTE, "/noteblock_sounds/flute.ogg");
-        SOUNDS.put(Instrument.BELL, "/noteblock_sounds/bell.ogg");
-        SOUNDS.put(Instrument.CHIME, "/noteblock_sounds/icechime.ogg");
-        SOUNDS.put(Instrument.XYLOPHONE, "/noteblock_sounds/xylobone.ogg");
-        SOUNDS.put(Instrument.IRON_XYLOPHONE, "/noteblock_sounds/iron_xylophone.ogg");
-        SOUNDS.put(Instrument.COW_BELL, "/noteblock_sounds/cow_bell.ogg");
-        SOUNDS.put(Instrument.DIDGERIDOO, "/noteblock_sounds/didgeridoo.ogg");
-        SOUNDS.put(Instrument.BIT, "/noteblock_sounds/bit.ogg");
-        SOUNDS.put(Instrument.BANJO, "/noteblock_sounds/banjo.ogg");
-        SOUNDS.put(Instrument.PLING, "/noteblock_sounds/pling.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.HARP, "harp.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.BASS, "bass.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.BASS_DRUM, "bd.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.SNARE, "snare.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.HAT, "hat.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.GUITAR, "guitar.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.FLUTE, "flute.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.BELL, "bell.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.CHIME, "icechime.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.XYLOPHONE, "xylobone.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.IRON_XYLOPHONE, "iron_xylophone.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.COW_BELL, "cow_bell.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.DIDGERIDOO, "didgeridoo.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.BIT, "bit.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.BANJO, "banjo.ogg");
+        INSTRUMENT_SOUNDS.put(Instrument.PLING, "pling.ogg");
+
+        reload(null);
     }
 
-    public static Map<Instrument, int[]> loadInstrumentSamples(final AudioFormat targetFormat) {
-        try {
-            final Map<Instrument, int[]> instrumentSamples = new EnumMap<>(Instrument.class);
-            for (Map.Entry<Instrument, String> entry : SOUNDS.entrySet()) {
-                instrumentSamples.put(entry.getKey(), SoundSampleUtil.readSamples(JavaxSoundSystem.class.getResourceAsStream(entry.getValue()), targetFormat));
+    public static void reload(final File customSoundsFolder) {
+        SOUND_LOCATIONS.clear();
+        for (Map.Entry<Instrument, String> entry : INSTRUMENT_SOUNDS.entrySet()) {
+            SOUND_LOCATIONS.put(entry.getValue(), SoundMap.class.getResource("/noteblock_sounds/" + entry.getValue()));
+        }
+
+        if (customSoundsFolder != null && customSoundsFolder.exists() && customSoundsFolder.isDirectory()) {
+            try {
+                Files.walk(customSoundsFolder.toPath()).forEach(path -> {
+                    try {
+                        if (Files.isDirectory(path)) return;
+
+                        final String fileName = customSoundsFolder.toPath().relativize(path).toString();
+                        if (fileName.endsWith(".ogg") || fileName.endsWith(".wav")) {
+                            SOUND_LOCATIONS.put(fileName.replace(File.separatorChar, '/'), path.toUri().toURL());
+                        }
+                    } catch (Throwable e) {
+                        throw new RuntimeException("Error while loading custom sound sample", e);
+                    }
+                });
+            } catch (Throwable e) {
+                throw new RuntimeException("Could not load custom sound samples", e);
             }
-            return instrumentSamples;
+        }
+    }
+
+    public static Map<String, int[]> loadInstrumentSamples(final AudioFormat targetFormat) {
+        try {
+            final Map<String, int[]> soundSamples = new HashMap<>();
+            for (Map.Entry<String, URL> entry : SOUND_LOCATIONS.entrySet()) {
+                soundSamples.put(entry.getKey(), SoundSampleUtil.readSamples(entry.getValue().openStream(), targetFormat));
+            }
+            return soundSamples;
         } catch (Throwable e) {
-            throw new RuntimeException("Could not load instrument samples", e);
+            throw new RuntimeException("Could not load sound samples", e);
         }
     }
 

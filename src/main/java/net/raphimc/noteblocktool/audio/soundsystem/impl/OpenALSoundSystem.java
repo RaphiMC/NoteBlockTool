@@ -18,7 +18,6 @@
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.IOUtil;
@@ -30,8 +29,9 @@ import org.lwjgl.system.MemoryUtil;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.ByteBuffer;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -61,7 +61,7 @@ public class OpenALSoundSystem extends SoundSystem {
 
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("OpenAL Sound System").setDaemon(true).build());
-    private final Map<Instrument, Integer> instrumentBuffers = new EnumMap<>(Instrument.class);
+    private final Map<String, Integer> soundBuffers = new HashMap<>();
     private final List<Integer> playingSources = new CopyOnWriteArrayList<>();
     private final AudioFormat audioFormat;
     private long device;
@@ -127,8 +127,12 @@ public class OpenALSoundSystem extends SoundSystem {
         AL10.alListenerfv(AL10.AL_ORIENTATION, new float[]{0F, 0F, -1F, 0F, 1F, 0F});
         this.checkError("Could not set listener orientation");
 
-        for (Map.Entry<Instrument, String> entry : SoundMap.SOUNDS.entrySet()) {
-            this.instrumentBuffers.put(entry.getKey(), this.loadAudioFile(OpenALSoundSystem.class.getResourceAsStream(entry.getValue())));
+        try {
+            for (Map.Entry<String, URL> entry : SoundMap.SOUND_LOCATIONS.entrySet()) {
+                this.soundBuffers.put(entry.getKey(), this.loadAudioFile(entry.getValue().openStream()));
+            }
+        } catch (Throwable e) {
+            throw new RuntimeException("Could not load sound samples", e);
         }
 
         this.scheduler.scheduleAtFixedRate(this::tick, 0, 100, TimeUnit.MILLISECONDS);
@@ -145,7 +149,9 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void playNote(final Instrument instrument, final float volume, final float pitch, final float panning) {
+    public void playSound(final String sound, final float pitch, final float volume, final float panning) {
+        if (!this.soundBuffers.containsKey(sound)) return;
+
         if (this.playingSources.size() >= this.maxSounds) {
             AL10.alDeleteSources(this.playingSources.remove(0));
             this.checkError("Could not delete audio source");
@@ -154,12 +160,12 @@ public class OpenALSoundSystem extends SoundSystem {
         final int source = AL10.alGenSources();
         this.checkError("Could not generate audio source");
         if (source > 0) {
-            AL10.alSourcei(source, AL10.AL_BUFFER, this.instrumentBuffers.get(instrument));
+            AL10.alSourcei(source, AL10.AL_BUFFER, this.soundBuffers.get(sound));
             this.checkError("Could not set audio source buffer");
-            AL10.alSourcef(source, AL10.AL_GAIN, volume);
-            this.checkError("Could not set audio source volume");
             AL10.alSourcef(source, AL10.AL_PITCH, pitch);
             this.checkError("Could not set audio source pitch");
+            AL10.alSourcef(source, AL10.AL_GAIN, volume);
+            this.checkError("Could not set audio source volume");
             AL10.alSource3f(source, AL10.AL_POSITION, panning * 2F, 0F, 0F);
             this.checkError("Could not set audio source position");
 
@@ -207,8 +213,8 @@ public class OpenALSoundSystem extends SoundSystem {
             this.shutdownHook = null;
         }
         this.scheduler.shutdownNow();
-        this.instrumentBuffers.values().forEach(AL10::alDeleteBuffers);
-        this.instrumentBuffers.clear();
+        this.soundBuffers.values().forEach(AL10::alDeleteBuffers);
+        this.soundBuffers.clear();
         this.playingSources.forEach(AL10::alDeleteSources);
         this.playingSources.clear();
         if (this.context != 0L) {

@@ -17,7 +17,6 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
-import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
@@ -33,7 +32,7 @@ public class JavaxSoundSystem extends SoundSystem {
 
     private static final AudioFormat FORMAT = new AudioFormat(44100, 16, 2, true, false);
 
-    private final Map<Instrument, int[]> sounds;
+    private final Map<String, int[]> sounds;
     private final int samplesPerTick;
     private final SourceDataLine dataLine;
     private final Map<String, int[]> mutationCache;
@@ -56,9 +55,11 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void playNote(final Instrument instrument, final float volume, final float pitch, final float panning) {
-        final String key = instrument.ordinal() + "\0" + volume + "\0" + pitch + "\0" + panning;
-        final int[] samples = this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(FORMAT, this.sounds.get(instrument), volume * this.masterVolume, pitch, panning));
+    public void playSound(final String sound, final float pitch, final float volume, final float panning) {
+        if (!this.sounds.containsKey(sound)) return;
+
+        final String key = sound + "\0" + pitch + "\0" + volume + "\0" + panning;
+        final int[] samples = this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(FORMAT, this.sounds.get(sound), pitch, volume * this.masterVolume, panning));
         if (this.buffer.length < samples.length) this.buffer = Arrays.copyOf(this.buffer, samples.length);
         for (int i = 0; i < samples.length; i++) this.buffer[i] += samples[i];
     }

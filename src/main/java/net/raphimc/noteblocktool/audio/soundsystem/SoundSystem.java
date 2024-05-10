@@ -17,8 +17,6 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem;
 
-import net.raphimc.noteblocklib.util.Instrument;
-
 public abstract class SoundSystem implements AutoCloseable {
 
     protected final int maxSounds;
@@ -27,7 +25,7 @@ public abstract class SoundSystem implements AutoCloseable {
         this.maxSounds = maxSounds;
     }
 
-    public abstract void playNote(final Instrument instrument, final float volume, final float pitch, final float panning);
+    public abstract void playSound(final String sound, final float pitch, final float volume, final float panning);
 
     public void writeSamples() {
     }

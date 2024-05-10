@@ -89,7 +89,7 @@ public class SoundSampleUtil {
         return samples;
     }
 
-    public static int[] mutate(final AudioFormat format, final int[] samples, final float volume, final float pitch, final float panning) {
+    public static int[] mutate(final AudioFormat format, final int[] samples, final float pitch, final float volume, final float panning) {
         final int newLength = (int) ((float) samples.length / format.getChannels() / pitch * format.getChannels());
         final int[] newSamples = new int[newLength];
 

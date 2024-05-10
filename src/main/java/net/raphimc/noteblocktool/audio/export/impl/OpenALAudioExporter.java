@@ -18,7 +18,6 @@
 package net.raphimc.noteblocktool.audio.export.impl;
 
 import net.raphimc.noteblocklib.model.SongView;
-import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
 
@@ -35,8 +34,8 @@ public class OpenALAudioExporter extends AudioExporter {
     }
 
     @Override
-    protected void processNote(final Instrument instrument, final float volume, final float pitch, final float panning) {
-        this.soundSystem.playNote(instrument, volume, pitch, panning);
+    protected void processSound(final String sound, final float pitch, final float volume, final float panning) {
+        this.soundSystem.playSound(sound, pitch, volume, panning);
     }
 
     @Override

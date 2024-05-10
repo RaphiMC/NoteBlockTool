@@ -17,7 +17,6 @@
  */
 package net.raphimc.noteblocktool.elements.drag;
 
-import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.MinecraftDefinitions;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.frames.ListFrame;
@@ -92,13 +91,9 @@ public class DragTable extends JTable {
             return false;
         });
 
-        SongUtil.iterateAllNotes(song.getSong().getView(), note -> {
-            if (note.getInstrument() >= Instrument.values().length) {
-                result.add("The song contains notes with custom instruments");
-                return true;
-            }
-            return false;
-        });
+        if (!SongUtil.getUsedCustomInstruments(song.getSong().getView()).isEmpty()) {
+            result.add("The song contains notes with custom instruments");
+        }
 
         return result;
     }

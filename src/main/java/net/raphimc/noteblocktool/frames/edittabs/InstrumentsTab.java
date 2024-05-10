@@ -54,16 +54,16 @@ public class InstrumentsTab extends EditTab {
 
     @Override
     public void apply(Song<?, ?, ?> song, SongView<?> view) {
-        Map<Byte, Instrument> replacements = new HashMap<>();
+        Map<Instrument, Instrument> replacements = new HashMap<>();
         int i = 0;
         for (Instrument instrument : this.usedInstruments) {
             Instrument replacement = (Instrument) this.table.getValueAt(i, 1);
-            replacements.put(instrument.nbsId(), replacement);
+            replacements.put(instrument, replacement);
             i++;
         }
         SongUtil.applyToAllNotes(view, note -> {
             Instrument replacement = replacements.get(note.getInstrument());
-            if (replacement != null) note.setInstrument(replacement.nbsId());
+            if (replacement != null) note.setInstrument(replacement);
         });
     }
 

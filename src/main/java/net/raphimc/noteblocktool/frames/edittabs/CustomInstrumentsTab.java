@@ -19,6 +19,7 @@ package net.raphimc.noteblocktool.frames.edittabs;
 
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsData;
+import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
 import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.Instrument;
@@ -28,12 +29,15 @@ import net.raphimc.noteblocktool.elements.instruments.InstrumentsTable;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
 import javax.swing.*;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class CustomInstrumentsTab extends EditTab {
 
     private InstrumentsTable table;
-    private Set<Integer> usedInstruments;
+    private Set<NbsCustomInstrument> usedInstruments;
 
     public CustomInstrumentsTab(final List<ListFrame.LoadedSong> songs) {
         super("Custom Instruments", songs);
@@ -46,28 +50,34 @@ public class CustomInstrumentsTab extends EditTab {
         this.table = new InstrumentsTable(true);
         this.add(new FastScrollPane(this.table));
         this.usedInstruments = SongUtil.getUsedCustomInstruments(this.songs.get(0).getSong().getView());
-        NbsData data = (NbsData) this.songs.get(0).getSong().getData();
-        for (Integer instrument : this.usedInstruments) {
-            NbsCustomInstrument customInstrument = data.getCustomInstruments().get(instrument - Instrument.values().length);
+        for (NbsCustomInstrument customInstrument : this.usedInstruments) {
             this.table.addRow(customInstrument.getName() + " (" + customInstrument.getSoundFileName() + ")", null);
         }
     }
 
     @Override
     public void apply(Song<?, ?, ?> song, SongView<?> view) {
-        Map<Integer, Instrument> replacements = new HashMap<>();
+        Map<NbsCustomInstrument, Instrument> replacements = new HashMap<>();
         int i = 0;
-        for (Integer instrument : this.usedInstruments) {
+        for (NbsCustomInstrument customInstrument : this.usedInstruments) {
             Instrument replacement = (Instrument) this.table.getValueAt(i, 1);
-            replacements.put(instrument, replacement);
+            replacements.put(customInstrument, replacement);
             i++;
         }
         SongUtil.applyToAllNotes(view, note -> {
-            Instrument replacement = replacements.get((int) note.getInstrument());
-            if (replacement != null) note.setInstrument(replacement.nbsId());
+            if (note instanceof NbsNote) {
+                final NbsCustomInstrument customInstrument = ((NbsNote) note).getCustomInstrument();
+                Instrument replacement = replacements.get(customInstrument);
+                if (replacement != null) {
+                    note.setInstrument(replacement);
+                }
+            }
         });
-        if (song != null && SongUtil.getUsedCustomInstruments(view).isEmpty()) {
-            ((NbsData) song.getData()).setCustomInstruments(new ArrayList<>());
+
+        if (song != null) {
+            for (NbsCustomInstrument customInstrument : replacements.keySet()) {
+                ((NbsData) song.getData()).getCustomInstruments().remove(customInstrument);
+            }
         }
     }
 

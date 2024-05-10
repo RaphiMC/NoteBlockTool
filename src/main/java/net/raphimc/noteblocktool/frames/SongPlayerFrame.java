@@ -20,27 +20,31 @@ package net.raphimc.noteblocktool.frames;
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.raphimc.noteblocklib.format.nbs.NbsSong;
+import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
 import net.raphimc.noteblocklib.model.Note;
 import net.raphimc.noteblocklib.model.SongView;
+import net.raphimc.noteblocklib.player.FullNoteConsumer;
+import net.raphimc.noteblocklib.player.ISongPlayerCallback;
 import net.raphimc.noteblocklib.player.SongPlayer;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.SongResampler;
+import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.JavaxSoundSystem;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
-import net.raphimc.noteblocktool.util.DefaultSongPlayerCallback;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.text.DecimalFormat;
 import java.util.Optional;
 
-public class SongPlayerFrame extends JFrame implements DefaultSongPlayerCallback {
+public class SongPlayerFrame extends JFrame implements ISongPlayerCallback, FullNoteConsumer {
 
     private static final String UNAVAILABLE_MESSAGE = "An error occurred while initializing the sound system.\nPlease make sure that your system supports the selected sound system.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
@@ -301,8 +305,13 @@ public class SongPlayerFrame extends JFrame implements DefaultSongPlayerCallback
     }
 
     @Override
-    public void playNote(Instrument instrument, float volume, float pitch, float panning) {
-        this.soundSystem.playNote(instrument, volume, pitch, panning);
+    public void playNote(Instrument instrument, float pitch, float volume, float panning) {
+        this.soundSystem.playSound(SoundMap.INSTRUMENT_SOUNDS.get(instrument), pitch, volume, panning);
+    }
+
+    @Override
+    public void playCustomNote(NbsCustomInstrument customInstrument, float pitch, float volume, float panning) {
+        this.soundSystem.playSound(customInstrument.getSoundFileName().replace(File.separatorChar, '/'), pitch, volume, panning);
     }
 
     @Override

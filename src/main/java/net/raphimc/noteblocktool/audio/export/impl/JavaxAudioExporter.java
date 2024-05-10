@@ -18,7 +18,6 @@
 package net.raphimc.noteblocktool.audio.export.impl;
 
 import net.raphimc.noteblocklib.model.SongView;
-import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.export.AudioMerger;
@@ -31,7 +30,7 @@ import java.util.function.Consumer;
 
 public class JavaxAudioExporter extends AudioExporter {
 
-    private final Map<Instrument, int[]> sounds;
+    private final Map<String, int[]> sounds;
     private final Map<String, int[]> mutationCache;
     private final AudioMerger merger;
 
@@ -43,9 +42,11 @@ public class JavaxAudioExporter extends AudioExporter {
     }
 
     @Override
-    protected void processNote(final Instrument instrument, final float volume, final float pitch, final float panning) {
-        String key = instrument + "\0" + volume + "\0" + pitch + "\0" + panning;
-        this.merger.addSamples(this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.format, this.sounds.get(instrument), volume, pitch, panning)));
+    protected void processSound(final String sound, final float pitch, final float volume, final float panning) {
+        if (!this.sounds.containsKey(sound)) return;
+
+        final String key = sound + "\0" + pitch + "\0" + volume + "\0" + panning;
+        this.merger.addSamples(this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.format, this.sounds.get(sound), pitch, volume, panning)));
     }
 
     @Override

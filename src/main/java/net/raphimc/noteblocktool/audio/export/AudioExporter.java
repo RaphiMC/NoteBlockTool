@@ -17,11 +17,13 @@
  */
 package net.raphimc.noteblocktool.audio.export;
 
+import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.model.Note;
 import net.raphimc.noteblocklib.model.SongView;
+import net.raphimc.noteblocklib.player.FullNoteConsumer;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.SongUtil;
-import net.raphimc.noteblocktool.util.DefaultSongPlayerCallback;
+import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.util.SampleOutputStream;
 
 import javax.sound.sampled.AudioFileFormat;
@@ -34,9 +36,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
 
-public abstract class AudioExporter {
+public abstract class AudioExporter implements FullNoteConsumer {
 
-    private final DefaultSongPlayerCallback noteConsumer = this::processNote;
     private final SongView<?> songView;
     protected final AudioFormat format;
     private final Consumer<Float> progressConsumer;
@@ -60,7 +61,7 @@ public abstract class AudioExporter {
             final List<? extends Note> notes = this.songView.getNotesAtTick(tick);
             for (Note note : notes) {
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
-                this.noteConsumer.playNote(note);
+                this.playNote(note);
             }
             this.processedNotes += notes.size();
             this.writeSamples();
@@ -78,7 +79,17 @@ public abstract class AudioExporter {
         audioInputStream.close();
     }
 
-    protected abstract void processNote(final Instrument instrument, final float volume, final float pitch, final float panning);
+    @Override
+    public void playNote(final Instrument instrument, final float pitch, final float volume, final float panning) {
+        this.processSound(SoundMap.INSTRUMENT_SOUNDS.get(instrument), pitch, volume, panning);
+    }
+
+    @Override
+    public void playCustomNote(final NbsCustomInstrument customInstrument, final float pitch, final float volume, final float panning) {
+        this.processSound(customInstrument.getSoundFileName().replace(File.separatorChar, '/'), pitch, volume, panning);
+    }
+
+    protected abstract void processSound(final String sound, final float pitch, final float volume, final float panning);
 
     protected abstract void writeSamples();
 
