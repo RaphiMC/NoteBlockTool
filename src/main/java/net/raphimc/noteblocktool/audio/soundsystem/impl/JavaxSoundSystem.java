@@ -17,6 +17,8 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
@@ -26,7 +28,6 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.SourceDataLine;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class JavaxSoundSystem extends SoundSystem {
 
@@ -35,7 +36,7 @@ public class JavaxSoundSystem extends SoundSystem {
     private final Map<String, int[]> sounds;
     private final int samplesPerTick;
     private final SourceDataLine dataLine;
-    private final Map<String, int[]> mutationCache;
+    private final Cache<String, int[]> mutationCache;
     private float masterVolume = 1F;
     private long[] buffer = new long[0];
 
@@ -48,7 +49,7 @@ public class JavaxSoundSystem extends SoundSystem {
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
             this.dataLine.start();
-            this.mutationCache = new ConcurrentHashMap<>();
+            this.mutationCache = CacheBuilder.newBuilder().maximumSize(1000).build();
         } catch (Throwable e) {
             throw new RuntimeException("Could not initialize javax sound system", e);
         }
@@ -59,7 +60,7 @@ public class JavaxSoundSystem extends SoundSystem {
         if (!this.sounds.containsKey(sound)) return;
 
         final String key = sound + "\0" + pitch + "\0" + volume + "\0" + panning;
-        final int[] samples = this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(FORMAT, this.sounds.get(sound), pitch, volume * this.masterVolume, panning));
+        final int[] samples = this.mutationCache.asMap().computeIfAbsent(key, k -> SoundSampleUtil.mutate(FORMAT, this.sounds.get(sound), pitch, volume * this.masterVolume, panning));
         if (this.buffer.length < samples.length) this.buffer = Arrays.copyOf(this.buffer, samples.length);
         for (int i = 0; i < samples.length; i++) this.buffer[i] += samples[i];
     }
@@ -90,7 +91,7 @@ public class JavaxSoundSystem extends SoundSystem {
     @Override
     public void setMasterVolume(final float volume) {
         this.masterVolume = volume;
-        this.mutationCache.clear();
+        this.mutationCache.invalidateAll();
     }
 
     private byte[] write(final long[] samples) {

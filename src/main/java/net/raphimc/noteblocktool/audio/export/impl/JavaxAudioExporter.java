@@ -17,6 +17,8 @@
  */
 package net.raphimc.noteblocktool.audio.export.impl;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
@@ -24,20 +26,19 @@ import net.raphimc.noteblocktool.audio.export.AudioMerger;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
 import javax.sound.sampled.AudioFormat;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
 public class JavaxAudioExporter extends AudioExporter {
 
     private final Map<String, int[]> sounds;
-    private final Map<String, int[]> mutationCache;
+    private final Cache<String, int[]> mutationCache;
     private final AudioMerger merger;
 
     public JavaxAudioExporter(final SongView<?> songView, final AudioFormat format, final Consumer<Float> progressConsumer) {
         super(songView, format, progressConsumer);
         this.sounds = SoundMap.loadInstrumentSamples(format);
-        this.mutationCache = new HashMap<>();
+        this.mutationCache = CacheBuilder.newBuilder().maximumSize(1000).build();
         this.merger = new AudioMerger(this.samplesPerTick * format.getChannels() * (songView.getLength() + 1));
     }
 
@@ -46,7 +47,7 @@ public class JavaxAudioExporter extends AudioExporter {
         if (!this.sounds.containsKey(sound)) return;
 
         final String key = sound + "\0" + pitch + "\0" + volume + "\0" + panning;
-        this.merger.addSamples(this.mutationCache.computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.format, this.sounds.get(sound), pitch, volume, panning)));
+        this.merger.addSamples(this.mutationCache.asMap().computeIfAbsent(key, k -> SoundSampleUtil.mutate(this.format, this.sounds.get(sound), pitch, volume, panning)));
     }
 
     @Override
