@@ -38,7 +38,7 @@ public class JavaxAudioExporter extends AudioExporter {
     public JavaxAudioExporter(final SongView<?> songView, final AudioFormat format, final Consumer<Float> progressConsumer) {
         super(songView, format, progressConsumer);
         this.sounds = SoundMap.loadInstrumentSamples(format);
-        this.mutationCache = CacheBuilder.newBuilder().maximumSize(1000).build();
+        this.mutationCache = CacheBuilder.newBuilder().maximumSize(250).build();
         this.merger = new AudioMerger(this.samplesPerTick * format.getChannels() * (songView.getLength() + 1));
     }
 
