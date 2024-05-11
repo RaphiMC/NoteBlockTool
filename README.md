@@ -12,7 +12,7 @@ Using it is very simple, just run the jar file, and it will start a user interfa
 - Work with multiple songs at once (Batch processing)
 - High performance and accurate song player
   - Lag free playback of very large songs
-  - Supports all NBS features except for custom instruments
+  - Supports all NBS features including custom instruments
 - Good MIDI importer
   - Supports most MIDI files
   - Supports velocity and panning
@@ -34,7 +34,6 @@ Using it is very simple, just run the jar file, and it will start a user interfa
 ### Limitations
 - NBS layers are not preserved when doing anything other than editing the metadata
   - All editing is done on intermediary song objects which do not have layers
-- NBS custom instruments aren't played back
 
 ## Usage
 ### Importing

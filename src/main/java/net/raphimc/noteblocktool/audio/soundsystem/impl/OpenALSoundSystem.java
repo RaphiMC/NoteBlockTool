@@ -69,11 +69,11 @@ public class OpenALSoundSystem extends SoundSystem {
     private Thread shutdownHook;
     private ByteBuffer captureBuffer;
 
-    private OpenALSoundSystem(final int maxSounds) { // Playback
+    private OpenALSoundSystem(final int maxSounds) {
         this(maxSounds, null);
     }
 
-    private OpenALSoundSystem(final int maxSounds, final AudioFormat captureAudioFormat) { // Capture
+    private OpenALSoundSystem(final int maxSounds, final AudioFormat captureAudioFormat) {
         super(maxSounds);
 
         this.audioFormat = captureAudioFormat;

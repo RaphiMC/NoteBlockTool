@@ -25,6 +25,7 @@ import net.raphimc.noteblocklib.format.nbs.NbsSong;
 import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.SongUtil;
+import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.TextOverlayPanel;
 import net.raphimc.noteblocktool.elements.drag.DragTable;
@@ -52,6 +53,7 @@ public class ListFrame extends JFrame {
     private final DragTable table = new DragTable();
     private final JButton addButton = new JButton("Add");
     private final JButton removeButton = new JButton("Remove");
+    private final JButton setCustomSoundsFolder = new JButton("Set Custom Sounds folder");
     private final JButton editButton = new JButton("Edit");
     private final JButton playButton = new JButton("Play");
     private final JButton exportButton = new JButton("Export");
@@ -113,8 +115,24 @@ public class ListFrame extends JFrame {
                 }
             });
         });
-        GBC.create(buttonPanel).gridx(2).weightx(1).fill(GBC.HORIZONTAL).add(Box.createVerticalGlue());
-        GBC.create(buttonPanel).gridx(3).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.editButton, () -> {
+        GBC.create(buttonPanel).gridx(2).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.setCustomSoundsFolder, () -> {
+            this.setCustomSoundsFolder.addActionListener(e -> {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Select Custom Sounds folder");
+                fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                    try {
+                        SoundMap.reload(fileChooser.getSelectedFile());
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                        JOptionPane.showMessageDialog(this, "Failed to load custom sounds:\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            });
+        });
+        this.setCustomSoundsFolder.setToolTipText("Set the folder where sound files for custom instruments are located");
+        GBC.create(buttonPanel).gridx(3).weightx(1).fill(GBC.HORIZONTAL).add(Box.createVerticalGlue());
+        GBC.create(buttonPanel).gridx(4).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.editButton, () -> {
             this.editButton.addActionListener(e -> {
                 final int[] rows = this.table.getSelectedRows();
                 if (rows.length > 0) {
@@ -124,7 +142,7 @@ public class ListFrame extends JFrame {
                 }
             });
         });
-        GBC.create(buttonPanel).gridx(4).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.playButton, () -> {
+        GBC.create(buttonPanel).gridx(5).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.playButton, () -> {
             this.playButton.addActionListener(e -> {
                 final int[] rows = this.table.getSelectedRows();
                 if (rows.length == 1) {
@@ -133,7 +151,7 @@ public class ListFrame extends JFrame {
                 }
             });
         });
-        GBC.create(buttonPanel).gridx(5).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.exportButton, () -> {
+        GBC.create(buttonPanel).gridx(6).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.exportButton, () -> {
             this.exportButton.addActionListener(e -> {
                 SongPlayerFrame.close();
                 this.setEnabled(false);
