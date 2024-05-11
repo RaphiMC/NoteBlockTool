@@ -34,9 +34,9 @@ public class JavaxSoundSystem extends SoundSystem {
     private static final AudioFormat FORMAT = new AudioFormat(44100, 16, 2, true, false);
 
     private final Map<String, int[]> sounds;
+    private final Cache<String, int[]> mutationCache;
     private final int samplesPerTick;
     private final SourceDataLine dataLine;
-    private final Cache<String, int[]> mutationCache;
     private float masterVolume = 1F;
     private long[] buffer = new long[0];
 
@@ -45,11 +45,11 @@ public class JavaxSoundSystem extends SoundSystem {
 
         try {
             this.sounds = SoundMap.loadInstrumentSamples(FORMAT);
+            this.mutationCache = CacheBuilder.newBuilder().maximumSize(1000).build();
             this.samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed) * FORMAT.getChannels();
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
             this.dataLine.start();
-            this.mutationCache = CacheBuilder.newBuilder().maximumSize(1000).build();
         } catch (Throwable e) {
             throw new RuntimeException("Could not initialize javax sound system", e);
         }

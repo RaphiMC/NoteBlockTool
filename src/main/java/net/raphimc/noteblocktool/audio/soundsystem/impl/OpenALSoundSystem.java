@@ -63,7 +63,7 @@ public class OpenALSoundSystem extends SoundSystem {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("OpenAL Sound System").setDaemon(true).build());
     private final Map<String, Integer> soundBuffers = new HashMap<>();
     private final List<Integer> playingSources = new CopyOnWriteArrayList<>();
-    private final AudioFormat audioFormat;
+    private final AudioFormat captureAudioFormat;
     private long device;
     private long context;
     private Thread shutdownHook;
@@ -76,7 +76,7 @@ public class OpenALSoundSystem extends SoundSystem {
     private OpenALSoundSystem(final int maxSounds, final AudioFormat captureAudioFormat) {
         super(maxSounds);
 
-        this.audioFormat = captureAudioFormat;
+        this.captureAudioFormat = captureAudioFormat;
         int[] attributes;
         if (captureAudioFormat == null) {
             this.device = ALC10.alcOpenDevice((ByteBuffer) null);
@@ -90,9 +90,9 @@ public class OpenALSoundSystem extends SoundSystem {
             attributes = new int[]{
                     ALC11.ALC_MONO_SOURCES, this.maxSounds,
                     SOFTOutputLimiter.ALC_OUTPUT_LIMITER_SOFT, ALC10.ALC_TRUE,
-                    ALC10.ALC_FREQUENCY, (int) this.audioFormat.getSampleRate(),
-                    SOFTLoopback.ALC_FORMAT_CHANNELS_SOFT, this.getAlSoftChannelFormat(this.audioFormat),
-                    SOFTLoopback.ALC_FORMAT_TYPE_SOFT, this.getAlSoftFormatType(this.audioFormat),
+                    ALC10.ALC_FREQUENCY, (int) this.captureAudioFormat.getSampleRate(),
+                    SOFTLoopback.ALC_FORMAT_CHANNELS_SOFT, this.getAlSoftChannelFormat(this.captureAudioFormat),
+                    SOFTLoopback.ALC_FORMAT_TYPE_SOFT, this.getAlSoftFormatType(this.captureAudioFormat),
                     0
             };
         }
@@ -142,7 +142,7 @@ public class OpenALSoundSystem extends SoundSystem {
         }));
 
         if (captureAudioFormat != null) {
-            this.captureBuffer = MemoryUtil.memAlloc((int) this.audioFormat.getSampleRate() * this.audioFormat.getChannels() * this.audioFormat.getSampleSizeInBits() / 8 * 30);
+            this.captureBuffer = MemoryUtil.memAlloc((int) this.captureAudioFormat.getSampleRate() * this.captureAudioFormat.getChannels() * this.captureAudioFormat.getSampleSizeInBits() / 8 * 30);
         }
 
         System.out.println("Initialized OpenAL on " + ALC10.alcGetString(this.device, ALC11.ALC_ALL_DEVICES_SPECIFIER));
@@ -176,21 +176,21 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     public void renderSamples(final SampleOutputStream outputStream, final int sampleCount) {
-        final int samplesLength = sampleCount * this.audioFormat.getChannels();
-        if (samplesLength * this.audioFormat.getSampleSizeInBits() / 8 > this.captureBuffer.capacity()) {
+        final int samplesLength = sampleCount * this.captureAudioFormat.getChannels();
+        if (samplesLength * this.captureAudioFormat.getSampleSizeInBits() / 8 > this.captureBuffer.capacity()) {
             throw new IllegalArgumentException("Sample count too high");
         }
         SOFTLoopback.alcRenderSamplesSOFT(this.device, this.captureBuffer, sampleCount);
         this.checkError("Could not render samples");
-        if (this.audioFormat.getSampleSizeInBits() == 8) {
+        if (this.captureAudioFormat.getSampleSizeInBits() == 8) {
             for (int i = 0; i < samplesLength; i++) {
                 outputStream.writeSample(this.captureBuffer.get(i));
             }
-        } else if (this.audioFormat.getSampleSizeInBits() == 16) {
+        } else if (this.captureAudioFormat.getSampleSizeInBits() == 16) {
             for (int i = 0; i < samplesLength; i++) {
                 outputStream.writeSample(this.captureBuffer.getShort(i * 2));
             }
-        } else if (this.audioFormat.getSampleSizeInBits() == 32) {
+        } else if (this.captureAudioFormat.getSampleSizeInBits() == 32) {
             for (int i = 0; i < samplesLength; i++) {
                 outputStream.writeSample(this.captureBuffer.getInt(i * 4));
             }
@@ -213,9 +213,7 @@ public class OpenALSoundSystem extends SoundSystem {
             this.shutdownHook = null;
         }
         this.scheduler.shutdownNow();
-        this.soundBuffers.values().forEach(AL10::alDeleteBuffers);
         this.soundBuffers.clear();
-        this.playingSources.forEach(AL10::alDeleteSources);
         this.playingSources.clear();
         if (this.context != 0L) {
             ALC10.alcMakeContextCurrent(0);
@@ -259,23 +257,24 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     private int loadAudioFile(final InputStream inputStream) {
-        final int buffer = AL10.alGenBuffers();
-        this.checkError("Could not generate audio buffer");
         try {
             final AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(inputStream);
             final AudioFormat audioFormat = audioInputStream.getFormat();
-
             final byte[] audioBytes = IOUtil.readFully(audioInputStream);
+
+            final int buffer = AL10.alGenBuffers();
+            this.checkError("Could not generate audio buffer");
+
             final ByteBuffer audioBuffer = MemoryUtil.memAlloc(audioBytes.length).put(audioBytes);
             audioBuffer.flip();
             AL10.alBufferData(buffer, this.getAlAudioFormat(audioFormat), audioBuffer, (int) audioFormat.getSampleRate());
             this.checkError("Could not set audio buffer data");
             MemoryUtil.memFree(audioBuffer);
-        } catch (Throwable e) {
-            throw new RuntimeException("Could not load audio buffer", e);
-        }
 
-        return buffer;
+            return buffer;
+        } catch (Throwable e) {
+            throw new RuntimeException("Could not load audio file", e);
+        }
     }
 
     private int getAlAudioFormat(final AudioFormat audioFormat) {
