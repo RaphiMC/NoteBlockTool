@@ -25,8 +25,8 @@ import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
 import net.raphimc.noteblocklib.model.Note;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.player.FullNoteConsumer;
-import net.raphimc.noteblocklib.player.ISongPlayerCallback;
 import net.raphimc.noteblocklib.player.SongPlayer;
+import net.raphimc.noteblocklib.player.SongPlayerCallback;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.SoundMap;
@@ -44,7 +44,7 @@ import java.io.File;
 import java.text.DecimalFormat;
 import java.util.Optional;
 
-public class SongPlayerFrame extends JFrame implements ISongPlayerCallback, FullNoteConsumer {
+public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullNoteConsumer {
 
     private static final String UNAVAILABLE_MESSAGE = "An error occurred while initializing the sound system.\nPlease make sure that your system supports the selected sound system.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
