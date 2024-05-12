@@ -41,8 +41,6 @@ public class JavaxSoundSystem extends SoundSystem {
     private long[] buffer = new long[0];
 
     public JavaxSoundSystem(final float playbackSpeed) {
-        super(0);
-
         try {
             this.sounds = SoundMap.loadInstrumentSamples(FORMAT);
             this.mutationCache = CacheBuilder.newBuilder().maximumSize(1000).build();
@@ -84,8 +82,8 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public int getSoundCount() {
-        return 0;
+    public String getStatusLine() {
+        return " ";
     }
 
     @Override
