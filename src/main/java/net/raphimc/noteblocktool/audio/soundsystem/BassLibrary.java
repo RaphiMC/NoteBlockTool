@@ -30,7 +30,7 @@ public interface BassLibrary extends Library {
 
     BassLibrary INSTANCE = loadNative();
 
-    int BASSVERSION = 0x02041100; // 2.4.17
+    int BASSVERSION = 0x204;
 
     // BASS_Init flags
     int BASS_DEVICE_8BITS = 1; // unused

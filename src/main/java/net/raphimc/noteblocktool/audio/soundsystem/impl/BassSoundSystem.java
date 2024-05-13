@@ -54,7 +54,8 @@ public class BassSoundSystem extends SoundSystem {
     private BassSoundSystem(final int maxSounds) {
         super(maxSounds);
 
-        if (BassLibrary.INSTANCE.BASS_GetVersion() != BassLibrary.BASSVERSION) {
+        final int version = BassLibrary.INSTANCE.BASS_GetVersion();
+        if (((version >> 16) & 0xFFFF) != BassLibrary.BASSVERSION) {
             throw new RuntimeException("BASS version is not correct");
         }
         if (!BassLibrary.INSTANCE.BASS_Init(-1, 44100, 0, 0, null)) {
@@ -81,7 +82,8 @@ public class BassSoundSystem extends SoundSystem {
             this.close();
         }));
 
-        System.out.println("Initialized BASS on " + deviceInfo.name);
+        final String versionString = "v" + ((version >> 24) & 0xFF) + "." + ((version >> 16) & 0xFF) + "." + ((version >> 8) & 0xFF) + "." + (version & 0xFF);
+        System.out.println("Initialized BASS " + versionString + " on " + deviceInfo.name);
     }
 
     @Override
