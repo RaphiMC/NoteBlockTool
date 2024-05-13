@@ -47,23 +47,12 @@ public class BassSoundSystem extends SoundSystem {
         return instance;
     }
 
-    public static BassSoundSystem createCapture(final int maxSounds, final AudioFormat captureAudioFormat) {
-        if (instance != null) {
-            throw new IllegalStateException("BASS sound system already initialized");
-        }
-        if (!BassLibrary.isLoaded()) {
-            throw new IllegalStateException("BASS library is not available");
-        }
-        instance = new BassSoundSystem(maxSounds);
-        return instance;
-    }
-
 
     private final Map<String, Integer> soundSamples = new HashMap<>();
     private Thread shutdownHook;
 
     private BassSoundSystem(final int maxSounds) {
-        super(0);
+        super(maxSounds);
 
         if (BassLibrary.INSTANCE.BASS_GetVersion() != BassLibrary.BASSVERSION) {
             throw new RuntimeException("BASS version is not correct");
