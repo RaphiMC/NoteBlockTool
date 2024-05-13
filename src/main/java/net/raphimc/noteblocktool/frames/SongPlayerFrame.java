@@ -50,7 +50,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
     private static SongPlayerFrame instance;
     private static Point lastPosition;
-    private static int lastOpenAlMaxSounds = 256;
+    private static int lastMaxSounds = 256;
     private static int lastVolume = 50;
 
     public static void open(final ListFrame.LoadedSong song) {
@@ -60,13 +60,13 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     public static void open(final ListFrame.LoadedSong song, final SongView<?> view) {
         if (instance != null && instance.isVisible()) {
             lastPosition = instance.getLocation();
-            lastOpenAlMaxSounds = (int) instance.openAlMaxSoundsSpinner.getValue();
+            lastMaxSounds = (int) instance.maxSoundsSpinner.getValue();
             lastVolume = instance.volumeSlider.getValue();
             instance.dispose();
         }
         instance = new SongPlayerFrame(song, view);
         if (lastPosition != null) instance.setLocation(lastPosition);
-        instance.openAlMaxSoundsSpinner.setValue(lastOpenAlMaxSounds);
+        instance.maxSoundsSpinner.setValue(lastMaxSounds);
         instance.volumeSlider.setValue(lastVolume);
         instance.playStopButton.doClick();
         instance.setVisible(true);
@@ -81,12 +81,12 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private final SongPlayer songPlayer;
     private final Timer updateTimer;
     private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (better system compatibility, laggier)"});
-    private final JSpinner openAlMaxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 8192, 64));
+    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 8192, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, 50);
     private final JButton playStopButton = new JButton("Play");
     private final JButton pauseResumeButton = new JButton("Pause");
     private final JSlider progressSlider = new JSlider(0, 100, 0);
-    private final JLabel statusLine = new JLabel("");
+    private final JLabel statusLine = new JLabel(" ");
     private final JLabel progressLabel = new JLabel("Current Position: 00:00:00");
     private SoundSystem soundSystem;
 
@@ -126,23 +126,12 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             root.add(northPanel, BorderLayout.NORTH);
 
             int gridy = 0;
-            final JLabel maxSoundsLabel = new JLabel("Max Sounds:");
             GBC.create(northPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Sound System:"));
-            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.soundSystemComboBox, () -> {
-                this.soundSystemComboBox.addActionListener(e -> {
-                    if (this.soundSystemComboBox.getSelectedIndex() == 0) {
-                        this.openAlMaxSoundsSpinner.setVisible(true);
-                        maxSoundsLabel.setVisible(true);
-                    } else {
-                        this.openAlMaxSoundsSpinner.setVisible(false);
-                        maxSoundsLabel.setVisible(false);
-                    }
-                });
-            });
+            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.soundSystemComboBox);
 
-            GBC.create(northPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(maxSoundsLabel);
-            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.openAlMaxSoundsSpinner, () -> {
-                this.openAlMaxSoundsSpinner.addChangeListener(e -> lastOpenAlMaxSounds = (int) this.openAlMaxSoundsSpinner.getValue());
+            GBC.create(northPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
+            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSoundsSpinner, () -> {
+                this.maxSoundsSpinner.addChangeListener(e -> lastMaxSounds = (int) this.maxSoundsSpinner.getValue());
             });
 
             GBC.create(northPanel).grid(0, gridy).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(new JLabel("Volume:"));
@@ -246,23 +235,20 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
 
     private boolean initSoundSystem() {
         int currentIndex = -1;
-        boolean soundSystemPropertiesChanged = false;
         if (this.soundSystem instanceof OpenALSoundSystem) {
-            final OpenALSoundSystem openALSoundSystem = (OpenALSoundSystem) this.soundSystem;
-            soundSystemPropertiesChanged = openALSoundSystem.getMaxSounds() != (int) this.openAlMaxSoundsSpinner.getValue();
             currentIndex = 0;
         } else if (this.soundSystem instanceof JavaxSoundSystem) {
             currentIndex = 1;
         }
 
         try {
-            if (this.soundSystem == null || this.soundSystemComboBox.getSelectedIndex() != currentIndex || soundSystemPropertiesChanged) {
+            if (this.soundSystem == null || this.soundSystemComboBox.getSelectedIndex() != currentIndex || this.soundSystem.getMaxSounds() != (int) this.maxSoundsSpinner.getValue()) {
                 if (this.soundSystem != null) this.soundSystem.close();
 
                 if (this.soundSystemComboBox.getSelectedIndex() == 0) {
-                    this.soundSystem = OpenALSoundSystem.createPlayback(((Number) this.openAlMaxSoundsSpinner.getValue()).intValue());
+                    this.soundSystem = OpenALSoundSystem.createPlayback(((Number) this.maxSoundsSpinner.getValue()).intValue());
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 1) {
-                    this.soundSystem = new JavaxSoundSystem(this.songPlayer.getSongView().getSpeed());
+                    this.soundSystem = new JavaxSoundSystem(((Number) this.maxSoundsSpinner.getValue()).intValue(), this.songPlayer.getSongView().getSpeed());
                 } else {
                     throw new UnsupportedOperationException(UNAVAILABLE_MESSAGE);
                 }
@@ -296,7 +282,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private void tick() {
         if (this.songPlayer.isRunning()) {
             this.soundSystemComboBox.setEnabled(false);
-            this.openAlMaxSoundsSpinner.setEnabled(false);
+            this.maxSoundsSpinner.setEnabled(false);
             this.playStopButton.setText("Stop");
             this.pauseResumeButton.setEnabled(true);
             if (this.songPlayer.isPaused()) this.pauseResumeButton.setText("Resume");
@@ -307,7 +293,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             this.progressSlider.setValue(this.songPlayer.getTick());
         } else {
             this.soundSystemComboBox.setEnabled(true);
-            this.openAlMaxSoundsSpinner.setEnabled(true);
+            this.maxSoundsSpinner.setEnabled(true);
             this.playStopButton.setText("Play");
             this.pauseResumeButton.setText("Pause");
             this.pauseResumeButton.setEnabled(false);

@@ -19,6 +19,12 @@ package net.raphimc.noteblocktool.audio.soundsystem;
 
 public abstract class SoundSystem implements AutoCloseable {
 
+    protected final int maxSounds;
+
+    public SoundSystem(final int maxSounds) {
+        this.maxSounds = maxSounds;
+    }
+
     public abstract void playSound(final String sound, final float pitch, final float volume, final float panning);
 
     public void writeSamples() {
@@ -28,6 +34,10 @@ public abstract class SoundSystem implements AutoCloseable {
 
     @Override
     public abstract void close();
+
+    public int getMaxSounds() {
+        return this.maxSounds;
+    }
 
     public abstract String getStatusLine();
 

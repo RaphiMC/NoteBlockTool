@@ -17,8 +17,6 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
@@ -27,24 +25,29 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.SourceDataLine;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class JavaxSoundSystem extends SoundSystem {
 
     private static final AudioFormat FORMAT = new AudioFormat(44100, 16, 2, true, false);
 
     private final Map<String, int[]> sounds;
-    private final Cache<String, int[]> mutationCache;
+    private final List<SoundInstance> playingSounds = new CopyOnWriteArrayList<>();
     private final int samplesPerTick;
+    private final long availableNanosPerTick;
     private final SourceDataLine dataLine;
     private float masterVolume = 1F;
-    private long[] buffer = new long[0];
+    private long neededNanosPerTick = 0L;
 
-    public JavaxSoundSystem(final float playbackSpeed) {
+    public JavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
+        super(maxSounds);
+
         try {
             this.sounds = SoundMap.loadInstrumentSamples(FORMAT);
-            this.mutationCache = CacheBuilder.newBuilder().maximumSize(1000).build();
             this.samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed) * FORMAT.getChannels();
+            this.availableNanosPerTick = (long) (1_000_000_000L / playbackSpeed);
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
             this.dataLine.start();
@@ -57,23 +60,30 @@ public class JavaxSoundSystem extends SoundSystem {
     public void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        final String key = sound + "\0" + pitch + "\0" + volume + "\0" + panning;
-        final int[] samples = this.mutationCache.asMap().computeIfAbsent(key, k -> SoundSampleUtil.mutate(FORMAT, this.sounds.get(sound), pitch, volume * this.masterVolume, panning));
-        if (this.buffer.length < samples.length) this.buffer = Arrays.copyOf(this.buffer, samples.length);
-        for (int i = 0; i < samples.length; i++) this.buffer[i] += samples[i];
+        if (this.playingSounds.size() >= this.maxSounds) {
+            this.playingSounds.remove(0);
+        }
+
+        this.playingSounds.add(new SoundInstance(this.sounds.get(sound), pitch, volume * this.masterVolume, panning));
     }
 
     @Override
     public void writeSamples() {
-        final long[] samples = Arrays.copyOfRange(this.buffer, 0, this.samplesPerTick);
+        final long start = System.nanoTime();
+        final long[] samples = new long[this.samplesPerTick];
+        for (SoundInstance playingSound : this.playingSounds) {
+            playingSound.write(samples);
+        }
         this.dataLine.write(this.write(samples), 0, samples.length * 2);
-        if (this.buffer.length > this.samplesPerTick) this.buffer = Arrays.copyOfRange(this.buffer, this.samplesPerTick, this.buffer.length);
-        else if (this.buffer.length != 0) this.buffer = new long[0];
+
+        this.playingSounds.removeIf(SoundInstance::isFinished);
+        this.neededNanosPerTick = System.nanoTime() - start;
     }
 
     @Override
     public void stopSounds() {
         this.dataLine.flush();
+        this.playingSounds.clear();
     }
 
     @Override
@@ -83,13 +93,13 @@ public class JavaxSoundSystem extends SoundSystem {
 
     @Override
     public String getStatusLine() {
-        return " ";
+        final float load = (float) this.neededNanosPerTick / this.availableNanosPerTick;
+        return "Sounds: " + this.playingSounds.size() + " / " + this.maxSounds + ", CPU Load: " + (int) (load * 100) + "%";
     }
 
     @Override
     public void setMasterVolume(final float volume) {
         this.masterVolume = volume;
-        this.mutationCache.invalidateAll();
     }
 
     private byte[] write(final long[] samples) {
@@ -102,6 +112,45 @@ public class JavaxSoundSystem extends SoundSystem {
             out[i * 2 + 1] = (byte) ((conv >> 8) & 0xFF);
         }
         return out;
+    }
+
+    private class SoundInstance {
+
+        private final int[] samples;
+        private final float pitch;
+        private final float volume;
+        private final float panning;
+        private final int step;
+        private final int[] sliceBuffer;
+        private int cursor = 0;
+
+        public SoundInstance(final int[] samples, final float pitch, final float volume, final float panning) {
+            this.samples = samples;
+            this.pitch = pitch;
+            this.volume = volume;
+            this.panning = panning;
+            this.step = (int) (JavaxSoundSystem.this.samplesPerTick / FORMAT.getChannels() * pitch) * FORMAT.getChannels();
+            this.sliceBuffer = new int[this.step + FORMAT.getChannels()];
+        }
+
+        public void write(final long[] buffer) {
+            if (this.isFinished()) return;
+
+            final int copyLength = Math.min(this.samples.length - this.cursor, this.sliceBuffer.length);
+            System.arraycopy(this.samples, this.cursor, this.sliceBuffer, 0, copyLength);
+            Arrays.fill(this.sliceBuffer, copyLength, this.sliceBuffer.length, 0);
+
+            final int[] mutatedSlice = SoundSampleUtil.mutate(FORMAT, this.sliceBuffer, this.pitch, this.volume, this.panning);
+            for (int i = 0; i < buffer.length; i++) {
+                buffer[i] += mutatedSlice[i];
+            }
+            this.cursor += this.step;
+        }
+
+        public boolean isFinished() {
+            return this.cursor >= this.samples.length;
+        }
+
     }
 
 }

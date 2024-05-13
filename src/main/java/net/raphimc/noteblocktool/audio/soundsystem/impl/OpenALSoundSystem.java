@@ -63,7 +63,6 @@ public class OpenALSoundSystem extends SoundSystem {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("OpenAL Sound System").setDaemon(true).build());
     private final Map<String, Integer> soundBuffers = new HashMap<>();
     private final List<Integer> playingSources = new CopyOnWriteArrayList<>();
-    private final int maxSounds;
     private final AudioFormat captureAudioFormat;
     private long device;
     private long context;
@@ -75,7 +74,8 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     private OpenALSoundSystem(final int maxSounds, final AudioFormat captureAudioFormat) {
-        this.maxSounds = maxSounds;
+        super(maxSounds);
+
         this.captureAudioFormat = captureAudioFormat;
         int[] attributes;
         if (captureAudioFormat == null) {
@@ -234,10 +234,6 @@ public class OpenALSoundSystem extends SoundSystem {
     @Override
     public String getStatusLine() {
         return "Sounds: " + this.playingSources.size() + " / " + this.maxSounds;
-    }
-
-    public int getMaxSounds() {
-        return this.maxSounds;
     }
 
     @Override
