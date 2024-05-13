@@ -39,6 +39,7 @@ dependencies {
         include "org.lwjgl:lwjgl-openal:3.3.3:$it"
         include "org.lwjgl:lwjgl-stb:3.3.3:$it"
     }
+    include "net.java.dev.jna:jna:5.13.0"
 }
 
 application {
