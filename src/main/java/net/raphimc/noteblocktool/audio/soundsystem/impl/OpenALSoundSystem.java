@@ -145,7 +145,7 @@ public class OpenALSoundSystem extends SoundSystem {
             this.captureBuffer = MemoryUtil.memAlloc((int) this.captureAudioFormat.getSampleRate() * this.captureAudioFormat.getChannels() * this.captureAudioFormat.getSampleSizeInBits() / 8 * 30);
         }
 
-        System.out.println("Initialized OpenAL on " + ALC10.alcGetString(this.device, ALC11.ALC_ALL_DEVICES_SPECIFIER));
+        System.out.println("Initialized OpenAL " + AL10.alGetString(AL10.AL_VERSION) +" on " + ALC10.alcGetString(this.device, ALC11.ALC_ALL_DEVICES_SPECIFIER));
     }
 
     @Override
