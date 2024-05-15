@@ -103,12 +103,14 @@ public class OpenALSoundSystem extends SoundSystem {
 
         final ALCCapabilities alcCapabilities = ALC.createCapabilities(this.device);
         this.checkError("Could not create alcCapabilities");
-
         if (!alcCapabilities.OpenALC11) {
-            throw new RuntimeException("OpenAL 1.1 is not supported");
+            throw new RuntimeException("OpenALC 1.1 is not supported");
         }
         if (!alcCapabilities.ALC_SOFT_output_limiter) {
             throw new RuntimeException("ALC_SOFT_output_limiter is not supported");
+        }
+        if (captureAudioFormat != null && !alcCapabilities.ALC_SOFT_loopback) {
+            throw new RuntimeException("ALC_SOFT_loopback is not supported");
         }
 
         this.context = ALC10.alcCreateContext(this.device, attributes);
@@ -117,8 +119,11 @@ public class OpenALSoundSystem extends SoundSystem {
             throw new RuntimeException("Could not make context current");
         }
 
-        AL.createCapabilities(alcCapabilities);
+        final ALCapabilities alCapabilities = AL.createCapabilities(alcCapabilities);
         this.checkError("Could not create alCapabilities");
+        if (!alCapabilities.OpenAL11) {
+            throw new RuntimeException("OpenAL 1.1 is not supported");
+        }
 
         AL10.alListener3f(AL10.AL_POSITION, 0F, 0F, 0F);
         this.checkError("Could not set listener position");
@@ -145,7 +150,7 @@ public class OpenALSoundSystem extends SoundSystem {
             this.captureBuffer = MemoryUtil.memAlloc((int) this.captureAudioFormat.getSampleRate() * this.captureAudioFormat.getChannels() * this.captureAudioFormat.getSampleSizeInBits() / 8 * 30);
         }
 
-        System.out.println("Initialized OpenAL " + AL10.alGetString(AL10.AL_VERSION) +" on " + ALC10.alcGetString(this.device, ALC11.ALC_ALL_DEVICES_SPECIFIER));
+        System.out.println("Initialized OpenAL " + AL10.alGetString(AL10.AL_VERSION) + " on " + ALC10.alcGetString(this.device, ALC11.ALC_ALL_DEVICES_SPECIFIER));
     }
 
     @Override
