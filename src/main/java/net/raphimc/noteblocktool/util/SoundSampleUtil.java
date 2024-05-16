@@ -100,14 +100,27 @@ public class SoundSampleUtil {
                 else channelVolume *= 1 + panning;
             }
 
-            for (int i = 0; i < newLength / format.getChannels(); i++) {
-                final int oldIndex = (int) (i * pitch) * format.getChannels() + channel;
-                if (pitch < 1 && oldIndex < samples.length - format.getChannels()) {
-                    // Interpolate between the current sample and the next one
-                    final float ratio = (i * pitch) % 1;
-                    newSamples[i * format.getChannels() + channel] = (int) ((samples[oldIndex] * (1 - ratio) + samples[oldIndex + format.getChannels()] * ratio) * channelVolume);
-                } else if (oldIndex < samples.length) {
-                    newSamples[i * format.getChannels() + channel] = (int) (samples[oldIndex] * channelVolume);
+            if (pitch == 1F) {
+                for (int i = 0; i < newLength / format.getChannels(); i++) {
+                    final int index = i * format.getChannels() + channel;
+                    newSamples[index] = (int) (samples[index] * channelVolume);
+                }
+            } else if (pitch > 1F) {
+                for (int i = 0; i < newLength / format.getChannels(); i++) {
+                    int originalIndex = (int) (i * pitch) * format.getChannels() + channel;
+                    originalIndex = Math.min(Math.max(originalIndex, 0), samples.length - format.getChannels());
+                    newSamples[i * format.getChannels() + channel] = (int) (samples[originalIndex] * channelVolume);
+                }
+            } else {
+                for (int i = 0; i < newLength / format.getChannels(); i++) {
+                    final float sampleIndex = i * pitch;
+                    final int sampleIndexFloor = (int) sampleIndex;
+                    final int sampleIndexCeil = Math.min(sampleIndexFloor + 1, samples.length / format.getChannels() - 1);
+                    final float sampleIndexFraction = sampleIndex - sampleIndexFloor;
+
+                    final int sampleFloor = samples[sampleIndexFloor * format.getChannels() + channel];
+                    final int sampleCeil = samples[sampleIndexCeil * format.getChannels() + channel];
+                    newSamples[i * format.getChannels() + channel] = (int) ((sampleFloor + (sampleCeil - sampleFloor) * sampleIndexFraction) * channelVolume);
                 }
             }
         }
