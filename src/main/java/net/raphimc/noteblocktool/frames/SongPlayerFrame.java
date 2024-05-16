@@ -51,6 +51,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
     private static SongPlayerFrame instance;
     private static Point lastPosition;
+    private static int lastSoundSystem;
     private static int lastMaxSounds = 256;
     private static int lastVolume = 50;
 
@@ -61,16 +62,20 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     public static void open(final ListFrame.LoadedSong song, final SongView<?> view) {
         if (instance != null && instance.isVisible()) {
             lastPosition = instance.getLocation();
+            lastSoundSystem = instance.soundSystemComboBox.getSelectedIndex();
             lastMaxSounds = (int) instance.maxSoundsSpinner.getValue();
             lastVolume = instance.volumeSlider.getValue();
             instance.dispose();
         }
-        instance = new SongPlayerFrame(song, view);
-        if (lastPosition != null) instance.setLocation(lastPosition);
-        instance.maxSoundsSpinner.setValue(lastMaxSounds);
-        instance.volumeSlider.setValue(lastVolume);
-        instance.playStopButton.doClick();
-        instance.setVisible(true);
+        SwingUtilities.invokeLater(() -> {
+            instance = new SongPlayerFrame(song, view);
+            if (lastPosition != null) instance.setLocation(lastPosition);
+            instance.soundSystemComboBox.setSelectedIndex(lastSoundSystem);
+            instance.maxSoundsSpinner.setValue(lastMaxSounds);
+            instance.volumeSlider.setValue(lastVolume);
+            instance.playStopButton.doClick();
+            instance.setVisible(true);
+        });
     }
 
     public static void close() {
@@ -294,6 +299,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             int tickCount = this.songPlayer.getSongView().getLength();
             if (this.progressSlider.getMaximum() != tickCount) this.progressSlider.setMaximum(tickCount);
             this.progressSlider.setValue(this.songPlayer.getTick());
+            this.statusLine.setText(this.soundSystem.getStatusLine());
         } else {
             this.soundSystemComboBox.setEnabled(true);
             this.maxSoundsSpinner.setEnabled(true);
@@ -301,8 +307,8 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             this.pauseResumeButton.setText("Pause");
             this.pauseResumeButton.setEnabled(false);
             this.progressSlider.setValue(0);
+            this.statusLine.setText(" ");
         }
-        this.statusLine.setText(this.soundSystem.getStatusLine());
 
         int msLength = (int) (this.songPlayer.getTick() / this.songPlayer.getSongView().getSpeed());
         this.progressLabel.setText("Current Position: " + String.format("%02d:%02d:%02d", msLength / 3600, (msLength / 60) % 60, msLength % 60));
