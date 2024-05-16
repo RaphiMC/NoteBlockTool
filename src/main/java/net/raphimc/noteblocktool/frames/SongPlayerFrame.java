@@ -228,7 +228,14 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
                 }
             });
             buttonPanel.add(this.pauseResumeButton);
-            this.pauseResumeButton.addActionListener(e -> this.songPlayer.setPaused(!this.songPlayer.isPaused()));
+            this.pauseResumeButton.addActionListener(e -> {
+                if (this.songPlayer.isPaused()) {
+                    this.songPlayer.setPaused(false);
+                } else {
+                    this.songPlayer.setPaused(true);
+                    this.soundSystem.stopSounds();
+                }
+            });
             GBC.create(southPanel).grid(0, gridy++).insets(5, 5, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(buttonPanel);
 
             final JPanel statusBar = new JPanel();
