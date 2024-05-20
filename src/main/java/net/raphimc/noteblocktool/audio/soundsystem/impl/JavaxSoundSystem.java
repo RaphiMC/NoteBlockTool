@@ -33,13 +33,13 @@ public class JavaxSoundSystem extends SoundSystem {
 
     private static final AudioFormat FORMAT = new AudioFormat(44100, 16, 2, true, false);
 
-    private final Map<String, int[]> sounds;
-    private final List<SoundInstance> playingSounds = new CopyOnWriteArrayList<>();
-    private final int samplesPerTick;
-    private final long availableNanosPerTick;
-    private final SourceDataLine dataLine;
-    private float masterVolume = 1F;
-    private long neededNanosPerTick = 0L;
+    protected final Map<String, int[]> sounds;
+    protected final List<SoundInstance> playingSounds = new CopyOnWriteArrayList<>();
+    protected final int samplesPerTick;
+    protected final long availableNanosPerTick;
+    protected final SourceDataLine dataLine;
+    protected float masterVolume = 1F;
+    protected long neededNanosPerTick = 0L;
 
     public JavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
         super(maxSounds);
@@ -102,7 +102,7 @@ public class JavaxSoundSystem extends SoundSystem {
         this.masterVolume = volume;
     }
 
-    private byte[] write(final long[] samples) {
+    protected byte[] write(final long[] samples) {
         final byte[] out = new byte[samples.length * 2];
         final long max = SoundSampleUtil.getMax(samples);
         final float div = Math.max(1, (float) max / Short.MAX_VALUE);
@@ -114,7 +114,7 @@ public class JavaxSoundSystem extends SoundSystem {
         return out;
     }
 
-    private class SoundInstance {
+    protected class SoundInstance {
 
         private final int[] samples;
         private final float pitch;
@@ -133,18 +133,20 @@ public class JavaxSoundSystem extends SoundSystem {
             this.sliceBuffer = new int[this.step + FORMAT.getChannels()];
         }
 
-        public void write(final long[] buffer) {
-            if (this.isFinished()) return;
-
+        public int[] render() {
             final int copyLength = Math.min(this.samples.length - this.cursor, this.sliceBuffer.length);
             System.arraycopy(this.samples, this.cursor, this.sliceBuffer, 0, copyLength);
             Arrays.fill(this.sliceBuffer, copyLength, this.sliceBuffer.length, 0);
+            this.cursor += this.step;
 
-            final int[] mutatedSlice = SoundSampleUtil.mutate(FORMAT, this.sliceBuffer, this.pitch, this.volume, this.panning);
+            return SoundSampleUtil.mutate(FORMAT, this.sliceBuffer, this.pitch, this.volume, this.panning);
+        }
+
+        public void write(final long[] buffer) {
+            final int[] mutatedSlice = this.render();
             for (int i = 0; i < buffer.length; i++) {
                 buffer[i] += mutatedSlice[i];
             }
-            this.cursor += this.step;
         }
 
         public boolean isFinished() {

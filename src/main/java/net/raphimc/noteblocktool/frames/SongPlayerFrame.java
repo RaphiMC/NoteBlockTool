@@ -33,6 +33,7 @@ import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.BassSoundSystem;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.JavaxSoundSystem;
+import net.raphimc.noteblocktool.audio.soundsystem.impl.MultithreadedJavaxSoundSystem;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
@@ -86,7 +87,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private final ListFrame.LoadedSong song;
     private final SongPlayer songPlayer;
     private final Timer updateTimer;
-    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (better system compatibility, laggier)", "Un4seen BASS"});
+    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (better system compatibility, laggier)", "Javax multithreaded (experimental)", "Un4seen BASS"});
     private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 8192, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, 50);
     private final JButton playStopButton = new JButton("Play");
@@ -265,6 +266,8 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 1) {
                     this.soundSystem = new JavaxSoundSystem(((Number) this.maxSoundsSpinner.getValue()).intValue(), this.songPlayer.getSongView().getSpeed());
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 2) {
+                    this.soundSystem = new MultithreadedJavaxSoundSystem(((Number) this.maxSoundsSpinner.getValue()).intValue(), this.songPlayer.getSongView().getSpeed());
+                } else if (this.soundSystemComboBox.getSelectedIndex() == 3) {
                     this.soundSystem = BassSoundSystem.createPlayback(((Number) this.maxSoundsSpinner.getValue()).intValue());
                 } else {
                     throw new UnsupportedOperationException(UNAVAILABLE_MESSAGE);
