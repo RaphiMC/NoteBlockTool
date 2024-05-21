@@ -17,7 +17,6 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.IOUtil;
@@ -35,9 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class OpenALSoundSystem extends SoundSystem {
 
@@ -60,7 +56,6 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
 
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("OpenAL Sound System").setDaemon(true).build());
     private final Map<String, Integer> soundBuffers = new HashMap<>();
     private final List<Integer> playingSources = new CopyOnWriteArrayList<>();
     private final AudioFormat captureAudioFormat;
@@ -68,6 +63,15 @@ public class OpenALSoundSystem extends SoundSystem {
     private long context;
     private Thread shutdownHook;
     private ByteBuffer captureBuffer;
+
+    @SuppressWarnings("FieldCanBeLocal")
+    private final SOFTEventProcI eventCallback = (eventType, object, param, length, message, userParam) -> {
+        if (eventType == SOFTEvents.AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT && param == AL10.AL_STOPPED) {
+            AL10.alDeleteSources(object);
+            this.checkError("Could not delete audio source");
+            this.playingSources.remove((Integer) object);
+        }
+    };
 
     private OpenALSoundSystem(final int maxSounds) {
         this(maxSounds, null);
@@ -77,7 +81,7 @@ public class OpenALSoundSystem extends SoundSystem {
         super(maxSounds);
 
         this.captureAudioFormat = captureAudioFormat;
-        int[] attributes;
+        final int[] attributes;
         if (captureAudioFormat == null) {
             this.device = ALC10.alcOpenDevice((ByteBuffer) null);
             attributes = new int[]{
@@ -124,11 +128,14 @@ public class OpenALSoundSystem extends SoundSystem {
         if (!alCapabilities.OpenAL11) {
             throw new RuntimeException("OpenAL 1.1 is not supported");
         }
+        if (!alCapabilities.AL_SOFT_events) {
+            throw new RuntimeException("AL_SOFT_events is not supported");
+        }
 
+        AL10.alDistanceModel(AL10.AL_NONE);
+        this.checkError("Could not set distance model");
         AL10.alListener3f(AL10.AL_POSITION, 0F, 0F, 0F);
         this.checkError("Could not set listener position");
-        AL10.alListener3f(AL10.AL_VELOCITY, 0F, 0F, 0F);
-        this.checkError("Could not set listener velocity");
         AL10.alListenerfv(AL10.AL_ORIENTATION, new float[]{0F, 0F, -1F, 0F, 1F, 0F});
         this.checkError("Could not set listener orientation");
 
@@ -140,7 +147,11 @@ public class OpenALSoundSystem extends SoundSystem {
             throw new RuntimeException("Could not load sound samples", e);
         }
 
-        this.scheduler.scheduleAtFixedRate(this::tick, 0, 100, TimeUnit.MILLISECONDS);
+        SOFTEvents.alEventCallbackSOFT(this.eventCallback, null);
+        this.checkError("Could not set event callback");
+        SOFTEvents.alEventControlSOFT(new int[]{SOFTEvents.AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT}, true);
+        this.checkError("Could not configure event control");
+
         Runtime.getRuntime().addShutdownHook(this.shutdownHook = new Thread(() -> {
             this.shutdownHook = null;
             this.close();
@@ -217,7 +228,6 @@ public class OpenALSoundSystem extends SoundSystem {
             Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
             this.shutdownHook = null;
         }
-        this.scheduler.shutdownNow();
         this.soundBuffers.clear();
         this.playingSources.clear();
         if (this.context != 0L) {
@@ -245,20 +255,6 @@ public class OpenALSoundSystem extends SoundSystem {
     public void setMasterVolume(final float volume) {
         AL10.alListenerf(AL10.AL_GAIN, volume);
         this.checkError("Could not set listener gain");
-    }
-
-    private void tick() {
-        this.playingSources.removeIf(source -> {
-            final int state = AL10.alGetSourcei(source, AL10.AL_SOURCE_STATE);
-            this.checkError("Could not get audio source state");
-            if (state != AL10.AL_PLAYING) {
-                AL10.alDeleteSources(source);
-                this.checkError("Could not delete audio source");
-                return true;
-            }
-
-            return false;
-        });
     }
 
     private int loadAudioFile(final InputStream inputStream) {
