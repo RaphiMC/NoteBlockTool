@@ -17,9 +17,7 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem;
 
-import com.sun.jna.Library;
-import com.sun.jna.Native;
-import com.sun.jna.Structure;
+import com.sun.jna.*;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.PointerByReference;
 
@@ -182,9 +180,31 @@ public interface BassLibrary extends Library {
     int BASS_ATTRIB_MUSIC_VOL_CHAN = 0x200; // + channel #
     int BASS_ATTRIB_MUSIC_VOL_INST = 0x300; // + instrument #
 
-    int BASS_SAMPLE_OVER_VOL = 0x10000; // override lowest volume
-    int BASS_SAMPLE_OVER_POS = 0x20000; // override longest playing
-    int BASS_SAMPLE_OVER_DIST = 0x30000; // override furthest from listener (3D only)
+    // BASS_SampleGetChannel flags
+    int BASS_SAMCHAN_NEW = 1; // get a new playback channel
+    int BASS_SAMCHAN_STREAM = 2; // create a stream
+
+    // BASS_ChannelSetSync types
+    int BASS_SYNC_POS = 0;
+    int BASS_SYNC_END = 2;
+    int BASS_SYNC_META = 4;
+    int BASS_SYNC_SLIDE = 5;
+    int BASS_SYNC_STALL = 6;
+    int BASS_SYNC_DOWNLOAD = 7;
+    int BASS_SYNC_FREE = 8;
+    int BASS_SYNC_SETPOS = 11;
+    int BASS_SYNC_MUSICPOS = 10;
+    int BASS_SYNC_MUSICINST = 1;
+    int BASS_SYNC_MUSICFX = 3;
+    int BASS_SYNC_OGG_CHANGE = 12;
+    int BASS_SYNC_DEV_FAIL = 14;
+    int BASS_SYNC_DEV_FORMAT = 15;
+    int BASS_SYNC_THREAD = 0x20000000; // flag: call sync in other thread
+    int BASS_SYNC_MIXTIME = 0x40000000; // flag: sync at mixtime, else at playtime
+    int BASS_SYNC_ONETIME = 0x80000000; // flag: sync only once, else continuously
+
+    int BASS_STREAM_DECODE = 0x200000; // don't play the stream, only decode
+    int BASS_STREAM_AUTOFREE = 0x40000; // automatically free the stream when it stops/ends
 
     static BassLibrary loadNative() {
         try {
@@ -204,9 +224,9 @@ public interface BassLibrary extends Library {
 
     boolean BASS_Free();
 
-    boolean BASS_Stop();
-
     boolean BASS_Start();
+
+    boolean BASS_Stop();
 
     int BASS_GetVersion();
 
@@ -224,17 +244,25 @@ public interface BassLibrary extends Library {
 
     int BASS_SampleCreate(final int length, final int freq, final int chans, final int max, final int flags);
 
-    boolean BASS_SampleSetData(final int sample, final byte[] buffer);
+    boolean BASS_SampleSetData(final int handle, final byte[] buffer);
 
-    int BASS_SampleGetChannel(final int sample, final int flags);
+    int BASS_SampleGetChannel(final int handle, final int flags);
 
-    boolean BASS_ChannelStart(final int channel);
+    boolean BASS_ChannelStart(final int handle);
 
-    boolean BASS_ChannelGetAttribute(final int channel, final int attrib, final FloatByReference value);
+    boolean BASS_ChannelGetAttribute(final int handle, final int attrib, final FloatByReference value);
 
-    boolean BASS_ChannelSetAttribute(final int channel, final int attrib, final float value);
+    boolean BASS_ChannelSetAttribute(final int handle, final int attrib, final float value);
 
-    boolean BASS_ChannelStop(final int channel);
+    int BASS_ChannelSetSync(final int handle, final int type, final long param, final SYNCPROC proc, final Pointer user);
+
+    boolean BASS_ChannelStop(final int handle);
+
+    interface SYNCPROC extends Callback {
+
+        void syncProc(final int handle, final int channel, final int data, final Pointer user);
+
+    }
 
     @Structure.FieldOrder({"name", "driver", "flags"})
     class BASS_DEVICEINFO extends Structure {

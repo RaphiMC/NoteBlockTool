@@ -30,7 +30,9 @@ import javax.sound.sampled.AudioSystem;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class BassSoundSystem extends SoundSystem {
 
@@ -49,7 +51,11 @@ public class BassSoundSystem extends SoundSystem {
 
 
     private final Map<String, Integer> soundSamples = new HashMap<>();
+    private final List<Integer> playingChannels = new CopyOnWriteArrayList<>();
     private Thread shutdownHook;
+
+    @SuppressWarnings("FieldCanBeLocal")
+    private final BassLibrary.SYNCPROC channelEndSync = (handle, channel, data, user) -> this.playingChannels.remove((Integer) channel);
 
     private BassSoundSystem(final int maxSounds) {
         super(maxSounds);
@@ -65,13 +71,13 @@ public class BassSoundSystem extends SoundSystem {
         if (!BassLibrary.INSTANCE.BASS_GetDeviceInfo(BassLibrary.INSTANCE.BASS_GetDevice(), deviceInfo)) {
             this.checkError("Could not get device info");
         }
-        if (!BassLibrary.INSTANCE.BASS_SetConfig(BassLibrary.BASS_CONFIG_SRC_SAMPLE, 1)) {
+        if (!BassLibrary.INSTANCE.BASS_SetConfig(BassLibrary.BASS_CONFIG_SRC, 0)) { // linear interpolation
             this.checkError("Could not set default sample rate conversion quality");
         }
 
         try {
             for (Map.Entry<String, URL> entry : SoundMap.SOUND_LOCATIONS.entrySet()) {
-                this.soundSamples.put(entry.getKey(), this.loadAudioFile(entry.getValue().openStream(), maxSounds));
+                this.soundSamples.put(entry.getKey(), this.loadAudioFile(entry.getValue().openStream()));
             }
         } catch (Throwable e) {
             throw new RuntimeException("Could not load sound samples", e);
@@ -90,7 +96,13 @@ public class BassSoundSystem extends SoundSystem {
     public void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.soundSamples.containsKey(sound)) return;
 
-        final int channel = BassLibrary.INSTANCE.BASS_SampleGetChannel(this.soundSamples.get(sound), BassLibrary.BASS_SAMPLE_OVER_VOL);
+        if (this.playingChannels.size() >= this.maxSounds) {
+            if (!BassLibrary.INSTANCE.BASS_ChannelStop(this.playingChannels.remove(0))) {
+                this.checkError("Could not stop audio channel");
+            }
+        }
+
+        final int channel = BassLibrary.INSTANCE.BASS_SampleGetChannel(this.soundSamples.get(sound), BassLibrary.BASS_SAMCHAN_STREAM | BassLibrary.BASS_STREAM_AUTOFREE);
         if (channel == 0) {
             this.checkError("Could not get audio channel");
         }
@@ -107,9 +119,14 @@ public class BassSoundSystem extends SoundSystem {
         if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(channel, BassLibrary.BASS_ATTRIB_FREQ, freq.getValue() * pitch)) {
             this.checkError("Could not set audio channel frequency");
         }
+        final int sync = BassLibrary.INSTANCE.BASS_ChannelSetSync(channel, BassLibrary.BASS_SYNC_END | BassLibrary.BASS_SYNC_ONETIME, 0, this.channelEndSync, null);
+        if (sync == 0) {
+            this.checkError("Could not set audio channel end sync");
+        }
         if (!BassLibrary.INSTANCE.BASS_ChannelStart(channel)) {
             this.checkError("Could not play audio channel");
         }
+        this.playingChannels.add(channel);
     }
 
     @Override
@@ -120,6 +137,7 @@ public class BassSoundSystem extends SoundSystem {
         if (!BassLibrary.INSTANCE.BASS_Start()) {
             this.checkError("Could not start sound system");
         }
+        this.playingChannels.clear();
     }
 
     @Override
@@ -129,6 +147,7 @@ public class BassSoundSystem extends SoundSystem {
             this.shutdownHook = null;
         }
         this.soundSamples.clear();
+        this.playingChannels.clear();
         if (instance != null) {
             BassLibrary.INSTANCE.BASS_Free();
             instance = null;
@@ -137,17 +156,17 @@ public class BassSoundSystem extends SoundSystem {
 
     @Override
     public String getStatusLine() {
-        return "CPU Load: " + (int) BassLibrary.INSTANCE.BASS_GetCPU() + "%";
+        return "Sounds: " + this.playingChannels.size() + " / " + this.maxSounds + ", CPU Load: " + (int) BassLibrary.INSTANCE.BASS_GetCPU() + "%";
     }
 
     @Override
     public void setMasterVolume(final float volume) {
-        if (!BassLibrary.INSTANCE.BASS_SetConfig(BassLibrary.BASS_CONFIG_GVOL_SAMPLE, (int) (volume * 10000))) {
+        if (!BassLibrary.INSTANCE.BASS_SetConfig(BassLibrary.BASS_CONFIG_GVOL_STREAM, (int) (volume * 10000))) {
             this.checkError("Could not set master volume");
         }
     }
 
-    private int loadAudioFile(final InputStream inputStream, final int maxSounds) {
+    private int loadAudioFile(final InputStream inputStream) {
         try {
             AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(inputStream);
             final AudioFormat audioFormat = audioInputStream.getFormat();
@@ -155,7 +174,7 @@ public class BassSoundSystem extends SoundSystem {
             if (!audioFormat.matches(targetFormat)) audioInputStream = AudioSystem.getAudioInputStream(targetFormat, audioInputStream);
             final byte[] audioBytes = IOUtil.readFully(audioInputStream);
 
-            final int sample = BassLibrary.INSTANCE.BASS_SampleCreate(audioBytes.length, (int) audioFormat.getSampleRate(), audioFormat.getChannels(), maxSounds, 0);
+            final int sample = BassLibrary.INSTANCE.BASS_SampleCreate(audioBytes.length, (int) audioFormat.getSampleRate(), audioFormat.getChannels(), 1, 0);
             if (sample == 0) {
                 this.checkError("Could not create sample");
             }
