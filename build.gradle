@@ -28,7 +28,7 @@ repositories {
 }
 
 dependencies {
-    include "net.raphimc:NoteBlockLib:2.1.1"
+    include "net.raphimc:NoteBlockLib:2.1.2-SNAPSHOT"
     include "com.formdev:flatlaf:3.4.1"
     include "net.lenni0451.commons:swing:1.5.1"
     include "org.lwjgl:lwjgl:3.3.3"
