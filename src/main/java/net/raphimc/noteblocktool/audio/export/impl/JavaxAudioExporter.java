@@ -39,7 +39,7 @@ public class JavaxAudioExporter extends AudioExporter {
         super(songView, format, progressConsumer);
         this.sounds = SoundMap.loadInstrumentSamples(format);
         this.mutationCache = CacheBuilder.newBuilder().maximumSize(250).build();
-        this.merger = new AudioMerger(this.samplesPerTick * format.getChannels() * (songView.getLength() + 1));
+        this.merger = new AudioMerger(this.samplesPerTick * format.getChannels() * songView.getLength());
     }
 
     @Override

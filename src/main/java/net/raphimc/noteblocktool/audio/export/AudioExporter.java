@@ -57,7 +57,7 @@ public abstract class AudioExporter implements FullNoteConsumer {
     }
 
     public void render() throws InterruptedException {
-        for (int tick = 0; tick <= this.songView.getLength(); tick++) {
+        for (int tick = 0; tick < this.songView.getLength(); tick++) {
             final List<? extends Note> notes = this.songView.getNotesAtTick(tick);
             for (Note note : notes) {
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
