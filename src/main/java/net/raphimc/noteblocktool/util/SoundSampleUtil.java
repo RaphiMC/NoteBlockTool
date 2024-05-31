@@ -90,37 +90,38 @@ public class SoundSampleUtil {
     }
 
     public static int[] mutate(final AudioFormat format, final int[] samples, final float pitch, final float volume, final float panning) {
-        final int newLength = (int) (samples.length / format.getChannels() / pitch) * format.getChannels();
-        final int[] newSamples = new int[newLength];
+        final int channels = format.getChannels();
+        final int[] newSamples = new int[(int) (samples.length / channels / pitch) * channels];
+        final int newLength = newSamples.length / channels;
 
-        for (int channel = 0; channel < format.getChannels(); channel++) {
+        for (int channel = 0; channel < channels; channel++) {
             float channelVolume = volume;
-            if (format.getChannels() == 2) {
+            if (channels == 2) {
                 if (channel == 0) channelVolume *= 1 - panning;
                 else channelVolume *= 1 + panning;
             }
 
             if (pitch == 1F) {
-                for (int i = 0; i < newLength / format.getChannels(); i++) {
-                    final int index = i * format.getChannels() + channel;
+                for (int i = 0; i < newLength; i++) {
+                    final int index = i * channels + channel;
                     newSamples[index] = (int) (samples[index] * channelVolume);
                 }
             } else if (pitch > 1F) {
-                for (int i = 0; i < newLength / format.getChannels(); i++) {
-                    int originalIndex = (int) (i * pitch) * format.getChannels() + channel;
-                    originalIndex = Math.min(Math.max(originalIndex, 0), samples.length - format.getChannels());
-                    newSamples[i * format.getChannels() + channel] = (int) (samples[originalIndex] * channelVolume);
+                for (int i = 0; i < newLength; i++) {
+                    int originalIndex = (int) (i * pitch) * channels + channel;
+                    originalIndex = Math.min(Math.max(originalIndex, 0), samples.length - channels);
+                    newSamples[i * channels + channel] = (int) (samples[originalIndex] * channelVolume);
                 }
             } else {
-                for (int i = 0; i < newLength / format.getChannels(); i++) {
+                for (int i = 0; i < newLength; i++) {
                     final float sampleIndex = i * pitch;
                     final int sampleIndexFloor = (int) sampleIndex;
-                    final int sampleIndexCeil = Math.min(sampleIndexFloor + 1, samples.length / format.getChannels() - 1);
+                    final int sampleIndexCeil = Math.min(sampleIndexFloor + 1, samples.length / channels - 1);
                     final float sampleIndexFraction = sampleIndex - sampleIndexFloor;
 
-                    final int sampleFloor = samples[sampleIndexFloor * format.getChannels() + channel];
-                    final int sampleCeil = samples[sampleIndexCeil * format.getChannels() + channel];
-                    newSamples[i * format.getChannels() + channel] = (int) ((sampleFloor + (sampleCeil - sampleFloor) * sampleIndexFraction) * channelVolume);
+                    final int sampleFloor = samples[sampleIndexFloor * channels + channel];
+                    final int sampleCeil = samples[sampleIndexCeil * channels + channel];
+                    newSamples[i * channels + channel] = (int) ((sampleFloor + (sampleCeil - sampleFloor) * sampleIndexFraction) * channelVolume);
                 }
             }
         }
