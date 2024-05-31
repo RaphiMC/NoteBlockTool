@@ -87,7 +87,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private final ListFrame.LoadedSong song;
     private final MonitoringSongPlayer songPlayer;
     private final Timer updateTimer;
-    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (better system compatibility, laggier)", "Javax multithreaded (experimental)", "Un4seen BASS"});
+    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (better system compatibility, laggier)", "Javax multithreaded (experimental)", "Un4seen BASS (experimental)"});
     private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 8192, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, 50);
     private final JButton playStopButton = new JButton("Play");
