@@ -256,7 +256,7 @@ public interface BassLibrary extends Library {
 
     int BASS_ChannelSetSync(final int handle, final int type, final long param, final SYNCPROC proc, final Pointer user);
 
-    boolean BASS_ChannelStop(final int handle);
+    boolean BASS_ChannelFree(final int handle);
 
     interface SYNCPROC extends Callback {
 

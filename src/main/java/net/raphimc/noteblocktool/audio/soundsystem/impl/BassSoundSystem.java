@@ -55,7 +55,7 @@ public class BassSoundSystem extends SoundSystem {
     private Thread shutdownHook;
 
     @SuppressWarnings("FieldCanBeLocal")
-    private final BassLibrary.SYNCPROC channelEndSync = (handle, channel, data, user) -> this.playingChannels.remove((Integer) channel);
+    private final BassLibrary.SYNCPROC channelFreeSync = (handle, channel, data, user) -> this.playingChannels.remove((Integer) channel);
 
     private BassSoundSystem(final int maxSounds) {
         super(maxSounds);
@@ -97,8 +97,10 @@ public class BassSoundSystem extends SoundSystem {
         if (!this.soundSamples.containsKey(sound)) return;
 
         if (this.playingChannels.size() >= this.maxSounds) {
-            if (!BassLibrary.INSTANCE.BASS_ChannelStop(this.playingChannels.remove(0))) {
-                this.checkError("Could not stop audio channel");
+            if (!BassLibrary.INSTANCE.BASS_ChannelFree(this.playingChannels.remove(0))) {
+                if (BassLibrary.INSTANCE.BASS_ErrorGetCode() != BassLibrary.BASS_ERROR_HANDLE) {
+                    this.checkError("Could not free audio channel");
+                }
             }
         }
 
@@ -119,12 +121,14 @@ public class BassSoundSystem extends SoundSystem {
         if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(channel, BassLibrary.BASS_ATTRIB_FREQ, freq.getValue() * pitch)) {
             this.checkError("Could not set audio channel frequency");
         }
-        final int sync = BassLibrary.INSTANCE.BASS_ChannelSetSync(channel, BassLibrary.BASS_SYNC_END | BassLibrary.BASS_SYNC_ONETIME, 0, this.channelEndSync, null);
+        final int sync = BassLibrary.INSTANCE.BASS_ChannelSetSync(channel, BassLibrary.BASS_SYNC_FREE, 0, this.channelFreeSync, null);
         if (sync == 0) {
             this.checkError("Could not set audio channel end sync");
         }
         if (!BassLibrary.INSTANCE.BASS_ChannelStart(channel)) {
-            this.checkError("Could not play audio channel");
+            if (BassLibrary.INSTANCE.BASS_ErrorGetCode() != BassLibrary.BASS_ERROR_START) {
+                this.checkError("Could not play audio channel");
+            }
         }
         this.playingChannels.add(channel);
     }
