@@ -45,7 +45,6 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
 
     @Override
     public void writeSamples() {
-        final long start = System.nanoTime();
         final long[] samples = new long[this.samplesPerTick];
         for (SoundInstance playingSound : this.playingSounds) {
             this.soundsToRender.offer(playingSound);
@@ -65,7 +64,6 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
         this.dataLine.write(this.write(samples), 0, samples.length * 2);
 
         this.playingSounds.removeIf(SoundInstance::isFinished);
-        this.neededNanosPerTick = System.nanoTime() - start;
     }
 
     @Override

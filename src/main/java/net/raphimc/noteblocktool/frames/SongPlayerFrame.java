@@ -25,7 +25,6 @@ import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
 import net.raphimc.noteblocklib.model.Note;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.player.FullNoteConsumer;
-import net.raphimc.noteblocklib.player.SongPlayer;
 import net.raphimc.noteblocklib.player.SongPlayerCallback;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.SongResampler;
@@ -37,6 +36,7 @@ import net.raphimc.noteblocktool.audio.soundsystem.impl.MultithreadedJavaxSoundS
 import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
+import net.raphimc.noteblocktool.util.MonitoringSongPlayer;
 
 import javax.swing.*;
 import java.awt.*;
@@ -85,7 +85,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
 
 
     private final ListFrame.LoadedSong song;
-    private final SongPlayer songPlayer;
+    private final MonitoringSongPlayer songPlayer;
     private final Timer updateTimer;
     private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (better system compatibility, laggier)", "Javax multithreaded (experimental)", "Un4seen BASS"});
     private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 8192, 64));
@@ -99,7 +99,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
 
     private SongPlayerFrame(final ListFrame.LoadedSong song, final SongView<?> view) {
         this.song = song;
-        this.songPlayer = new SongPlayer(this.getSongView(view), this);
+        this.songPlayer = new MonitoringSongPlayer(this.getSongView(view), this);
         this.updateTimer = new Timer(50, e -> this.tick());
         this.updateTimer.start();
 
@@ -311,7 +311,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             int tickCount = this.songPlayer.getSongView().getLength();
             if (this.progressSlider.getMaximum() != tickCount) this.progressSlider.setMaximum(tickCount);
             this.progressSlider.setValue(this.songPlayer.getTick());
-            this.statusLine.setText(this.soundSystem.getStatusLine());
+            this.statusLine.setText(this.soundSystem.getStatusLine() + ", Song Player CPU Load: " + (int) (this.songPlayer.getCpuLoad() * 100) + "%");
         } else {
             this.soundSystemComboBox.setEnabled(true);
             this.maxSoundsSpinner.setEnabled(true);

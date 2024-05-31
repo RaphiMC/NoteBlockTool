@@ -36,10 +36,8 @@ public class JavaxSoundSystem extends SoundSystem {
     protected final Map<String, int[]> sounds;
     protected final List<SoundInstance> playingSounds = new CopyOnWriteArrayList<>();
     protected final int samplesPerTick;
-    protected final long availableNanosPerTick;
     protected final SourceDataLine dataLine;
     protected float masterVolume = 1F;
-    protected long neededNanosPerTick = 0L;
 
     public JavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
         super(maxSounds);
@@ -47,7 +45,6 @@ public class JavaxSoundSystem extends SoundSystem {
         try {
             this.sounds = SoundMap.loadInstrumentSamples(FORMAT);
             this.samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed) * FORMAT.getChannels();
-            this.availableNanosPerTick = (long) (1_000_000_000L / playbackSpeed);
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
             this.dataLine.start();
@@ -69,15 +66,12 @@ public class JavaxSoundSystem extends SoundSystem {
 
     @Override
     public void writeSamples() {
-        final long start = System.nanoTime();
         final long[] samples = new long[this.samplesPerTick];
         for (SoundInstance playingSound : this.playingSounds) {
             playingSound.write(samples);
         }
         this.dataLine.write(this.write(samples), 0, samples.length * 2);
-
         this.playingSounds.removeIf(SoundInstance::isFinished);
-        this.neededNanosPerTick = System.nanoTime() - start;
     }
 
     @Override
@@ -93,8 +87,7 @@ public class JavaxSoundSystem extends SoundSystem {
 
     @Override
     public String getStatusLine() {
-        final float load = (float) this.neededNanosPerTick / this.availableNanosPerTick;
-        return "Sounds: " + this.playingSounds.size() + " / " + this.maxSounds + ", CPU Load: " + (int) (load * 100) + "%";
+        return "Sounds: " + this.playingSounds.size() + " / " + this.maxSounds;
     }
 
     @Override

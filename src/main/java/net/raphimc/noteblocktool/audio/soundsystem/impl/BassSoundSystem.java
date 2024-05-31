@@ -156,7 +156,7 @@ public class BassSoundSystem extends SoundSystem {
 
     @Override
     public String getStatusLine() {
-        return "Sounds: " + this.playingChannels.size() + " / " + this.maxSounds + ", CPU Load: " + (int) BassLibrary.INSTANCE.BASS_GetCPU() + "%";
+        return "Sounds: " + this.playingChannels.size() + " / " + this.maxSounds + ", BASS CPU Load: " + (int) BassLibrary.INSTANCE.BASS_GetCPU() + "%";
     }
 
     @Override
