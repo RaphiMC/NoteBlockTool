@@ -21,12 +21,13 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
 
     private final ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
     private final BlockingQueue<SoundInstance> soundsToRender = new ArrayBlockingQueue<>(8192);
-    private final BlockingQueue<int[]> renderResults = new ArrayBlockingQueue<>(8192);
+    private final AtomicInteger renderLock = new AtomicInteger(0);
 
     public MultithreadedJavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
         super(maxSounds, playbackSpeed);
@@ -35,7 +36,8 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
             this.threadPool.submit(() -> {
                 try {
                     while (true) {
-                        this.renderResults.put(this.soundsToRender.take().render());
+                        this.soundsToRender.take().render();
+                        this.renderLock.decrementAndGet();
                     }
                 } catch (InterruptedException ignored) {
                 }
@@ -47,22 +49,20 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
     public void writeSamples() {
         final long[] samples = new long[this.samplesPerTick];
         for (SoundInstance playingSound : this.playingSounds) {
-            this.soundsToRender.offer(playingSound);
-        }
-
-        while (this.renderResults.size() != this.playingSounds.size() && !Thread.currentThread().isInterrupted()) {
-            // Wait for all sounds to be rendered
-        }
-
-        while (!this.renderResults.isEmpty()) {
-            final int[] result = this.renderResults.poll();
-            for (int i = 0; i < samples.length; i++) {
-                samples[i] += result[i];
+            if (playingSound.hasDataToRender()) {
+                this.soundsToRender.offer(playingSound);
+                this.renderLock.incrementAndGet();
             }
         }
 
-        this.dataLine.write(this.write(samples), 0, samples.length * 2);
+        while (this.renderLock.get() != 0 && !Thread.currentThread().isInterrupted()) {
+            // Wait for all sounds to be rendered
+        }
 
+        for (SoundInstance playingSound : this.playingSounds) {
+            playingSound.write(samples);
+        }
+        this.dataLine.write(this.writeNormalized(samples), 0, samples.length * 2);
         this.playingSounds.removeIf(SoundInstance::isFinished);
     }
 

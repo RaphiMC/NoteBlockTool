@@ -19,6 +19,7 @@ package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
+import net.raphimc.noteblocktool.util.CircularBuffer;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
 import javax.sound.sampled.AudioFormat;
@@ -38,6 +39,8 @@ public class JavaxSoundSystem extends SoundSystem {
     protected final int samplesPerTick;
     protected final SourceDataLine dataLine;
     protected float masterVolume = 1F;
+    protected float[] volumeDividers;
+    private final int volumeDividersLength;
 
     public JavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
         super(maxSounds);
@@ -48,6 +51,7 @@ public class JavaxSoundSystem extends SoundSystem {
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());
             this.dataLine.start();
+            this.volumeDividersLength = (int) Math.ceil(playbackSpeed * 3F); // 3s window
         } catch (Throwable e) {
             throw new RuntimeException("Could not initialize javax sound system", e);
         }
@@ -68,9 +72,10 @@ public class JavaxSoundSystem extends SoundSystem {
     public void writeSamples() {
         final long[] samples = new long[this.samplesPerTick];
         for (SoundInstance playingSound : this.playingSounds) {
+            playingSound.render();
             playingSound.write(samples);
         }
-        this.dataLine.write(this.write(samples), 0, samples.length * 2);
+        this.dataLine.write(this.writeNormalized(samples), 0, samples.length * 2);
         this.playingSounds.removeIf(SoundInstance::isFinished);
     }
 
@@ -78,6 +83,7 @@ public class JavaxSoundSystem extends SoundSystem {
     public void stopSounds() {
         this.dataLine.flush();
         this.playingSounds.clear();
+        this.volumeDividers = null;
     }
 
     @Override
@@ -95,10 +101,20 @@ public class JavaxSoundSystem extends SoundSystem {
         this.masterVolume = volume;
     }
 
-    protected byte[] write(final long[] samples) {
+    protected byte[] writeNormalized(final long[] samples) {
         final byte[] out = new byte[samples.length * 2];
         final long max = SoundSampleUtil.getMax(samples);
-        final float div = Math.max(1, (float) max / Short.MAX_VALUE);
+        float div = Math.max(1, (float) max / Short.MAX_VALUE);
+        if (this.volumeDividers == null) {
+            this.volumeDividers = new float[this.volumeDividersLength];
+            Arrays.fill(this.volumeDividers, div);
+        }
+        this.volumeDividers[this.volumeDividers.length - 1] = div;
+        for (int i = 0; i < this.volumeDividers.length; i++) {
+            final float weight = (float) i / this.volumeDividers.length;
+            div = Math.max(div, this.volumeDividers[i] * weight);
+        }
+        System.arraycopy(this.volumeDividers, 1, this.volumeDividers, 0, this.volumeDividers.length - 1);
         for (int i = 0; i < samples.length; i++) {
             final short conv = (short) (samples[i] / div);
             out[i * 2] = (byte) (conv & 0xFF);
@@ -113,8 +129,10 @@ public class JavaxSoundSystem extends SoundSystem {
         private final float pitch;
         private final float volume;
         private final float panning;
-        private final int step;
-        private final int[] sliceBuffer;
+        private final int sliceLength;
+        private final int[] mutationBuffer;
+        private final int[] outputBuffer;
+        private final CircularBuffer mutatedSamplesBuffer;
         private int cursor = 0;
 
         public SoundInstance(final int[] samples, final float pitch, final float volume, final float panning) {
@@ -122,28 +140,44 @@ public class JavaxSoundSystem extends SoundSystem {
             this.pitch = pitch;
             this.volume = volume;
             this.panning = panning;
-            this.step = (int) (JavaxSoundSystem.this.samplesPerTick / FORMAT.getChannels() * pitch) * FORMAT.getChannels();
-            this.sliceBuffer = new int[this.step + FORMAT.getChannels()];
+            this.sliceLength = (int) (JavaxSoundSystem.this.samplesPerTick / FORMAT.getChannels() * pitch) * FORMAT.getChannels() + FORMAT.getChannels();
+            this.mutationBuffer = new int[JavaxSoundSystem.this.samplesPerTick * 2];
+            this.outputBuffer = new int[JavaxSoundSystem.this.samplesPerTick];
+            this.mutatedSamplesBuffer = new CircularBuffer(JavaxSoundSystem.this.samplesPerTick * 3);
         }
 
-        public int[] render() {
-            final int copyLength = Math.min(this.samples.length - this.cursor, this.sliceBuffer.length);
-            System.arraycopy(this.samples, this.cursor, this.sliceBuffer, 0, copyLength);
-            Arrays.fill(this.sliceBuffer, copyLength, this.sliceBuffer.length, 0);
-            this.cursor += this.step;
+        public void render() {
+            if (!this.hasDataToRender()) return;
 
-            return SoundSampleUtil.mutate(FORMAT, this.sliceBuffer, this.pitch, this.volume, this.panning);
-        }
-
-        public void write(final long[] buffer) {
-            final int[] mutatedSlice = this.render();
-            for (int i = 0; i < buffer.length; i++) {
-                buffer[i] += mutatedSlice[i];
+            final int sliceLength = Math.min(this.samples.length - this.cursor, this.sliceLength);
+            final long result = SoundSampleUtil.mutate(FORMAT, this.samples, this.cursor, sliceLength, this.pitch, this.volume, this.panning, this.mutationBuffer);
+            final int mutationBufferAvailable = (int) (result >> 32);
+            if (this.mutatedSamplesBuffer.hasSpaceFor(mutationBufferAvailable)) {
+                this.mutatedSamplesBuffer.addAll(this.mutationBuffer, mutationBufferAvailable);
+                if ((int) result > 0) {
+                    this.cursor += (int) result;
+                } else {
+                    this.cursor += sliceLength;
+                }
             }
         }
 
+        public void write(final long[] buffer) {
+            if (buffer.length < this.outputBuffer.length) {
+                throw new IllegalArgumentException("Buffer is too small");
+            }
+            this.mutatedSamplesBuffer.takeAllSafe(this.outputBuffer);
+            for (int i = 0; i < buffer.length; i++) {
+                buffer[i] += this.outputBuffer[i];
+            }
+        }
+
+        public boolean hasDataToRender() {
+            return this.cursor < this.samples.length;
+        }
+
         public boolean isFinished() {
-            return this.cursor >= this.samples.length;
+            return !this.hasDataToRender() && this.mutatedSamplesBuffer.isEmpty();
         }
 
     }

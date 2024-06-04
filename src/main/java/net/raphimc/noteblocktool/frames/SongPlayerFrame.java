@@ -87,7 +87,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private final ListFrame.LoadedSong song;
     private final MonitoringSongPlayer songPlayer;
     private final Timer updateTimer;
-    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (better system compatibility, laggier)", "Javax multithreaded (experimental)", "Un4seen BASS"});
+    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Un4seen BASS", "Javax (better system compatibility)", "Javax multithreaded (experimental)"});
     private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 8192, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, 50);
     private final JButton playStopButton = new JButton("Play");
@@ -264,11 +264,11 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
                 if (this.soundSystemComboBox.getSelectedIndex() == 0) {
                     this.soundSystem = OpenALSoundSystem.createPlayback(((Number) this.maxSoundsSpinner.getValue()).intValue());
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 1) {
-                    this.soundSystem = new JavaxSoundSystem(((Number) this.maxSoundsSpinner.getValue()).intValue(), this.songPlayer.getSongView().getSpeed());
-                } else if (this.soundSystemComboBox.getSelectedIndex() == 2) {
-                    this.soundSystem = new MultithreadedJavaxSoundSystem(((Number) this.maxSoundsSpinner.getValue()).intValue(), this.songPlayer.getSongView().getSpeed());
-                } else if (this.soundSystemComboBox.getSelectedIndex() == 3) {
                     this.soundSystem = BassSoundSystem.createPlayback(((Number) this.maxSoundsSpinner.getValue()).intValue());
+                } else if (this.soundSystemComboBox.getSelectedIndex() == 2) {
+                    this.soundSystem = new JavaxSoundSystem(((Number) this.maxSoundsSpinner.getValue()).intValue(), this.songPlayer.getSongView().getSpeed());
+                } else if (this.soundSystemComboBox.getSelectedIndex() == 3) {
+                    this.soundSystem = new MultithreadedJavaxSoundSystem(((Number) this.maxSoundsSpinner.getValue()).intValue(), this.songPlayer.getSongView().getSpeed());
                 } else {
                     throw new UnsupportedOperationException(UNAVAILABLE_MESSAGE);
                 }

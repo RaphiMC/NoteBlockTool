@@ -90,9 +90,22 @@ public class SoundSampleUtil {
     }
 
     public static int[] mutate(final AudioFormat format, final int[] samples, final float pitch, final float volume, final float panning) {
+        final int[] mutatedSamples = new int[(int) (samples.length / format.getChannels() / pitch) * format.getChannels()];
+        mutate(format, samples, 0, samples.length, pitch, volume, panning, mutatedSamples);
+        return mutatedSamples;
+    }
+
+    public static long mutate(final AudioFormat format, final int[] samples, final int samplesOffset, final int samplesLength, final float pitch, final float volume, final float panning, final int[] mutatedSamples) {
         final int channels = format.getChannels();
-        final int[] newSamples = new int[(int) (samples.length / channels / pitch) * channels];
-        final int newLength = newSamples.length / channels;
+        final int mutatedSamplesLength = (int) (samplesLength / pitch / format.getChannels()) * format.getChannels();
+        final int mutatedLength = mutatedSamplesLength / channels;
+        if (mutatedLength == 0) {
+            return samplesLength;
+        }
+
+        if (mutatedSamples.length < mutatedSamplesLength) {
+            throw new IllegalArgumentException("Mutated samples array is too small");
+        }
 
         for (int channel = 0; channel < channels; channel++) {
             float channelVolume = volume;
@@ -102,31 +115,31 @@ public class SoundSampleUtil {
             }
 
             if (pitch == 1F) {
-                for (int i = 0; i < newLength; i++) {
+                for (int i = 0; i < mutatedLength; i++) {
                     final int index = i * channels + channel;
-                    newSamples[index] = (int) (samples[index] * channelVolume);
+                    mutatedSamples[index] = (int) (samples[samplesOffset + index] * channelVolume);
                 }
             } else if (pitch > 1F) {
-                for (int i = 0; i < newLength; i++) {
+                for (int i = 0; i < mutatedLength; i++) {
                     int originalIndex = (int) (i * pitch) * channels + channel;
-                    originalIndex = Math.min(Math.max(originalIndex, 0), samples.length - channels);
-                    newSamples[i * channels + channel] = (int) (samples[originalIndex] * channelVolume);
+                    originalIndex = Math.min(Math.max(originalIndex, 0), samplesLength - channels);
+                    mutatedSamples[i * channels + channel] = (int) (samples[samplesOffset + originalIndex] * channelVolume);
                 }
             } else {
-                for (int i = 0; i < newLength; i++) {
+                for (int i = 0; i < mutatedLength; i++) {
                     final float sampleIndex = i * pitch;
                     final int sampleIndexFloor = (int) sampleIndex;
-                    final int sampleIndexCeil = Math.min(sampleIndexFloor + 1, samples.length / channels - 1);
+                    final int sampleIndexCeil = Math.min(sampleIndexFloor + 1, samplesLength / channels - 1);
                     final float sampleIndexFraction = sampleIndex - sampleIndexFloor;
 
-                    final int sampleFloor = samples[sampleIndexFloor * channels + channel];
-                    final int sampleCeil = samples[sampleIndexCeil * channels + channel];
-                    newSamples[i * channels + channel] = (int) ((sampleFloor + (sampleCeil - sampleFloor) * sampleIndexFraction) * channelVolume);
+                    final int sampleFloor = samples[samplesOffset + sampleIndexFloor * channels + channel];
+                    final int sampleCeil = samples[samplesOffset + sampleIndexCeil * channels + channel];
+                    mutatedSamples[i * channels + channel] = (int) ((sampleFloor + (sampleCeil - sampleFloor) * sampleIndexFraction) * channelVolume);
                 }
             }
         }
 
-        return newSamples;
+        return ((long) mutatedSamplesLength << 32) | ((int) (mutatedLength * pitch) * channels);
     }
 
     public static long getMax(final long[] samples) {
