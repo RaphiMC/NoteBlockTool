@@ -17,27 +17,59 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.Arrays;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
 
-    private final ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
-    private final BlockingQueue<SoundInstance> soundsToRender = new ArrayBlockingQueue<>(8192);
-    private final AtomicInteger renderLock = new AtomicInteger(0);
+    private final ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(Math.max(2, Runtime.getRuntime().availableProcessors() - 4));
+    private final Queue<SoundInstance> soundsToRender = new ConcurrentLinkedQueue<>();
+    private final Queue<SoundInstance> soundsToMerge = new ConcurrentLinkedQueue<>();
+    private final AtomicInteger syncLock = new AtomicInteger(0);
+    private final long[][] threadSamples;
 
     public MultithreadedJavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
         super(maxSounds, playbackSpeed);
 
-        for (int i = 0; i < this.threadPool.getCorePoolSize(); i++) {
+        final int mergingThreads = Math.max(1, this.threadPool.getCorePoolSize() / 3);
+        final int renderingThreads = this.threadPool.getCorePoolSize() - mergingThreads;
+        this.threadSamples = new long[mergingThreads][];
+        for (int i = 0; i < mergingThreads; i++) {
+            this.threadSamples[i] = new long[this.samplesPerTick];
+        }
+
+        for (int i = 0; i < renderingThreads; i++) {
             this.threadPool.submit(() -> {
                 try {
-                    while (true) {
-                        this.soundsToRender.take().render();
-                        this.renderLock.decrementAndGet();
+                    while (!Thread.currentThread().isInterrupted()) {
+                        final SoundInstance soundInstance = this.soundsToRender.poll();
+                        if (soundInstance == null) {
+                            Thread.sleep(1);
+                            continue;
+                        }
+                        soundInstance.render();
+                        this.soundsToMerge.add(soundInstance);
+                    }
+                } catch (InterruptedException ignored) {
+                }
+            });
+        }
+        for (int i = 0; i < mergingThreads; i++) {
+            final int finalI = i;
+            this.threadPool.submit(() -> {
+                try {
+                    while (!Thread.currentThread().isInterrupted()) {
+                        final SoundInstance soundInstance = this.soundsToMerge.poll();
+                        if (soundInstance == null) {
+                            Thread.sleep(1);
+                            continue;
+                        }
+                        soundInstance.write(this.threadSamples[finalI]);
+                        this.syncLock.decrementAndGet();
                     }
                 } catch (InterruptedException ignored) {
                 }
@@ -49,18 +81,19 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
     public void writeSamples() {
         final long[] samples = new long[this.samplesPerTick];
         for (SoundInstance playingSound : this.playingSounds) {
-            if (playingSound.hasDataToRender()) {
-                this.soundsToRender.offer(playingSound);
-                this.renderLock.incrementAndGet();
+            this.soundsToRender.add(playingSound);
+            this.syncLock.incrementAndGet();
+        }
+
+        while (this.syncLock.get() != 0 && !Thread.currentThread().isInterrupted()) {
+            // Wait for all sounds to be rendered and merged
+        }
+
+        for (long[] threadSamples : this.threadSamples) {
+            for (int i = 0; i < samples.length; i++) {
+                samples[i] += threadSamples[i];
             }
-        }
-
-        while (this.renderLock.get() != 0 && !Thread.currentThread().isInterrupted()) {
-            // Wait for all sounds to be rendered
-        }
-
-        for (SoundInstance playingSound : this.playingSounds) {
-            playingSound.write(samples);
+            Arrays.fill(threadSamples, 0);
         }
         this.dataLine.write(this.writeNormalized(samples), 0, samples.length * 2);
         this.playingSounds.removeIf(SoundInstance::isFinished);
