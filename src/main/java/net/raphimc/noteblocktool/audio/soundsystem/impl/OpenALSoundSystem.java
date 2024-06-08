@@ -30,10 +30,10 @@ import javax.sound.sampled.AudioInputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class OpenALSoundSystem extends SoundSystem {
 
@@ -57,7 +57,7 @@ public class OpenALSoundSystem extends SoundSystem {
 
 
     private final Map<String, Integer> soundBuffers = new HashMap<>();
-    private final List<Integer> playingSources = new CopyOnWriteArrayList<>();
+    private final List<Integer> playingSources = new ArrayList<>();
     private final AudioFormat captureAudioFormat;
     private long device;
     private long context;
@@ -67,9 +67,11 @@ public class OpenALSoundSystem extends SoundSystem {
     @SuppressWarnings("FieldCanBeLocal")
     private final SOFTEventProcI eventCallback = (eventType, object, param, length, message, userParam) -> {
         if (eventType == SOFTEvents.AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT && param == AL10.AL_STOPPED) {
-            AL10.alDeleteSources(object);
-            this.checkError("Could not delete audio source");
-            this.playingSources.remove((Integer) object);
+            synchronized (this) {
+                this.playingSources.remove((Integer) object);
+                AL10.alDeleteSources(object);
+                this.checkALError("Could not delete audio source", AL10.AL_INVALID_NAME);
+            }
         }
     };
 
@@ -103,10 +105,10 @@ public class OpenALSoundSystem extends SoundSystem {
         if (this.device <= 0L) {
             throw new RuntimeException("Could not open device");
         }
-        this.checkError("Could not open device");
+        this.checkALCError("Could not open device");
 
         final ALCCapabilities alcCapabilities = ALC.createCapabilities(this.device);
-        this.checkError("Could not create alcCapabilities");
+        this.checkALCError("Could not create alcCapabilities");
         if (!alcCapabilities.OpenALC11) {
             throw new RuntimeException("OpenALC 1.1 is not supported");
         }
@@ -118,13 +120,13 @@ public class OpenALSoundSystem extends SoundSystem {
         }
 
         this.context = ALC10.alcCreateContext(this.device, attributes);
-        this.checkError("Could not create context");
+        this.checkALCError("Could not create context");
         if (!ALC10.alcMakeContextCurrent(this.context)) {
             throw new RuntimeException("Could not make context current");
         }
 
         final ALCapabilities alCapabilities = AL.createCapabilities(alcCapabilities);
-        this.checkError("Could not create alCapabilities");
+        this.checkALError("Could not create alCapabilities");
         if (!alCapabilities.OpenAL11) {
             throw new RuntimeException("OpenAL 1.1 is not supported");
         }
@@ -133,11 +135,11 @@ public class OpenALSoundSystem extends SoundSystem {
         }
 
         AL10.alDistanceModel(AL10.AL_NONE);
-        this.checkError("Could not set distance model");
+        this.checkALError("Could not set distance model");
         AL10.alListener3f(AL10.AL_POSITION, 0F, 0F, 0F);
-        this.checkError("Could not set listener position");
+        this.checkALError("Could not set listener position");
         AL10.alListenerfv(AL10.AL_ORIENTATION, new float[]{0F, 0F, -1F, 0F, 1F, 0F});
-        this.checkError("Could not set listener orientation");
+        this.checkALError("Could not set listener orientation");
 
         try {
             for (Map.Entry<String, URL> entry : SoundMap.SOUND_LOCATIONS.entrySet()) {
@@ -148,9 +150,9 @@ public class OpenALSoundSystem extends SoundSystem {
         }
 
         SOFTEvents.alEventCallbackSOFT(this.eventCallback, null);
-        this.checkError("Could not set event callback");
+        this.checkALError("Could not set event callback");
         SOFTEvents.alEventControlSOFT(new int[]{SOFTEvents.AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT}, true);
-        this.checkError("Could not configure event control");
+        this.checkALError("Could not configure event control");
 
         Runtime.getRuntime().addShutdownHook(this.shutdownHook = new Thread(() -> {
             this.shutdownHook = null;
@@ -165,39 +167,36 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void playSound(final String sound, final float pitch, final float volume, final float panning) {
+    public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.soundBuffers.containsKey(sound)) return;
 
         if (this.playingSources.size() >= this.maxSounds) {
             AL10.alDeleteSources(this.playingSources.remove(0));
-            this.checkError("Could not delete audio source");
+            this.checkALError("Could not delete audio source");
         }
 
         final int source = AL10.alGenSources();
-        this.checkError("Could not generate audio source");
-        if (source > 0) {
-            AL10.alSourcei(source, AL10.AL_BUFFER, this.soundBuffers.get(sound));
-            this.checkError("Could not set audio source buffer");
-            AL10.alSourcef(source, AL10.AL_PITCH, pitch);
-            this.checkError("Could not set audio source pitch");
-            AL10.alSourcef(source, AL10.AL_GAIN, volume);
-            this.checkError("Could not set audio source volume");
-            AL10.alSource3f(source, AL10.AL_POSITION, panning * 2F, 0F, 0F);
-            this.checkError("Could not set audio source position");
-
-            AL10.alSourcePlay(source);
-            this.checkError("Could not play audio source");
-            this.playingSources.add(source);
-        }
+        this.checkALError("Could not generate audio source");
+        AL10.alSourcei(source, AL10.AL_BUFFER, this.soundBuffers.get(sound));
+        this.checkALError("Could not set audio source buffer");
+        AL10.alSourcef(source, AL10.AL_PITCH, pitch);
+        this.checkALError("Could not set audio source pitch");
+        AL10.alSourcef(source, AL10.AL_GAIN, volume);
+        this.checkALError("Could not set audio source volume");
+        AL10.alSource3f(source, AL10.AL_POSITION, panning * 2F, 0F, 0F);
+        this.checkALError("Could not set audio source position");
+        AL10.alSourcePlay(source);
+        this.checkALError("Could not play audio source");
+        this.playingSources.add(source);
     }
 
-    public void renderSamples(final SampleOutputStream outputStream, final int sampleCount) {
+    public synchronized void renderSamples(final SampleOutputStream outputStream, final int sampleCount) {
         final int samplesLength = sampleCount * this.captureAudioFormat.getChannels();
         if (samplesLength * this.captureAudioFormat.getSampleSizeInBits() / 8 > this.captureBuffer.capacity()) {
             throw new IllegalArgumentException("Sample count too high");
         }
         SOFTLoopback.alcRenderSamplesSOFT(this.device, this.captureBuffer, sampleCount);
-        this.checkError("Could not render samples");
+        this.checkALError("Could not render samples");
         if (this.captureAudioFormat.getSampleSizeInBits() == 8) {
             for (int i = 0; i < samplesLength; i++) {
                 outputStream.writeSample(this.captureBuffer.get(i));
@@ -214,16 +213,16 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void stopSounds() {
+    public synchronized void stopSounds() {
         for (int source : this.playingSources) {
             AL10.alDeleteSources(source);
-            this.checkError("Could not delete audio source");
+            this.checkALError("Could not delete audio source", AL10.AL_INVALID_NAME);
         }
         this.playingSources.clear();
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         if (this.shutdownHook != null) {
             Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
             this.shutdownHook = null;
@@ -247,14 +246,14 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     @Override
-    public String getStatusLine() {
+    public synchronized String getStatusLine() {
         return "Sounds: " + this.playingSources.size() + " / " + this.maxSounds;
     }
 
     @Override
-    public void setMasterVolume(final float volume) {
+    public synchronized void setMasterVolume(final float volume) {
         AL10.alListenerf(AL10.AL_GAIN, volume);
-        this.checkError("Could not set listener gain");
+        this.checkALError("Could not set listener gain");
     }
 
     private int loadAudioFile(final InputStream inputStream) {
@@ -264,12 +263,12 @@ public class OpenALSoundSystem extends SoundSystem {
             final byte[] audioBytes = IOUtil.readFully(audioInputStream);
 
             final int buffer = AL10.alGenBuffers();
-            this.checkError("Could not generate audio buffer");
+            this.checkALError("Could not generate audio buffer");
 
             final ByteBuffer audioBuffer = MemoryUtil.memAlloc(audioBytes.length).put(audioBytes);
             audioBuffer.flip();
             AL10.alBufferData(buffer, this.getAlAudioFormat(audioFormat), audioBuffer, (int) audioFormat.getSampleRate());
-            this.checkError("Could not set audio buffer data");
+            this.checkALError("Could not set audio buffer data");
             MemoryUtil.memFree(audioBuffer);
 
             return buffer;
@@ -324,10 +323,27 @@ public class OpenALSoundSystem extends SoundSystem {
         throw new IllegalArgumentException("Unsupported audio format: " + audioFormat);
     }
 
-    private void checkError(final String message) {
+    private void checkALCError(final String message, final int... allowedErrors) {
         final int error = ALC10.alcGetError(this.device);
         if (error != ALC10.ALC_NO_ERROR) {
-            throw new RuntimeException("OpenAL error: " + message + " (" + error + ")");
+            for (int ignoreError : allowedErrors) {
+                if (error == ignoreError) {
+                    return;
+                }
+            }
+            throw new RuntimeException("ALC error: " + message + " (" + error + ")");
+        }
+    }
+
+    private void checkALError(final String message, final int... allowedErrors) {
+        final int error = AL10.alGetError();
+        if (error != AL10.AL_NO_ERROR) {
+            for (int ignoreError : allowedErrors) {
+                if (error == ignoreError) {
+                    return;
+                }
+            }
+            throw new RuntimeException("AL error: " + message + " (" + error + ")");
         }
     }
 

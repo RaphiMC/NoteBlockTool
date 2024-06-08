@@ -78,17 +78,15 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
     }
 
     @Override
-    public void writeSamples() {
-        final long[] samples = new long[this.samplesPerTick];
-        for (SoundInstance playingSound : this.playingSounds) {
-            this.soundsToRender.add(playingSound);
-            this.syncLock.incrementAndGet();
-        }
+    public synchronized void writeSamples() {
+        this.soundsToRender.addAll(this.playingSounds);
+        this.syncLock.set(this.playingSounds.size());
 
         while (this.syncLock.get() != 0 && !Thread.currentThread().isInterrupted()) {
             // Wait for all sounds to be rendered and merged
         }
 
+        final long[] samples = new long[this.samplesPerTick];
         for (long[] threadSamples : this.threadSamples) {
             for (int i = 0; i < samples.length; i++) {
                 samples[i] += threadSamples[i];
@@ -100,13 +98,13 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         this.threadPool.shutdownNow();
         super.close();
     }
 
     @Override
-    public String getStatusLine() {
+    public synchronized String getStatusLine() {
         return super.getStatusLine() + ", " + this.threadPool.getActiveCount() + " threads";
     }
 

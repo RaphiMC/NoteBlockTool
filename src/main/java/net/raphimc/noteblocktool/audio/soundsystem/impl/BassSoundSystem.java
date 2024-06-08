@@ -29,10 +29,10 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class BassSoundSystem extends SoundSystem {
 
@@ -51,11 +51,15 @@ public class BassSoundSystem extends SoundSystem {
 
 
     private final Map<String, Integer> soundSamples = new HashMap<>();
-    private final List<Integer> playingChannels = new CopyOnWriteArrayList<>();
+    private final List<Integer> playingChannels = new ArrayList<>();
     private Thread shutdownHook;
 
     @SuppressWarnings("FieldCanBeLocal")
-    private final BassLibrary.SYNCPROC channelFreeSync = (handle, channel, data, user) -> this.playingChannels.remove((Integer) channel);
+    private final BassLibrary.SYNCPROC channelFreeSync = (handle, channel, data, user) -> {
+        synchronized (this) {
+            this.playingChannels.remove((Integer) channel);
+        }
+    };
 
     private BassSoundSystem(final int maxSounds) {
         super(maxSounds);
@@ -93,14 +97,12 @@ public class BassSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void playSound(final String sound, final float pitch, final float volume, final float panning) {
+    public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.soundSamples.containsKey(sound)) return;
 
         if (this.playingChannels.size() >= this.maxSounds) {
             if (!BassLibrary.INSTANCE.BASS_ChannelFree(this.playingChannels.remove(0))) {
-                if (BassLibrary.INSTANCE.BASS_ErrorGetCode() != BassLibrary.BASS_ERROR_HANDLE) {
-                    this.checkError("Could not free audio channel");
-                }
+                this.checkError("Could not free audio channel", BassLibrary.BASS_ERROR_HANDLE);
             }
         }
 
@@ -126,15 +128,13 @@ public class BassSoundSystem extends SoundSystem {
             this.checkError("Could not set audio channel end sync");
         }
         if (!BassLibrary.INSTANCE.BASS_ChannelStart(channel)) {
-            if (BassLibrary.INSTANCE.BASS_ErrorGetCode() != BassLibrary.BASS_ERROR_START) {
-                this.checkError("Could not play audio channel");
-            }
+            this.checkError("Could not play audio channel");
         }
         this.playingChannels.add(channel);
     }
 
     @Override
-    public void stopSounds() {
+    public synchronized void stopSounds() {
         if (!BassLibrary.INSTANCE.BASS_Stop()) {
             this.checkError("Could not stop sound system");
         }
@@ -145,7 +145,7 @@ public class BassSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         if (this.shutdownHook != null) {
             Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
             this.shutdownHook = null;
@@ -159,12 +159,12 @@ public class BassSoundSystem extends SoundSystem {
     }
 
     @Override
-    public String getStatusLine() {
+    public synchronized String getStatusLine() {
         return "Sounds: " + this.playingChannels.size() + " / " + this.maxSounds + ", BASS CPU Load: " + (int) BassLibrary.INSTANCE.BASS_GetCPU() + "%";
     }
 
     @Override
-    public void setMasterVolume(final float volume) {
+    public synchronized void setMasterVolume(final float volume) {
         if (!BassLibrary.INSTANCE.BASS_SetConfig(BassLibrary.BASS_CONFIG_GVOL_STREAM, (int) (volume * 10000))) {
             this.checkError("Could not set master volume");
         }
@@ -192,9 +192,14 @@ public class BassSoundSystem extends SoundSystem {
         }
     }
 
-    private void checkError(final String message) {
+    private void checkError(final String message, final int... allowedErrors) {
         final int error = BassLibrary.INSTANCE.BASS_ErrorGetCode();
         if (error != BassLibrary.BASS_OK) {
+            for (int ignoreError : allowedErrors) {
+                if (error == ignoreError) {
+                    return;
+                }
+            }
             throw new RuntimeException("BASS error: " + message + " (" + error + ")");
         }
     }

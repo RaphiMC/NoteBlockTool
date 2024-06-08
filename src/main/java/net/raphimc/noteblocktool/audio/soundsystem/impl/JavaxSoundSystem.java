@@ -25,17 +25,17 @@ import net.raphimc.noteblocktool.util.SoundSampleUtil;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.SourceDataLine;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class JavaxSoundSystem extends SoundSystem {
 
     private static final AudioFormat FORMAT = new AudioFormat(44100, 16, 2, true, false);
 
     protected final Map<String, int[]> sounds;
-    protected final List<SoundInstance> playingSounds = new CopyOnWriteArrayList<>();
+    protected final List<SoundInstance> playingSounds = new ArrayList<>();
     protected final int samplesPerTick;
     protected final SourceDataLine dataLine;
     protected float masterVolume = 1F;
@@ -58,7 +58,7 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void playSound(final String sound, final float pitch, final float volume, final float panning) {
+    public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
         if (this.playingSounds.size() >= this.maxSounds) {
@@ -69,7 +69,7 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void writeSamples() {
+    public synchronized void writeSamples() {
         final long[] samples = new long[this.samplesPerTick];
         for (SoundInstance playingSound : this.playingSounds) {
             playingSound.render();
@@ -80,24 +80,24 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public void stopSounds() {
+    public synchronized void stopSounds() {
         this.dataLine.flush();
         this.playingSounds.clear();
         this.volumeDividers = null;
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         this.dataLine.stop();
     }
 
     @Override
-    public String getStatusLine() {
+    public synchronized String getStatusLine() {
         return "Sounds: " + this.playingSounds.size() + " / " + this.maxSounds;
     }
 
     @Override
-    public void setMasterVolume(final float volume) {
+    public synchronized void setMasterVolume(final float volume) {
         this.masterVolume = volume;
     }
 
