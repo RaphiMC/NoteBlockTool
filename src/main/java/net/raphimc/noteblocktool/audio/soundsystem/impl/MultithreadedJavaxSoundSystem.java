@@ -92,10 +92,10 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
     public synchronized void writeSamples() {
         this.soundsToRender.addAll(this.playingSounds);
         this.syncLock.set(this.playingSounds.size());
-
         while (this.syncLock.get() != 0 && !Thread.currentThread().isInterrupted()) {
             // Wait for all sounds to be rendered and merged
         }
+        this.playingSounds.removeIf(SoundInstance::isFinished);
 
         final long[] samples = new long[this.samplesPerTick];
         for (long[] threadSamples : this.threadSamples) {
@@ -104,8 +104,11 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
             }
             Arrays.fill(threadSamples, 0);
         }
+        if (this.dataLine.available() < samples.length * 2) {
+            // In case of buffer overrun, flush the queued samples
+            this.dataLine.flush();
+        }
         this.dataLine.write(this.writeNormalized(samples), 0, samples.length * 2);
-        this.playingSounds.removeIf(SoundInstance::isFinished);
     }
 
     @Override

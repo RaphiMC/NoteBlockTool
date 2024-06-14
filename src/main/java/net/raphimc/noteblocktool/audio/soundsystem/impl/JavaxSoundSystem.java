@@ -77,20 +77,27 @@ public class JavaxSoundSystem extends SoundSystem {
             playingSound.render(mutationBuffer);
             playingSound.write(samples, outputBuffer);
         }
-        this.dataLine.write(this.writeNormalized(samples), 0, samples.length * 2);
         this.playingSounds.removeIf(SoundInstance::isFinished);
+
+        if (this.dataLine.available() < samples.length * 2) {
+            // In case of buffer overrun, flush the queued samples
+            this.dataLine.flush();
+        }
+        this.dataLine.write(this.writeNormalized(samples), 0, samples.length * 2);
     }
 
     @Override
     public synchronized void stopSounds() {
+        this.dataLine.stop();
         this.dataLine.flush();
+        this.dataLine.start();
         this.playingSounds.clear();
         this.volumeDividers = null;
     }
 
     @Override
     public synchronized void close() {
-        this.dataLine.stop();
+        this.dataLine.close();
     }
 
     @Override
