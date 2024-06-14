@@ -250,11 +250,19 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     }
 
     private boolean initSoundSystem() {
-        int currentIndex = -1;
+        final int currentIndex;
         if (this.soundSystem instanceof OpenALSoundSystem) {
             currentIndex = 0;
-        } else if (this.soundSystem instanceof JavaxSoundSystem) {
+        } else if (this.soundSystem instanceof BassSoundSystem) {
             currentIndex = 1;
+        } else if (this.soundSystem instanceof MultithreadedJavaxSoundSystem) {
+            currentIndex = 3;
+        } else if (this.soundSystem instanceof JavaxSoundSystem) {
+            currentIndex = 2;
+        } else if (this.soundSystem == null) {
+            currentIndex = -1;
+        } else {
+            throw new UnsupportedOperationException(UNAVAILABLE_MESSAGE);
         }
 
         try {
