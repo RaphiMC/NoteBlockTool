@@ -71,9 +71,11 @@ public class JavaxSoundSystem extends SoundSystem {
     @Override
     public synchronized void writeSamples() {
         final long[] samples = new long[this.samplesPerTick];
+        final int[] outputBuffer = new int[this.samplesPerTick];
+        final int[] mutationBuffer = new int[this.samplesPerTick * 2];
         for (SoundInstance playingSound : this.playingSounds) {
-            playingSound.render();
-            playingSound.write(samples);
+            playingSound.render(mutationBuffer);
+            playingSound.write(samples, outputBuffer);
         }
         this.dataLine.write(this.writeNormalized(samples), 0, samples.length * 2);
         this.playingSounds.removeIf(SoundInstance::isFinished);
@@ -130,8 +132,6 @@ public class JavaxSoundSystem extends SoundSystem {
         private final float volume;
         private final float panning;
         private final int sliceLength;
-        private final int[] mutationBuffer;
-        private final int[] outputBuffer;
         private final CircularBuffer mutatedSamplesBuffer;
         private int cursor = 0;
 
@@ -140,20 +140,18 @@ public class JavaxSoundSystem extends SoundSystem {
             this.pitch = pitch;
             this.volume = volume;
             this.panning = panning;
-            this.sliceLength = (int) (JavaxSoundSystem.this.samplesPerTick / FORMAT.getChannels() * pitch) * FORMAT.getChannels() + FORMAT.getChannels();
-            this.mutationBuffer = new int[JavaxSoundSystem.this.samplesPerTick * 2];
-            this.outputBuffer = new int[JavaxSoundSystem.this.samplesPerTick];
+            this.sliceLength = (int) (JavaxSoundSystem.this.samplesPerTick * pitch / FORMAT.getChannels()) * FORMAT.getChannels() + FORMAT.getChannels();
             this.mutatedSamplesBuffer = new CircularBuffer(JavaxSoundSystem.this.samplesPerTick * 3);
         }
 
-        public void render() {
+        public void render(final int[] mutationBuffer) {
             if (!this.hasDataToRender()) return;
 
             final int sliceLength = Math.min(this.samples.length - this.cursor, this.sliceLength);
-            final long result = SoundSampleUtil.mutate(FORMAT, this.samples, this.cursor, sliceLength, this.pitch, this.volume, this.panning, this.mutationBuffer);
+            final long result = SoundSampleUtil.mutate(FORMAT, this.samples, this.cursor, sliceLength, this.pitch, this.volume, this.panning, mutationBuffer);
             final int mutationBufferAvailable = (int) (result >> 32);
             if (this.mutatedSamplesBuffer.hasSpaceFor(mutationBufferAvailable)) {
-                this.mutatedSamplesBuffer.addAll(this.mutationBuffer, mutationBufferAvailable);
+                this.mutatedSamplesBuffer.addAll(mutationBuffer, mutationBufferAvailable);
                 if ((int) result > 0) {
                     this.cursor += (int) result;
                 } else {
@@ -162,13 +160,13 @@ public class JavaxSoundSystem extends SoundSystem {
             }
         }
 
-        public void write(final long[] buffer) {
-            if (buffer.length < this.outputBuffer.length) {
+        public void write(final long[] samples, final int[] outputBuffer) {
+            if (samples.length < outputBuffer.length) {
                 throw new IllegalArgumentException("Buffer is too small");
             }
-            this.mutatedSamplesBuffer.takeAllSafe(this.outputBuffer);
-            for (int i = 0; i < buffer.length; i++) {
-                buffer[i] += this.outputBuffer[i];
+            this.mutatedSamplesBuffer.takeAllSafe(outputBuffer);
+            for (int i = 0; i < samples.length; i++) {
+                samples[i] += outputBuffer[i];
             }
         }
 

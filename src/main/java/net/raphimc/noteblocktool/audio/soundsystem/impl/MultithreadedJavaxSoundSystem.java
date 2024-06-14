@@ -31,6 +31,8 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
     private final Queue<SoundInstance> soundsToMerge = new ConcurrentLinkedQueue<>();
     private final AtomicInteger syncLock = new AtomicInteger(0);
     private final long[][] threadSamples;
+    private final int[][] threadOutputBuffers;
+    private final int[][] threadMutationBuffers;
 
     public MultithreadedJavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
         super(maxSounds, playbackSpeed);
@@ -41,8 +43,17 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
         for (int i = 0; i < mergingThreads; i++) {
             this.threadSamples[i] = new long[this.samplesPerTick];
         }
+        this.threadOutputBuffers = new int[mergingThreads][];
+        for (int i = 0; i < mergingThreads; i++) {
+            this.threadOutputBuffers[i] = new int[this.samplesPerTick];
+        }
+        this.threadMutationBuffers = new int[renderingThreads][];
+        for (int i = 0; i < renderingThreads; i++) {
+            this.threadMutationBuffers[i] = new int[this.samplesPerTick * 2];
+        }
 
         for (int i = 0; i < renderingThreads; i++) {
+            final int finalI = i;
             this.threadPool.submit(() -> {
                 try {
                     while (!Thread.currentThread().isInterrupted()) {
@@ -51,7 +62,7 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
                             Thread.sleep(1);
                             continue;
                         }
-                        soundInstance.render();
+                        soundInstance.render(this.threadMutationBuffers[finalI]);
                         this.soundsToMerge.add(soundInstance);
                     }
                 } catch (InterruptedException ignored) {
@@ -68,7 +79,7 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
                             Thread.sleep(1);
                             continue;
                         }
-                        soundInstance.write(this.threadSamples[finalI]);
+                        soundInstance.write(this.threadSamples[finalI], this.threadOutputBuffers[finalI]);
                         this.syncLock.decrementAndGet();
                     }
                 } catch (InterruptedException ignored) {
