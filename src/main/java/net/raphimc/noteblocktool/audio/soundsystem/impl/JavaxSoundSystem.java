@@ -65,7 +65,7 @@ public class JavaxSoundSystem extends SoundSystem {
             this.playingSounds.remove(0);
         }
 
-        this.playingSounds.add(new SoundInstance(this.sounds.get(sound), pitch, volume * this.masterVolume, panning));
+        this.playingSounds.add(new SoundInstance(this.sounds.get(sound), pitch, volume, panning));
     }
 
     @Override
@@ -123,6 +123,7 @@ public class JavaxSoundSystem extends SoundSystem {
             final float weight = (float) i / this.volumeDividers.length;
             div = Math.max(div, this.volumeDividers[i] * weight);
         }
+        div /= this.masterVolume;
         System.arraycopy(this.volumeDividers, 1, this.volumeDividers, 0, this.volumeDividers.length - 1);
         for (int i = 0; i < samples.length; i++) {
             final short conv = (short) (samples[i] / div);
