@@ -19,25 +19,28 @@ package net.raphimc.noteblocktool.audio.export;
 
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
-public class AudioMerger {
+public class AudioBuffer {
 
-    private final long[] samples;
+    private long[] samples;
     private int sampleIndex;
 
-    public AudioMerger(final int sampleCount) {
-        this.samples = new long[sampleCount];
+    public AudioBuffer(final int initialSize) {
+        this.samples = new long[initialSize];
     }
 
-    public void addSamples(final int[] samples) {
+    public void pushSamples(final int[] samples) {
+        if (this.sampleIndex + samples.length >= this.samples.length) {
+            final long[] newSamples = new long[this.sampleIndex + samples.length];
+            System.arraycopy(this.samples, 0, newSamples, 0, this.samples.length);
+            this.samples = newSamples;
+        }
+
         for (int i = 0; i < samples.length; i++) {
-            final int index = this.sampleIndex + i;
-            if (index >= this.samples.length) break;
-            final int sample = samples[i];
-            this.samples[index] += sample;
+            this.samples[this.sampleIndex + i] += samples[i];
         }
     }
 
-    public void pushSamples(final int samples) {
+    public void advanceIndex(final int samples) {
         this.sampleIndex += samples;
     }
 
@@ -69,8 +72,8 @@ public class AudioMerger {
     }
 
     private void normalize(final long maxValue) {
-        long max = SoundSampleUtil.getMax(this.samples);
-        float factor = (float) maxValue / max;
+        final long max = SoundSampleUtil.getMax(this.samples);
+        final float factor = (float) maxValue / max;
         for (int i = 0; i < this.samples.length; i++) {
             this.samples[i] = (long) (this.samples[i] * factor);
         }

@@ -19,8 +19,8 @@ package net.raphimc.noteblocktool.audio.export.impl;
 
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocktool.audio.SoundMap;
+import net.raphimc.noteblocktool.audio.export.AudioBuffer;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
-import net.raphimc.noteblocktool.audio.export.AudioMerger;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
 import javax.sound.sampled.AudioFormat;
@@ -30,24 +30,24 @@ import java.util.function.Consumer;
 public class JavaxAudioExporter extends AudioExporter {
 
     private final Map<String, int[]> sounds;
-    private final AudioMerger merger;
+    private final AudioBuffer merger;
 
     public JavaxAudioExporter(final SongView<?> songView, final AudioFormat format, final Consumer<Float> progressConsumer) {
         super(songView, format, progressConsumer);
         this.sounds = SoundMap.loadInstrumentSamples(format);
-        this.merger = new AudioMerger(this.samplesPerTick * format.getChannels() * songView.getLength());
+        this.merger = new AudioBuffer(this.samplesPerTick * format.getChannels() * songView.getLength());
     }
 
     @Override
     protected void processSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        this.merger.addSamples(SoundSampleUtil.mutate(this.format, this.sounds.get(sound), pitch, volume, panning));
+        this.merger.pushSamples(SoundSampleUtil.mutate(this.format, this.sounds.get(sound), pitch, volume, panning));
     }
 
     @Override
     protected void writeSamples() {
-        this.merger.pushSamples(this.samplesPerTick * this.format.getChannels());
+        this.merger.advanceIndex(this.samplesPerTick * this.format.getChannels());
     }
 
     @Override

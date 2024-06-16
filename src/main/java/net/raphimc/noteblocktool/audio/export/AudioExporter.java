@@ -69,6 +69,12 @@ public abstract class AudioExporter implements FullNoteConsumer {
             this.progressConsumer.accept((float) this.processedNotes / this.noteCount);
             if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
         }
+
+        final int threeSeconds = Math.round(this.songView.getSpeed() * 3);
+        for (int i = 0; i < threeSeconds; i++) {
+            this.writeSamples();
+        }
+
         this.finish();
     }
 
