@@ -41,6 +41,7 @@ public class OpenALAudioExporter extends AudioExporter {
     @Override
     protected void writeSamples() {
         this.soundSystem.renderSamples(this.sampleOutputStream, this.samplesPerTick);
+        this.soundSystem.tick();
     }
 
     @Override

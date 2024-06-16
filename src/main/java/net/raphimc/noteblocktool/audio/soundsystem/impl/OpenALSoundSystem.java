@@ -64,17 +64,6 @@ public class OpenALSoundSystem extends SoundSystem {
     private Thread shutdownHook;
     private ByteBuffer captureBuffer;
 
-    @SuppressWarnings("FieldCanBeLocal")
-    private final SOFTEventProcI eventCallback = (eventType, object, param, length, message, userParam) -> {
-        if (eventType == SOFTEvents.AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT && param == AL10.AL_STOPPED) {
-            synchronized (this) {
-                this.playingSources.remove((Integer) object);
-                AL10.alDeleteSources(object);
-                this.checkALError("Could not delete audio source", AL10.AL_INVALID_NAME);
-            }
-        }
-    };
-
     private OpenALSoundSystem(final int maxSounds) {
         this(maxSounds, null);
     }
@@ -130,9 +119,6 @@ public class OpenALSoundSystem extends SoundSystem {
         if (!alCapabilities.OpenAL11) {
             throw new RuntimeException("OpenAL 1.1 is not supported");
         }
-        if (!alCapabilities.AL_SOFT_events) {
-            throw new RuntimeException("AL_SOFT_events is not supported");
-        }
 
         AL10.alDistanceModel(AL10.AL_NONE);
         this.checkALError("Could not set distance model");
@@ -148,11 +134,6 @@ public class OpenALSoundSystem extends SoundSystem {
         } catch (Throwable e) {
             throw new RuntimeException("Could not load sound samples", e);
         }
-
-        SOFTEvents.alEventCallbackSOFT(this.eventCallback, null);
-        this.checkALError("Could not set event callback");
-        SOFTEvents.alEventControlSOFT(new int[]{SOFTEvents.AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT}, true);
-        this.checkALError("Could not configure event control");
 
         Runtime.getRuntime().addShutdownHook(this.shutdownHook = new Thread(() -> {
             this.shutdownHook = null;
@@ -188,6 +169,20 @@ public class OpenALSoundSystem extends SoundSystem {
         AL10.alSourcePlay(source);
         this.checkALError("Could not play audio source");
         this.playingSources.add(source);
+    }
+
+    @Override
+    public synchronized void tick() {
+        this.playingSources.removeIf(source -> {
+            final int state = AL10.alGetSourcei(source, AL10.AL_SOURCE_STATE);
+            this.checkALError("Could not get audio source state");
+            if (state == AL10.AL_STOPPED) {
+                AL10.alDeleteSources(source);
+                this.checkALError("Could not delete audio source");
+                return true;
+            }
+            return false;
+        });
     }
 
     public synchronized void renderSamples(final SampleOutputStream outputStream, final int sampleCount) {

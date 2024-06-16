@@ -69,7 +69,7 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public synchronized void writeSamples() {
+    public synchronized void tick() {
         final long[] samples = new long[this.samplesPerTick];
         final int[] outputBuffer = new int[this.samplesPerTick];
         final int[] mutationBuffer = new int[this.samplesPerTick * 2];

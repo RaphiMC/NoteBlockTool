@@ -89,7 +89,7 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
     }
 
     @Override
-    public synchronized void writeSamples() {
+    public synchronized void tick() {
         this.soundsToRender.addAll(this.playingSounds);
         this.syncLock.set(this.playingSounds.size());
         while (this.syncLock.get() != 0 && !Thread.currentThread().isInterrupted()) {
