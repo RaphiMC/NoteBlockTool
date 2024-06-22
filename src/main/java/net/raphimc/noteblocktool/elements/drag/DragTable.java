@@ -22,8 +22,11 @@ import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
 import javax.swing.*;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class DragTable extends JTable {
@@ -36,6 +39,14 @@ public class DragTable extends JTable {
         this.getColumnModel().getColumn(3).setPreferredWidth(25);
         this.getColumnModel().getColumn(4).setPreferredWidth(25);
         this.getColumnModel().getColumn(5).setPreferredWidth(25);
+
+        TableRowSorter<TableModel> sorter = new TableRowSorter<>(this.getModel());
+        List<RowSorter.SortKey> sortKeys = new ArrayList<>();
+        for (int i = 0; i < 6; i++) sortKeys.add(new RowSorter.SortKey(i, SortOrder.UNSORTED));
+        sorter.setSortKeys(sortKeys);
+        sorter.setComparator(4, Comparator.comparingInt(o -> (int) o));
+        sorter.setComparator(5, Comparator.comparingDouble(o -> (float) o));
+        this.setRowSorter(sorter);
     }
 
     public void addRow(final ListFrame.LoadedSong song) {
