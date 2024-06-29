@@ -32,7 +32,7 @@ import java.util.Map;
 
 public class JavaxSoundSystem extends SoundSystem {
 
-    private static final AudioFormat FORMAT = new AudioFormat(44100, 16, 2, true, false);
+    private static final AudioFormat FORMAT = new AudioFormat(48000, 16, 2, true, false);
 
     protected final Map<String, int[]> sounds;
     protected final List<SoundInstance> playingSounds = new ArrayList<>();

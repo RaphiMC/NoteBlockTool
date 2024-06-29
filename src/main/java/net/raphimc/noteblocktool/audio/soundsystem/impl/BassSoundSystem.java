@@ -68,7 +68,7 @@ public class BassSoundSystem extends SoundSystem {
         if (((version >> 16) & 0xFFFF) != BassLibrary.BASSVERSION) {
             throw new RuntimeException("BASS version is not correct");
         }
-        if (!BassLibrary.INSTANCE.BASS_Init(-1, 44100, 0, 0, null)) {
+        if (!BassLibrary.INSTANCE.BASS_Init(-1, 48000, 0, 0, null)) {
             this.checkError("Could not open device");
         }
         final BassLibrary.BASS_DEVICEINFO.ByReference deviceInfo = new BassLibrary.BASS_DEVICEINFO.ByReference();
