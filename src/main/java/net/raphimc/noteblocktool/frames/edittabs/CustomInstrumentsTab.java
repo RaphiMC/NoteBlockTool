@@ -18,7 +18,6 @@
 package net.raphimc.noteblocktool.frames.edittabs;
 
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
-import net.raphimc.noteblocklib.format.nbs.model.NbsData;
 import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
 import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.model.SongView;
@@ -73,12 +72,6 @@ public class CustomInstrumentsTab extends EditTab {
                 }
             }
         });
-
-        if (song != null) {
-            for (NbsCustomInstrument customInstrument : replacements.keySet()) {
-                ((NbsData) song.getData()).getCustomInstruments().remove(customInstrument);
-            }
-        }
     }
 
 }

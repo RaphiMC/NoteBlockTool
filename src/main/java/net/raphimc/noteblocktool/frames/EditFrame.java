@@ -94,13 +94,14 @@ public class EditFrame extends JFrame {
             JButton apply = new JButton("Save");
             apply.addActionListener(e -> {
                 for (ListFrame.LoadedSong song : this.songs) {
-                    this.resamplingTab.apply(song.getSong(), song.getSong().getView());
-                    this.instrumentsTab.apply(song.getSong(), song.getSong().getView());
+                    SongView<?> view = song.getSong().getView();
+                    this.resamplingTab.apply(song.getSong(), view);
+                    this.instrumentsTab.apply(song.getSong(), view);
                     if (this.customInstrumentsTab != null) {
-                        this.customInstrumentsTab.apply(song.getSong(), song.getSong().getView());
+                        this.customInstrumentsTab.apply(song.getSong(), view);
                     }
-                    this.notesTab.apply(song.getSong(), song.getSong().getView());
-                    this.metadataTab.apply(song.getSong(), song.getSong().getView());
+                    this.notesTab.apply(song.getSong(), view);
+                    this.metadataTab.apply(song.getSong(), view);
                 }
                 JOptionPane.showMessageDialog(this, "Saved all changes", "Saved", JOptionPane.INFORMATION_MESSAGE);
                 for (ListFrame.LoadedSong song : this.songs) this.songRefreshConsumer.accept(song);
@@ -113,7 +114,7 @@ public class EditFrame extends JFrame {
                 this.resamplingTab.apply(song.getSong(), view);
                 this.instrumentsTab.apply(song.getSong(), view);
                 if (this.customInstrumentsTab != null) {
-                    this.customInstrumentsTab.apply(null, view);
+                    this.customInstrumentsTab.apply(song.getSong(), view);
                 }
                 this.notesTab.apply(song.getSong(), view);
                 SongPlayerFrame.open(song, view);
