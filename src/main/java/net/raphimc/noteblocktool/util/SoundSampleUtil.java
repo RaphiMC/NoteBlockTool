@@ -97,44 +97,55 @@ public class SoundSampleUtil {
 
     public static long mutate(final AudioFormat format, final int[] samples, final int samplesOffset, final int samplesLength, final float pitch, final float volume, final float panning, final int[] mutatedSamples) {
         final int channels = format.getChannels();
-        final int mutatedSamplesLength = (int) (samplesLength / pitch / format.getChannels()) * format.getChannels();
+        final int mutatedSamplesLength = (int) (samplesLength / pitch / channels) * channels;
         final int mutatedLength = mutatedSamplesLength / channels;
+
         if (mutatedLength == 0) {
             return samplesLength;
-        }
-
-        if (mutatedSamples.length < mutatedSamplesLength) {
+        } else if (mutatedSamples.length < mutatedSamplesLength) {
             throw new IllegalArgumentException("Mutated samples array is too small");
         }
 
-        for (int channel = 0; channel < channels; channel++) {
-            float channelVolume = volume;
-            if (channels == 2) {
-                if (channel == 0) channelVolume *= 1 - panning;
-                else channelVolume *= 1 + panning;
+        final float[] channelVolumes = new float[channels];
+        if (channels == 2) {
+            channelVolumes[0] = volume * (1 - panning);
+            channelVolumes[1] = volume * (1 + panning);
+        } else {
+            Arrays.fill(channelVolumes, volume);
+        }
+
+        if (pitch == 1F) {
+            for (int i = 0; i < mutatedLength; i++) {
+                final int targetIndex = i * channels;
+                final int sourceIndex = samplesOffset + targetIndex;
+                for (int channel = 0; channel < channels; channel++) {
+                    mutatedSamples[targetIndex + channel] = (int) (samples[sourceIndex + channel] * channelVolumes[channel]);
+                }
             }
-
-            if (pitch == 1F) {
-                for (int i = 0; i < mutatedLength; i++) {
-                    final int index = i * channels + channel;
-                    mutatedSamples[index] = (int) (samples[samplesOffset + index] * channelVolume);
+        } else if (pitch > 1F) {
+            for (int i = 0; i < mutatedLength; i++) {
+                final int targetIndex = i * channels;
+                final int originalTargetIndex = Math.min(Math.max((int) (i * pitch) * channels, 0), samplesLength - channels);
+                final int sourceIndex = samplesOffset + originalTargetIndex;
+                for (int channel = 0; channel < channels; channel++) {
+                    mutatedSamples[targetIndex + channel] = (int) (samples[sourceIndex + channel] * channelVolumes[channel]);
                 }
-            } else if (pitch > 1F) {
-                for (int i = 0; i < mutatedLength; i++) {
-                    int originalIndex = (int) (i * pitch) * channels + channel;
-                    originalIndex = Math.min(Math.max(originalIndex, 0), samplesLength - channels);
-                    mutatedSamples[i * channels + channel] = (int) (samples[samplesOffset + originalIndex] * channelVolume);
-                }
-            } else {
-                for (int i = 0; i < mutatedLength; i++) {
-                    final float sampleIndex = i * pitch;
-                    final int sampleIndexFloor = (int) sampleIndex;
-                    final int sampleIndexCeil = Math.min(sampleIndexFloor + 1, samplesLength / channels - 1);
-                    final float sampleIndexFraction = sampleIndex - sampleIndexFloor;
+            }
+        } else {
+            for (int i = 0; i < mutatedLength; i++) {
+                final float sampleIndex = i * pitch;
+                final int sampleIndexFloor = (int) sampleIndex;
+                final int sampleIndexCeil = Math.min(sampleIndexFloor + 1, samplesLength / channels - 1);
+                final float sampleIndexFraction = sampleIndex - sampleIndexFloor;
 
-                    final int sampleFloor = samples[samplesOffset + sampleIndexFloor * channels + channel];
-                    final int sampleCeil = samples[samplesOffset + sampleIndexCeil * channels + channel];
-                    mutatedSamples[i * channels + channel] = (int) ((sampleFloor + (sampleCeil - sampleFloor) * sampleIndexFraction) * channelVolume);
+                final int targetIndex = i * channels;
+                final int floorIndex = samplesOffset + sampleIndexFloor * channels;
+                final int ceilIndex = samplesOffset + sampleIndexCeil * channels;
+
+                for (int channel = 0; channel < channels; channel++) {
+                    final int sampleFloor = samples[floorIndex + channel];
+                    final int sampleCeil = samples[ceilIndex + channel];
+                    mutatedSamples[targetIndex + channel] = (int) ((sampleFloor + (sampleCeil - sampleFloor) * sampleIndexFraction) * channelVolumes[channel]);
                 }
             }
         }
