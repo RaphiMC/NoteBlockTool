@@ -35,16 +35,18 @@ public abstract class AudioExporter implements FullNoteConsumer {
 
     private final SongView<?> songView;
     protected final AudioFormat format;
+    private final float masterVolume;
     private final Consumer<Float> progressConsumer;
     protected SampleOutputStream sampleOutputStream;
     private final long noteCount;
     protected final int samplesPerTick;
     private int processedNotes;
 
-    public AudioExporter(final SongView<?> songView, final AudioFormat format, final Consumer<Float> progressConsumer) {
+    public AudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
         this.songView = songView;
         this.format = format;
         this.progressConsumer = progressConsumer;
+        this.masterVolume = masterVolume;
         this.sampleOutputStream = new SampleOutputStream(format);
 
         this.noteCount = SongUtil.getNoteCount(songView);
@@ -79,12 +81,12 @@ public abstract class AudioExporter implements FullNoteConsumer {
 
     @Override
     public void playNote(final Instrument instrument, final float pitch, final float volume, final float panning) {
-        this.processSound(SoundMap.INSTRUMENT_SOUNDS.get(instrument), pitch, volume, panning);
+        this.processSound(SoundMap.INSTRUMENT_SOUNDS.get(instrument), pitch, volume * this.masterVolume, panning);
     }
 
     @Override
     public void playCustomNote(final NbsCustomInstrument customInstrument, final float pitch, final float volume, final float panning) {
-        this.processSound(customInstrument.getSoundFileName().replace(File.separatorChar, '/'), pitch, volume, panning);
+        this.processSound(customInstrument.getSoundFileName().replace(File.separatorChar, '/'), pitch, volume * this.masterVolume, panning);
     }
 
     protected abstract void processSound(final String sound, final float pitch, final float volume, final float panning);

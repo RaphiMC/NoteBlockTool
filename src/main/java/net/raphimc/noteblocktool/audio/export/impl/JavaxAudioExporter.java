@@ -32,8 +32,8 @@ public class JavaxAudioExporter extends AudioExporter {
     private final Map<String, int[]> sounds;
     private final AudioBuffer merger;
 
-    public JavaxAudioExporter(final SongView<?> songView, final AudioFormat format, final Consumer<Float> progressConsumer) {
-        super(songView, format, progressConsumer);
+    public JavaxAudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
+        super(songView, format, masterVolume, progressConsumer);
         this.sounds = SoundMap.loadInstrumentSamples(format);
         this.merger = new AudioBuffer(this.samplesPerTick * format.getChannels() * songView.getLength());
     }

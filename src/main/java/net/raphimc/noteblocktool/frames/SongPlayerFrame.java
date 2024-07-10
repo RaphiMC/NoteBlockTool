@@ -147,7 +147,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.volumeSlider, () -> {
                 this.volumeSlider.setPaintLabels(true);
                 this.volumeSlider.setPaintTicks(true);
-                this.volumeSlider.setMajorTickSpacing(25);
+                this.volumeSlider.setMajorTickSpacing(10);
                 this.volumeSlider.setMinorTickSpacing(5);
                 this.volumeSlider.addChangeListener(e -> {
                     if (this.soundSystem != null) this.soundSystem.setMasterVolume(this.volumeSlider.getValue() / 100F);

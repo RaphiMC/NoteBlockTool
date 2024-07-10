@@ -72,6 +72,8 @@ public class ExportFrame extends JFrame {
     private final JComboBox<String> bitDepth = new JComboBox<>(new String[]{"PCM 8", "PCM 16", "PCM 32"});
     private final JLabel channelsLabel = new JLabel("Channels:");
     private final JComboBox<String> channels = new JComboBox<>(new String[]{"Mono", "Stereo"});
+    private final JLabel volumeLabel = new JLabel("Volume:");
+    private final JSlider volume = new JSlider(0, 100, 50);
     private JPanel progressPanel;
     private final JProgressBar progressBar = new JProgressBar();
     private final JButton exportButton = new JButton("Export");
@@ -124,6 +126,14 @@ public class ExportFrame extends JFrame {
             this.channels.setSelectedIndex(1);
         });
 
+        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.volumeLabel);
+        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.volume, () -> {
+            this.volume.setMajorTickSpacing(10);
+            this.volume.setMinorTickSpacing(5);
+            this.volume.setPaintTicks(true);
+            this.volume.setPaintLabels(true);
+        });
+
         GBC.create(root).grid(0, gridy++).insets(5, 5, 0, 5).width(1).width(2).weight(1, 1).fill(GBC.BOTH).add(() -> {
             JScrollPane scrollPane = new JScrollPane();
             this.progressPanel = new ScrollPaneSizedPanel(scrollPane);
@@ -135,7 +145,7 @@ public class ExportFrame extends JFrame {
 
         JPanel bottomPanel = new JPanel();
         bottomPanel.setLayout(new GridBagLayout());
-        GBC.create(root).grid(0, gridy++).insets(0, 0, 0, 0).weightx(1).width(2).fill(GBC.BOTH).add(bottomPanel);
+        GBC.create(root).grid(0, gridy++).insets(0, 0, 0, 0).weightx(1).width(2).fill(GBC.HORIZONTAL).add(bottomPanel);
 
         GBC.create(bottomPanel).grid(0, 0).insets(5, 5, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.progressBar, () -> {
             this.progressBar.setStringPainted(true);
@@ -160,6 +170,9 @@ public class ExportFrame extends JFrame {
 
         this.channelsLabel.setVisible(isAudioFile);
         this.channels.setVisible(isAudioFile);
+
+        this.volumeLabel.setVisible(isAudioFile);
+        this.volume.setVisible(isAudioFile);
     }
 
     private void initFrameHandler() {
@@ -395,9 +408,9 @@ public class ExportFrame extends JFrame {
 
             AudioExporter exporter;
             if (this.soundSystem.getSelectedIndex() == 0) {
-                exporter = new OpenALAudioExporter(openALSoundSystem, songView, format, progressConsumer);
+                exporter = new OpenALAudioExporter(openALSoundSystem, songView, format, this.volume.getValue() / 100F, progressConsumer);
             } else if (this.soundSystem.getSelectedIndex() == 1) {
-                exporter = new JavaxAudioExporter(songView, format, progressConsumer);
+                exporter = new JavaxAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
             } else {
                 throw new UnsupportedOperationException("Unsupported sound system: " + this.soundSystem.getSelectedIndex());
             }

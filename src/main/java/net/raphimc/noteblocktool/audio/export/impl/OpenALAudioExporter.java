@@ -28,8 +28,8 @@ public class OpenALAudioExporter extends AudioExporter {
 
     private final OpenALSoundSystem soundSystem;
 
-    public OpenALAudioExporter(final OpenALSoundSystem soundSystem, final SongView<?> songView, final AudioFormat format, final Consumer<Float> progressConsumer) {
-        super(songView, format, progressConsumer);
+    public OpenALAudioExporter(final OpenALSoundSystem soundSystem, final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
+        super(songView, format, masterVolume, progressConsumer);
         this.soundSystem = soundSystem;
     }
 
