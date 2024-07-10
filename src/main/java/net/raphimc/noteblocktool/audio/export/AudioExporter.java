@@ -26,13 +26,8 @@ import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.util.SampleOutputStream;
 
-import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -78,11 +73,8 @@ public abstract class AudioExporter implements FullNoteConsumer {
         this.finish();
     }
 
-    public void write(final AudioFileFormat.Type format, final File file) throws IOException {
-        final ByteArrayInputStream bais = new ByteArrayInputStream(this.sampleOutputStream.getBytes());
-        final AudioInputStream audioInputStream = new AudioInputStream(bais, this.format, bais.available());
-        AudioSystem.write(audioInputStream, format, file);
-        audioInputStream.close();
+    public byte[] getSamples() {
+        return this.sampleOutputStream.getBytes();
     }
 
     @Override

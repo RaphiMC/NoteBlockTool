@@ -17,6 +17,7 @@
  */
 package net.raphimc.noteblocktool.frames;
 
+import com.sun.jna.Pointer;
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
@@ -31,6 +32,7 @@ import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
+import net.raphimc.noteblocktool.audio.export.LameLibrary;
 import net.raphimc.noteblocktool.audio.export.impl.JavaxAudioExporter;
 import net.raphimc.noteblocktool.audio.export.impl.OpenALAudioExporter;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
@@ -38,11 +40,15 @@ import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
 
 import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +63,7 @@ public class ExportFrame extends JFrame {
 
     private final ListFrame parent;
     private final List<ListFrame.LoadedSong> loadedSongs;
-    private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "WAV", "AIF"});
+    private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "MP3 (Using LAME encoder)", "WAV", "AIF"});
     private final JLabel soundSystemLabel = new JLabel("Sound System:");
     private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (parallel capable, normalized)"});
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
@@ -140,19 +146,20 @@ public class ExportFrame extends JFrame {
     }
 
     private void updateVisibility() {
-        boolean isNbs = this.format.getSelectedIndex() == 0;
+        final boolean isAudioFile = this.format.getSelectedIndex() != 0;
+        final boolean isMp3 = this.format.getSelectedIndex() == 1;
 
-        this.soundSystemLabel.setVisible(!isNbs);
-        this.soundSystem.setVisible(!isNbs);
+        this.soundSystemLabel.setVisible(isAudioFile);
+        this.soundSystem.setVisible(isAudioFile);
 
-        this.sampleRateLabel.setVisible(!isNbs);
-        this.sampleRate.setVisible(!isNbs);
+        this.sampleRateLabel.setVisible(isAudioFile);
+        this.sampleRate.setVisible(isAudioFile);
 
-        this.bitDepthLabel.setVisible(!isNbs);
-        this.bitDepth.setVisible(!isNbs);
+        this.bitDepthLabel.setVisible(isAudioFile && !isMp3);
+        this.bitDepth.setVisible(isAudioFile && !isMp3);
 
-        this.channelsLabel.setVisible(!isNbs);
-        this.channels.setVisible(!isNbs);
+        this.channelsLabel.setVisible(isAudioFile);
+        this.channels.setVisible(isAudioFile);
     }
 
     private void initFrameHandler() {
@@ -212,7 +219,7 @@ public class ExportFrame extends JFrame {
     }
 
     private File openFileChooser() {
-        String extension = this.format.getSelectedItem().toString().toLowerCase();
+        String extension = this.format.getSelectedItem().toString().split(" ")[0].toLowerCase();
         JFileChooser fileChooser = new JFileChooser();
         if (this.loadedSongs.size() == 1) {
             fileChooser.setDialogTitle("Export Song");
@@ -240,8 +247,25 @@ public class ExportFrame extends JFrame {
     }
 
     private void doExport(final File outFile) {
+        final boolean isAudioFile = this.format.getSelectedIndex() != 0;
+        final boolean isMp3 = this.format.getSelectedIndex() == 1;
+        final AudioFormat format = new AudioFormat(
+                ((Number) this.sampleRate.getValue()).floatValue(),
+                !isMp3 ? Integer.parseInt(this.bitDepth.getSelectedItem().toString().substring(4)) : 16,
+                this.channels.getSelectedIndex() + 1,
+                true,
+                false
+        );
+
         OpenALSoundSystem openALSoundSystem = null;
         try {
+            if (isMp3 && !LameLibrary.isLoaded()) {
+                throw new IllegalStateException("MP3 LAME encoder is not available");
+            }
+            if (this.soundSystem.getSelectedIndex() == 0 && isAudioFile) {
+                openALSoundSystem = OpenALSoundSystem.createCapture(8192, format);
+            }
+
             Map<ListFrame.LoadedSong, JPanel> songPanels = new ConcurrentHashMap<>();
             SwingUtilities.invokeAndWait(() -> {
                 for (ListFrame.LoadedSong song : this.loadedSongs) {
@@ -252,36 +276,23 @@ public class ExportFrame extends JFrame {
                     this.progressPanel.add(songPanel);
 
                     GBC.create(songPanel).grid(0, 0).insets(0).anchor(GBC.LINE_START).add(new JLabel(song.getSong().getView().getTitle()));
-                    GBC.create(songPanel).grid(1, 0).insets(0, 5, 0, 0).weightx(1).fill(GBC.HORIZONTAL).add(new JProgressBar(), p -> {
-                        p.setStringPainted(true);
-                    });
+                    GBC.create(songPanel).grid(1, 0).insets(0, 5, 0, 0).weightx(1).fill(GBC.HORIZONTAL).add(new JProgressBar(), p -> p.setStringPainted(true));
                 }
                 this.progressPanel.revalidate();
                 this.progressPanel.repaint();
             });
 
-            AudioFormat format = new AudioFormat(
-                    ((Number) this.sampleRate.getValue()).floatValue(),
-                    Integer.parseInt(this.bitDepth.getSelectedItem().toString().substring(4)),
-                    this.channels.getSelectedIndex() + 1,
-                    true,
-                    false
-            );
-            if (this.soundSystem.getSelectedIndex() == 0 && this.format.getSelectedIndex() != 0) openALSoundSystem = OpenALSoundSystem.createCapture(8192, format);
             if (this.loadedSongs.size() == 1) {
                 JPanel songPanel = songPanels.get(this.loadedSongs.get(0));
                 JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
                 try {
-                    this.exportSong(this.loadedSongs.get(0), openALSoundSystem, format, outFile, progress -> {
-                        SwingUtilities.invokeLater(() -> {
-                            int value = (int) (progress * 100);
-                            progressBar.setValue(value);
-                            progressBar.revalidate();
-                            progressBar.repaint();
-                        });
-                    });
-                } catch (InterruptedException e) {
-                    return;
+                    this.exportSong(this.loadedSongs.get(0), openALSoundSystem, format, outFile, progress -> SwingUtilities.invokeLater(() -> {
+                        int value = (int) (progress * 100);
+                        progressBar.setValue(value);
+                        progressBar.revalidate();
+                        progressBar.repaint();
+                    }));
+                } catch (InterruptedException ignored) {
                 } catch (Throwable t) {
                     t.printStackTrace();
                     JOptionPane.showMessageDialog(this, "Failed to export song:\n" + this.loadedSongs.get(0).getFile().getAbsolutePath() + "\n" + t.getClass().getSimpleName() + ": " + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -294,29 +305,26 @@ public class ExportFrame extends JFrame {
                     });
                 }
             } else {
-                int threadCount;
-                if (this.format.getSelectedIndex() == 0) threadCount = 1;
-                else if (this.soundSystem.getSelectedIndex() == 0) threadCount = 1;
+                final int threadCount;
+                if (!isAudioFile || openALSoundSystem != null) threadCount = 1;
                 else threadCount = Math.min(this.loadedSongs.size(), Runtime.getRuntime().availableProcessors());
                 ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadCount);
                 Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
 
-                String extension = this.format.getSelectedItem().toString().toLowerCase();
+                String extension = this.format.getSelectedItem().toString().split(" ")[0].toLowerCase();
+                final OpenALSoundSystem finalOpenALSoundSystem = openALSoundSystem;
                 for (ListFrame.LoadedSong song : this.loadedSongs) {
-                    final OpenALSoundSystem finalOpenALSoundSystem = openALSoundSystem;
                     threadPool.submit(() -> {
                         JPanel songPanel = songPanels.get(song);
                         JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
                         try {
                             File file = new File(outFile, song.getFile().getName().substring(0, song.getFile().getName().lastIndexOf('.')) + "." + extension);
-                            this.exportSong(song, finalOpenALSoundSystem, format, file, progress -> {
-                                uiQueue.offer(() -> {
-                                    int value = (int) (progress * 100);
-                                    progressBar.setValue(value);
-                                    progressBar.revalidate();
-                                    progressBar.repaint();
-                                });
-                            });
+                            this.exportSong(song, finalOpenALSoundSystem, format, file, progress -> uiQueue.offer(() -> {
+                                int value = (int) (progress * 100);
+                                progressBar.setValue(value);
+                                progressBar.revalidate();
+                                progressBar.repaint();
+                            }));
                             uiQueue.offer(() -> {
                                 this.progressPanel.remove(songPanel);
                                 this.progressPanel.revalidate();
@@ -376,7 +384,7 @@ public class ExportFrame extends JFrame {
         }
     }
 
-    private void exportSong(final ListFrame.LoadedSong song, final OpenALSoundSystem soundSystem, final AudioFormat format, final File file, final Consumer<Float> progressConsumer) throws InterruptedException, IOException {
+    private void exportSong(final ListFrame.LoadedSong song, final OpenALSoundSystem openALSoundSystem, final AudioFormat format, final File file, final Consumer<Float> progressConsumer) throws InterruptedException, IOException {
         if (this.format.getSelectedIndex() == 0) {
             this.writeNbsSong(song, file);
         } else {
@@ -387,7 +395,7 @@ public class ExportFrame extends JFrame {
 
             AudioExporter exporter;
             if (this.soundSystem.getSelectedIndex() == 0) {
-                exporter = new OpenALAudioExporter(soundSystem, songView, format, progressConsumer);
+                exporter = new OpenALAudioExporter(openALSoundSystem, songView, format, progressConsumer);
             } else if (this.soundSystem.getSelectedIndex() == 1) {
                 exporter = new JavaxAudioExporter(songView, format, progressConsumer);
             } else {
@@ -395,7 +403,47 @@ public class ExportFrame extends JFrame {
             }
 
             exporter.render();
-            exporter.write(this.format.getSelectedIndex() == 1 ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);
+            final byte[] samples = exporter.getSamples();
+
+            if (this.format.getSelectedIndex() == 2 || this.format.getSelectedIndex() == 3) {
+                final AudioInputStream audioInputStream = new AudioInputStream(new ByteArrayInputStream(samples), format, samples.length);
+                AudioSystem.write(audioInputStream, this.format.getSelectedIndex() == 2 ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);
+                audioInputStream.close();
+            } else if (this.format.getSelectedIndex() == 1) {
+                final FileOutputStream fos = new FileOutputStream(file);
+                final int numSamples = samples.length / format.getFrameSize();
+                final byte[] mp3Buffer = new byte[(int) (1.25 * numSamples + 7200)];
+                final Pointer lame = LameLibrary.INSTANCE.lame_init();
+                if (lame == null) {
+                    throw new IllegalStateException("Failed to initialize LAME encoder");
+                }
+                int result = LameLibrary.INSTANCE.lame_set_in_samplerate(lame, (int) format.getSampleRate());
+                if (result < 0) {
+                    throw new IllegalStateException("Failed to set sample rate: " + result);
+                }
+                result = LameLibrary.INSTANCE.lame_set_num_channels(lame, format.getChannels());
+                if (result < 0) {
+                    throw new IllegalStateException("Failed to set channels: " + result);
+                }
+                result = LameLibrary.INSTANCE.lame_init_params(lame);
+                if (result < 0) {
+                    throw new IllegalStateException("Failed to initialize LAME parameters: " + result);
+                }
+                result = LameLibrary.INSTANCE.lame_encode_buffer_interleaved(lame, samples, numSamples, mp3Buffer, mp3Buffer.length);
+                if (result < 0) {
+                    throw new IllegalStateException("Failed to encode buffer: " + result);
+                }
+                fos.write(mp3Buffer, 0, result);
+                result = LameLibrary.INSTANCE.lame_encode_flush(lame, mp3Buffer, mp3Buffer.length);
+                if (result < 0) {
+                    throw new IllegalStateException("Failed to flush encoder: " + result);
+                }
+                fos.write(mp3Buffer, 0, result);
+                LameLibrary.INSTANCE.lame_close(lame);
+                fos.close();
+            } else {
+                throw new UnsupportedOperationException("Unsupported output format: " + this.format.getSelectedIndex());
+            }
         }
     }
 
