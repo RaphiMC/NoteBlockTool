@@ -301,7 +301,13 @@ public class ExportFrame extends JFrame {
                 try {
                     this.exportSong(this.loadedSongs.get(0), openALSoundSystem, format, outFile, progress -> SwingUtilities.invokeLater(() -> {
                         int value = (int) (progress * 100);
-                        progressBar.setValue(value);
+                        if (value == 200) {
+                            progressBar.setString("Encoding MP3...");
+                        } else if (value > 100) {
+                            progressBar.setString("Writing file...");
+                        } else {
+                            progressBar.setValue(value);
+                        }
                         progressBar.revalidate();
                         progressBar.repaint();
                     }));
@@ -334,7 +340,13 @@ public class ExportFrame extends JFrame {
                             File file = new File(outFile, song.getFile().getName().substring(0, song.getFile().getName().lastIndexOf('.')) + "." + extension);
                             this.exportSong(song, finalOpenALSoundSystem, format, file, progress -> uiQueue.offer(() -> {
                                 int value = (int) (progress * 100);
-                                progressBar.setValue(value);
+                                if (value == 200) {
+                                    progressBar.setString("Encoding MP3...");
+                                } else if (value > 100) {
+                                    progressBar.setString("Writing file...");
+                                } else {
+                                    progressBar.setValue(value);
+                                }
                                 progressBar.revalidate();
                                 progressBar.repaint();
                             }));
@@ -419,10 +431,12 @@ public class ExportFrame extends JFrame {
             final byte[] samples = exporter.getSamples();
 
             if (this.format.getSelectedIndex() == 2 || this.format.getSelectedIndex() == 3) {
+                progressConsumer.accept(10F);
                 final AudioInputStream audioInputStream = new AudioInputStream(new ByteArrayInputStream(samples), format, samples.length);
                 AudioSystem.write(audioInputStream, this.format.getSelectedIndex() == 2 ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);
                 audioInputStream.close();
             } else if (this.format.getSelectedIndex() == 1) {
+                progressConsumer.accept(2F);
                 final FileOutputStream fos = new FileOutputStream(file);
                 final int numSamples = samples.length / format.getFrameSize();
                 final byte[] mp3Buffer = new byte[(int) (1.25 * numSamples + 7200)];
@@ -446,6 +460,7 @@ public class ExportFrame extends JFrame {
                 if (result < 0) {
                     throw new IllegalStateException("Failed to encode buffer: " + result);
                 }
+                progressConsumer.accept(10F);
                 fos.write(mp3Buffer, 0, result);
                 result = LameLibrary.INSTANCE.lame_encode_flush(lame, mp3Buffer, mp3Buffer.length);
                 if (result < 0) {
