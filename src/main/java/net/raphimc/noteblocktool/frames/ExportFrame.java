@@ -58,6 +58,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class ExportFrame extends JFrame {
 
@@ -294,23 +295,24 @@ public class ExportFrame extends JFrame {
                 this.progressPanel.revalidate();
                 this.progressPanel.repaint();
             });
+            final Function<JProgressBar, Consumer<Float>> progressConsumer = progressBar -> progress -> SwingUtilities.invokeLater(() -> {
+                int value = (int) (progress * 100);
+                if (value == 200) {
+                    progressBar.setString("Encoding MP3...");
+                } else if (value > 100) {
+                    progressBar.setString("Writing file...");
+                } else {
+                    progressBar.setValue(value);
+                }
+                progressBar.revalidate();
+                progressBar.repaint();
+            });
 
             if (this.loadedSongs.size() == 1) {
                 JPanel songPanel = songPanels.get(this.loadedSongs.get(0));
                 JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
                 try {
-                    this.exportSong(this.loadedSongs.get(0), openALSoundSystem, format, outFile, progress -> SwingUtilities.invokeLater(() -> {
-                        int value = (int) (progress * 100);
-                        if (value == 200) {
-                            progressBar.setString("Encoding MP3...");
-                        } else if (value > 100) {
-                            progressBar.setString("Writing file...");
-                        } else {
-                            progressBar.setValue(value);
-                        }
-                        progressBar.revalidate();
-                        progressBar.repaint();
-                    }));
+                    this.exportSong(this.loadedSongs.get(0), openALSoundSystem, format, outFile, progressConsumer.apply(progressBar));
                 } catch (InterruptedException ignored) {
                 } catch (Throwable t) {
                     t.printStackTrace();
@@ -338,18 +340,7 @@ public class ExportFrame extends JFrame {
                         JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
                         try {
                             File file = new File(outFile, song.getFile().getName().substring(0, song.getFile().getName().lastIndexOf('.')) + "." + extension);
-                            this.exportSong(song, finalOpenALSoundSystem, format, file, progress -> uiQueue.offer(() -> {
-                                int value = (int) (progress * 100);
-                                if (value == 200) {
-                                    progressBar.setString("Encoding MP3...");
-                                } else if (value > 100) {
-                                    progressBar.setString("Writing file...");
-                                } else {
-                                    progressBar.setValue(value);
-                                }
-                                progressBar.revalidate();
-                                progressBar.repaint();
-                            }));
+                            this.exportSong(song, finalOpenALSoundSystem, format, file, progressConsumer.apply(progressBar));
                             uiQueue.offer(() -> {
                                 this.progressPanel.remove(songPanel);
                                 this.progressPanel.revalidate();
