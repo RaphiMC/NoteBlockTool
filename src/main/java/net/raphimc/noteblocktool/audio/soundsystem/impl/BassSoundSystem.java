@@ -69,14 +69,14 @@ public class BassSoundSystem extends SoundSystem {
             throw new RuntimeException("BASS version is not correct");
         }
         if (!BassLibrary.INSTANCE.BASS_Init(-1, 48000, 0, 0, null)) {
-            this.checkError("Could not open device");
+            this.checkError("Failed to open device");
         }
         final BassLibrary.BASS_DEVICEINFO.ByReference deviceInfo = new BassLibrary.BASS_DEVICEINFO.ByReference();
         if (!BassLibrary.INSTANCE.BASS_GetDeviceInfo(BassLibrary.INSTANCE.BASS_GetDevice(), deviceInfo)) {
-            this.checkError("Could not get device info");
+            this.checkError("Failed to get device info");
         }
         if (!BassLibrary.INSTANCE.BASS_SetConfig(BassLibrary.BASS_CONFIG_SRC, 0)) { // linear interpolation
-            this.checkError("Could not set default sample rate conversion quality");
+            this.checkError("Failed to set default sample rate conversion quality");
         }
 
         try {
@@ -84,7 +84,7 @@ public class BassSoundSystem extends SoundSystem {
                 this.soundSamples.put(entry.getKey(), this.loadAudioFile(entry.getValue().openStream()));
             }
         } catch (Throwable e) {
-            throw new RuntimeException("Could not load sound samples", e);
+            throw new RuntimeException("Failed to load sound samples", e);
         }
 
         Runtime.getRuntime().addShutdownHook(this.shutdownHook = new Thread(() -> {
@@ -102,33 +102,33 @@ public class BassSoundSystem extends SoundSystem {
 
         if (this.playingChannels.size() >= this.maxSounds) {
             if (!BassLibrary.INSTANCE.BASS_ChannelFree(this.playingChannels.remove(0))) {
-                this.checkError("Could not free audio channel", BassLibrary.BASS_ERROR_HANDLE);
+                this.checkError("Failed to free audio channel", BassLibrary.BASS_ERROR_HANDLE);
             }
         }
 
         final int channel = BassLibrary.INSTANCE.BASS_SampleGetChannel(this.soundSamples.get(sound), BassLibrary.BASS_SAMCHAN_STREAM | BassLibrary.BASS_STREAM_AUTOFREE);
         if (channel == 0) {
-            this.checkError("Could not get audio channel");
+            this.checkError("Failed to get audio channel");
         }
         if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(channel, BassLibrary.BASS_ATTRIB_VOL, volume)) {
-            this.checkError("Could not set audio channel volume");
+            this.checkError("Failed to set audio channel volume");
         }
         if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(channel, BassLibrary.BASS_ATTRIB_PAN, panning)) {
-            this.checkError("Could not set audio channel panning");
+            this.checkError("Failed to set audio channel panning");
         }
         final FloatByReference freq = new FloatByReference();
         if (!BassLibrary.INSTANCE.BASS_ChannelGetAttribute(channel, BassLibrary.BASS_ATTRIB_FREQ, freq)) {
-            this.checkError("Could not get audio channel frequency");
+            this.checkError("Failed to get audio channel frequency");
         }
         if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(channel, BassLibrary.BASS_ATTRIB_FREQ, freq.getValue() * pitch)) {
-            this.checkError("Could not set audio channel frequency");
+            this.checkError("Failed to set audio channel frequency");
         }
         final int sync = BassLibrary.INSTANCE.BASS_ChannelSetSync(channel, BassLibrary.BASS_SYNC_FREE, 0, this.channelFreeSync, null);
         if (sync == 0) {
-            this.checkError("Could not set audio channel end sync");
+            this.checkError("Failed to set audio channel end sync");
         }
         if (!BassLibrary.INSTANCE.BASS_ChannelStart(channel)) {
-            this.checkError("Could not play audio channel");
+            this.checkError("Failed to play audio channel");
         }
         this.playingChannels.add(channel);
     }
@@ -136,10 +136,10 @@ public class BassSoundSystem extends SoundSystem {
     @Override
     public synchronized void stopSounds() {
         if (!BassLibrary.INSTANCE.BASS_Stop()) {
-            this.checkError("Could not stop sound system");
+            this.checkError("Failed to stop sound system");
         }
         if (!BassLibrary.INSTANCE.BASS_Start()) {
-            this.checkError("Could not start sound system");
+            this.checkError("Failed to start sound system");
         }
         this.playingChannels.clear();
     }
@@ -166,7 +166,7 @@ public class BassSoundSystem extends SoundSystem {
     @Override
     public synchronized void setMasterVolume(final float volume) {
         if (!BassLibrary.INSTANCE.BASS_SetConfig(BassLibrary.BASS_CONFIG_GVOL_STREAM, (int) (volume * 10000))) {
-            this.checkError("Could not set master volume");
+            this.checkError("Failed to set master volume");
         }
     }
 
@@ -180,15 +180,15 @@ public class BassSoundSystem extends SoundSystem {
 
             final int sample = BassLibrary.INSTANCE.BASS_SampleCreate(audioBytes.length, (int) audioFormat.getSampleRate(), audioFormat.getChannels(), 1, 0);
             if (sample == 0) {
-                this.checkError("Could not create sample");
+                this.checkError("Failed to create sample");
             }
             if (!BassLibrary.INSTANCE.BASS_SampleSetData(sample, audioBytes)) {
-                this.checkError("Could not set sample data");
+                this.checkError("Failed to set sample data");
             }
 
             return sample;
         } catch (Throwable e) {
-            throw new RuntimeException("Could not load audio file", e);
+            throw new RuntimeException("Failed to load audio file", e);
         }
     }
 

@@ -53,7 +53,7 @@ public class JavaxSoundSystem extends SoundSystem {
             this.dataLine.start();
             this.volumeDividersLength = (int) Math.ceil(playbackSpeed * 3F); // 3s window
         } catch (Throwable e) {
-            throw new RuntimeException("Could not initialize javax sound system", e);
+            throw new RuntimeException("Failed to initialize javax sound system", e);
         }
     }
 

@@ -92,12 +92,12 @@ public class OpenALSoundSystem extends SoundSystem {
             };
         }
         if (this.device <= 0L) {
-            throw new RuntimeException("Could not open device");
+            throw new RuntimeException("Failed to open device");
         }
-        this.checkALCError("Could not open device");
+        this.checkALCError("Failed to open device");
 
         final ALCCapabilities alcCapabilities = ALC.createCapabilities(this.device);
-        this.checkALCError("Could not create alcCapabilities");
+        this.checkALCError("Failed to create alcCapabilities");
         if (!alcCapabilities.OpenALC11) {
             throw new RuntimeException("OpenALC 1.1 is not supported");
         }
@@ -109,30 +109,30 @@ public class OpenALSoundSystem extends SoundSystem {
         }
 
         this.context = ALC10.alcCreateContext(this.device, attributes);
-        this.checkALCError("Could not create context");
+        this.checkALCError("Failed to create context");
         if (!ALC10.alcMakeContextCurrent(this.context)) {
-            throw new RuntimeException("Could not make context current");
+            throw new RuntimeException("Failed to make context current");
         }
 
         final ALCapabilities alCapabilities = AL.createCapabilities(alcCapabilities);
-        this.checkALError("Could not create alCapabilities");
+        this.checkALError("Failed to create alCapabilities");
         if (!alCapabilities.OpenAL11) {
             throw new RuntimeException("OpenAL 1.1 is not supported");
         }
 
         AL10.alDistanceModel(AL10.AL_NONE);
-        this.checkALError("Could not set distance model");
+        this.checkALError("Failed to set distance model");
         AL10.alListener3f(AL10.AL_POSITION, 0F, 0F, 0F);
-        this.checkALError("Could not set listener position");
+        this.checkALError("Failed to set listener position");
         AL10.alListenerfv(AL10.AL_ORIENTATION, new float[]{0F, 0F, -1F, 0F, 1F, 0F});
-        this.checkALError("Could not set listener orientation");
+        this.checkALError("Failed to set listener orientation");
 
         try {
             for (Map.Entry<String, URL> entry : SoundMap.SOUND_LOCATIONS.entrySet()) {
                 this.soundBuffers.put(entry.getKey(), this.loadAudioFile(entry.getValue().openStream()));
             }
         } catch (Throwable e) {
-            throw new RuntimeException("Could not load sound samples", e);
+            throw new RuntimeException("Failed to load sound samples", e);
         }
 
         Runtime.getRuntime().addShutdownHook(this.shutdownHook = new Thread(() -> {
@@ -153,21 +153,21 @@ public class OpenALSoundSystem extends SoundSystem {
 
         if (this.playingSources.size() >= this.maxSounds) {
             AL10.alDeleteSources(this.playingSources.remove(0));
-            this.checkALError("Could not delete audio source");
+            this.checkALError("Failed to delete audio source");
         }
 
         final int source = AL10.alGenSources();
-        this.checkALError("Could not generate audio source");
+        this.checkALError("Failed to generate audio source");
         AL10.alSourcei(source, AL10.AL_BUFFER, this.soundBuffers.get(sound));
-        this.checkALError("Could not set audio source buffer");
+        this.checkALError("Failed to set audio source buffer");
         AL10.alSourcef(source, AL10.AL_PITCH, pitch);
-        this.checkALError("Could not set audio source pitch");
+        this.checkALError("Failed to set audio source pitch");
         AL10.alSourcef(source, AL10.AL_GAIN, volume);
-        this.checkALError("Could not set audio source volume");
+        this.checkALError("Failed to set audio source volume");
         AL10.alSource3f(source, AL10.AL_POSITION, panning * 2F, 0F, 0F);
-        this.checkALError("Could not set audio source position");
+        this.checkALError("Failed to set audio source position");
         AL10.alSourcePlay(source);
-        this.checkALError("Could not play audio source");
+        this.checkALError("Failed to play audio source");
         this.playingSources.add(source);
     }
 
@@ -175,10 +175,10 @@ public class OpenALSoundSystem extends SoundSystem {
     public synchronized void tick() {
         this.playingSources.removeIf(source -> {
             final int state = AL10.alGetSourcei(source, AL10.AL_SOURCE_STATE);
-            this.checkALError("Could not get audio source state");
+            this.checkALError("Failed to get audio source state");
             if (state == AL10.AL_STOPPED) {
                 AL10.alDeleteSources(source);
-                this.checkALError("Could not delete audio source");
+                this.checkALError("Failed to delete audio source");
                 return true;
             }
             return false;
@@ -191,7 +191,7 @@ public class OpenALSoundSystem extends SoundSystem {
             throw new IllegalArgumentException("Sample count too high");
         }
         SOFTLoopback.alcRenderSamplesSOFT(this.device, this.captureBuffer, sampleCount);
-        this.checkALError("Could not render samples");
+        this.checkALError("Failed to render samples");
         if (this.captureAudioFormat.getSampleSizeInBits() == 8) {
             for (int i = 0; i < samplesLength; i++) {
                 outputStream.writeSample(this.captureBuffer.get(i));
@@ -211,7 +211,7 @@ public class OpenALSoundSystem extends SoundSystem {
     public synchronized void stopSounds() {
         for (int source : this.playingSources) {
             AL10.alDeleteSources(source);
-            this.checkALError("Could not delete audio source", AL10.AL_INVALID_NAME);
+            this.checkALError("Failed to delete audio source", AL10.AL_INVALID_NAME);
         }
         this.playingSources.clear();
     }
@@ -248,7 +248,7 @@ public class OpenALSoundSystem extends SoundSystem {
     @Override
     public synchronized void setMasterVolume(final float volume) {
         AL10.alListenerf(AL10.AL_GAIN, volume);
-        this.checkALError("Could not set listener gain");
+        this.checkALError("Failed to set listener gain");
     }
 
     private int loadAudioFile(final InputStream inputStream) {
@@ -258,17 +258,17 @@ public class OpenALSoundSystem extends SoundSystem {
             final byte[] audioBytes = IOUtil.readFully(audioInputStream);
 
             final int buffer = AL10.alGenBuffers();
-            this.checkALError("Could not generate audio buffer");
+            this.checkALError("Failed to generate audio buffer");
 
             final ByteBuffer audioBuffer = MemoryUtil.memAlloc(audioBytes.length).put(audioBytes);
             audioBuffer.flip();
             AL10.alBufferData(buffer, this.getAlAudioFormat(audioFormat), audioBuffer, (int) audioFormat.getSampleRate());
-            this.checkALError("Could not set audio buffer data");
+            this.checkALError("Failed to set audio buffer data");
             MemoryUtil.memFree(audioBuffer);
 
             return buffer;
         } catch (Throwable e) {
-            throw new RuntimeException("Could not load audio file", e);
+            throw new RuntimeException("Failed to load audio file", e);
         }
     }
 

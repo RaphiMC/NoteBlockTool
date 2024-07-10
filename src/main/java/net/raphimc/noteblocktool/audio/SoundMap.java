@@ -75,7 +75,7 @@ public class SoundMap {
                     }
                 });
             } catch (Throwable e) {
-                throw new RuntimeException("Could not load custom sound samples", e);
+                throw new RuntimeException("Failed to load custom sound samples", e);
             }
         }
     }
@@ -88,7 +88,7 @@ public class SoundMap {
             }
             return soundSamples;
         } catch (Throwable e) {
-            throw new RuntimeException("Could not load sound samples", e);
+            throw new RuntimeException("Failed to load sound samples", e);
         }
     }
 
