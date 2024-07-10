@@ -209,6 +209,7 @@ public class ExportFrame extends JFrame {
             this.sampleRate.setEnabled(true);
             this.bitDepth.setEnabled(true);
             this.channels.setEnabled(true);
+            this.volume.setEnabled(true);
             this.progressPanel.removeAll();
             this.exportButton.setText("Export");
             this.progressBar.setValue(0);
@@ -223,6 +224,7 @@ public class ExportFrame extends JFrame {
         this.sampleRate.setEnabled(false);
         this.bitDepth.setEnabled(false);
         this.channels.setEnabled(false);
+        this.volume.setEnabled(false);
         this.progressPanel.removeAll();
         this.exportButton.setText("Cancel");
         this.progressBar.setValue(0);
@@ -393,6 +395,7 @@ public class ExportFrame extends JFrame {
                 this.sampleRate.setEnabled(true);
                 this.bitDepth.setEnabled(true);
                 this.channels.setEnabled(true);
+                this.volume.setEnabled(true);
                 this.exportButton.setText("Export");
                 this.progressBar.setValue(this.loadedSongs.size());
                 this.progressBar.revalidate();
