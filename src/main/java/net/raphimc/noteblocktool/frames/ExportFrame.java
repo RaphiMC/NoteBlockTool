@@ -36,6 +36,7 @@ import net.raphimc.noteblocktool.audio.export.LameLibrary;
 import net.raphimc.noteblocktool.audio.export.impl.JavaxAudioExporter;
 import net.raphimc.noteblocktool.audio.export.impl.OpenALAudioExporter;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
+import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
 
 import javax.sound.sampled.AudioFileFormat;
@@ -234,7 +235,7 @@ public class ExportFrame extends JFrame {
 
     private File openFileChooser() {
         String extension = this.format.getSelectedItem().toString().split(" ")[0].toLowerCase();
-        JFileChooser fileChooser = new JFileChooser();
+        VerticalFileChooser fileChooser = new VerticalFileChooser();
         if (this.loadedSongs.size() == 1) {
             fileChooser.setDialogTitle("Export Song");
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);

@@ -28,6 +28,7 @@ import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.TextOverlayPanel;
+import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.elements.drag.DragTable;
 import net.raphimc.noteblocktool.elements.drag.DragTableDropTargetListener;
 import net.raphimc.noteblocktool.elements.drag.DragTableModel;
@@ -94,7 +95,7 @@ public class ListFrame extends JFrame {
         buttonPanel.setLayout(new GridBagLayout());
         GBC.create(buttonPanel).gridx(0).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.addButton, () -> {
             this.addButton.addActionListener(e -> {
-                JFileChooser fileChooser = new JFileChooser();
+                VerticalFileChooser fileChooser = new VerticalFileChooser();
                 fileChooser.setDialogTitle("Add Songs");
                 fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
                 fileChooser.setMultiSelectionEnabled(true);
@@ -117,7 +118,7 @@ public class ListFrame extends JFrame {
         });
         GBC.create(buttonPanel).gridx(2).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.setCustomSoundsFolder, () -> {
             this.setCustomSoundsFolder.addActionListener(e -> {
-                JFileChooser fileChooser = new JFileChooser();
+                VerticalFileChooser fileChooser = new VerticalFileChooser();
                 fileChooser.setDialogTitle("Select Custom Sounds folder");
                 fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
