@@ -55,13 +55,12 @@ public abstract class AudioExporter implements FullNoteConsumer {
 
     public void render() throws InterruptedException {
         for (int tick = 0; tick < this.songView.getLength(); tick++) {
+            if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
             final List<? extends Note> notes = this.songView.getNotesAtTick(tick);
-            for (Note note : notes) {
-                if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
-                this.playNote(note);
-            }
+            this.preTick();
+            for (Note note : notes) this.playNote(note);
+            this.postTick();
             this.processedNotes += notes.size();
-            this.writeSamples();
 
             this.progressConsumer.accept((float) this.processedNotes / this.noteCount);
             if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
@@ -69,7 +68,7 @@ public abstract class AudioExporter implements FullNoteConsumer {
 
         final int threeSeconds = Math.round(this.songView.getSpeed() * 3);
         for (int i = 0; i < threeSeconds; i++) {
-            this.writeSamples();
+            this.postTick();
         }
 
         this.finish();
@@ -91,7 +90,10 @@ public abstract class AudioExporter implements FullNoteConsumer {
 
     protected abstract void processSound(final String sound, final float pitch, final float volume, final float panning);
 
-    protected abstract void writeSamples();
+    protected void preTick() {
+    }
+
+    protected abstract void postTick();
 
     protected abstract void finish();
 

@@ -69,21 +69,18 @@ public class JavaxSoundSystem extends SoundSystem {
     }
 
     @Override
-    public synchronized void tick() {
-        final long[] samples = new long[this.samplesPerTick];
-        final int[] outputBuffer = new int[this.samplesPerTick];
-        final int[] mutationBuffer = new int[this.samplesPerTick * 2];
-        for (SoundInstance playingSound : this.playingSounds) {
-            playingSound.render(mutationBuffer);
-            playingSound.write(samples, outputBuffer);
-        }
+    public synchronized void preTick() {
         this.playingSounds.removeIf(SoundInstance::isFinished);
+    }
 
+    @Override
+    public synchronized void postTick() {
+        final long[] samples = this.render();
         if (this.dataLine.available() < samples.length * 2) {
             // In case of buffer overrun, flush the queued samples
             this.dataLine.flush();
         }
-        this.dataLine.write(this.writeNormalized(samples), 0, samples.length * 2);
+        this.dataLine.write(this.normalize(samples), 0, samples.length * 2);
     }
 
     @Override
@@ -110,7 +107,18 @@ public class JavaxSoundSystem extends SoundSystem {
         this.masterVolume = volume;
     }
 
-    protected byte[] writeNormalized(final long[] samples) {
+    protected long[] render() {
+        final long[] samples = new long[this.samplesPerTick];
+        final int[] outputBuffer = new int[this.samplesPerTick];
+        final int[] mutationBuffer = new int[this.samplesPerTick * 2];
+        for (SoundInstance playingSound : this.playingSounds) {
+            playingSound.render(mutationBuffer);
+            playingSound.write(samples, outputBuffer);
+        }
+        return samples;
+    }
+
+    private byte[] normalize(final long[] samples) {
         final byte[] out = new byte[samples.length * 2];
         final long max = SoundSampleUtil.getMax(samples);
         float div = Math.max(1, (float) max / Short.MAX_VALUE);

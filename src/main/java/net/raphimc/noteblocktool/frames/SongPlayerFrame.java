@@ -346,9 +346,9 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
 
     @Override
     public void playNotes(java.util.List<? extends Note> notes) {
+        this.soundSystem.preTick();
         for (Note note : notes) this.playNote(note);
-
-        this.soundSystem.tick();
+        this.soundSystem.postTick();
     }
 
 }

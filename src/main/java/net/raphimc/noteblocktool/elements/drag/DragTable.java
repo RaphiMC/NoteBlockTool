@@ -96,7 +96,7 @@ public class DragTable extends JTable {
 
         SongUtil.iterateAllNotes(song.getSong().getView(), note -> {
             if (note.getKey() < MinecraftDefinitions.MC_LOWEST_KEY || note.getKey() > MinecraftDefinitions.MC_HIGHEST_KEY) {
-                result.add("The song contains notes that are out of the Minecraft octave range");
+                result.add("The song contains notes which are outside of the Minecraft octave range");
                 return true;
             }
             return false;

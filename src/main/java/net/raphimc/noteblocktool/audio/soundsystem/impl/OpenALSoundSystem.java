@@ -172,7 +172,7 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     @Override
-    public synchronized void tick() {
+    public synchronized void preTick() {
         this.playingSources.removeIf(source -> {
             final int state = AL10.alGetSourcei(source, AL10.AL_SOURCE_STATE);
             this.checkALError("Failed to get audio source state");

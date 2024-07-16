@@ -27,7 +27,10 @@ public abstract class SoundSystem implements AutoCloseable {
 
     public abstract void playSound(final String sound, final float pitch, final float volume, final float panning);
 
-    public void tick() {
+    public void preTick() {
+    }
+
+    public void postTick() {
     }
 
     public abstract void stopSounds();

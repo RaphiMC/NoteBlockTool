@@ -46,7 +46,7 @@ public class JavaxAudioExporter extends AudioExporter {
     }
 
     @Override
-    protected void writeSamples() {
+    protected void postTick() {
         this.merger.advanceIndex(this.samplesPerTick * this.format.getChannels());
     }
 
