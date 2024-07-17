@@ -27,11 +27,11 @@ dependencies {
     include "net.raphimc:NoteBlockLib:2.1.3"
     include "com.formdev:flatlaf:3.5"
     include "net.lenni0451.commons:swing:1.5.1"
-    include "org.lwjgl:lwjgl:3.3.3"
+    include "org.lwjgl:lwjgl:3.3.4"
     include "org.lwjgl:lwjgl-openal:3.3.4"
     include "org.lwjgl:lwjgl-stb:3.3.4"
     ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64", "natives-macos", "natives-macos-arm64"].each {
-        include "org.lwjgl:lwjgl:3.3.3:$it"
+        include "org.lwjgl:lwjgl:3.3.4:$it"
         include "org.lwjgl:lwjgl-openal:3.3.4:$it"
         include "org.lwjgl:lwjgl-stb:3.3.4:$it"
     }
