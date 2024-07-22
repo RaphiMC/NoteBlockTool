@@ -69,7 +69,7 @@ public class SoundSampleUtil {
                 return new AudioInputStream(new ByteArrayInputStream(samplesArray), audioFormat, samplesArray.length);
             }
         } else {
-            return AudioSystem.getAudioInputStream(new BufferedInputStream(inputStream));
+            return AudioSystem.getAudioInputStream(bis);
         }
     }
 
