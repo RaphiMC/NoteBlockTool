@@ -36,6 +36,7 @@ import java.util.Map;
 public class OpenALSoundSystem extends SoundSystem {
 
     private static OpenALSoundSystem instance;
+    private static final ThreadLocal<OpenALSoundSystem> tlsInstance = ThreadLocal.withInitial(() -> null);
 
     public static OpenALSoundSystem createPlayback(final Map<String, byte[]> soundData, final int maxSounds) {
         if (instance != null) {
@@ -46,11 +47,11 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     public static OpenALSoundSystem createCapture(final Map<String, byte[]> soundData, final int maxSounds, final AudioFormat captureAudioFormat) {
-        if (instance != null) {
+        if (tlsInstance.get() != null) {
             throw new IllegalStateException("OpenAL sound system already initialized");
         }
-        instance = new OpenALSoundSystem(soundData, maxSounds, captureAudioFormat);
-        return instance;
+        tlsInstance.set(new OpenALSoundSystem(soundData, maxSounds, captureAudioFormat));
+        return tlsInstance.get();
     }
 
 
@@ -105,10 +106,13 @@ public class OpenALSoundSystem extends SoundSystem {
         if (captureAudioFormat != null && !alcCapabilities.ALC_SOFT_loopback) {
             throw new RuntimeException("ALC_SOFT_loopback is not supported");
         }
+        if (captureAudioFormat != null && !alcCapabilities.ALC_EXT_thread_local_context) {
+            throw new RuntimeException("ALC_EXT_thread_local_context is not supported");
+        }
 
         this.context = ALC10.alcCreateContext(this.device, attributes);
         this.checkALCError("Failed to create context");
-        if (!ALC10.alcMakeContextCurrent(this.context)) {
+        if (captureAudioFormat != null ? !EXTThreadLocalContext.alcSetThreadContext(this.context) : !ALC10.alcMakeContextCurrent(this.context)) {
             throw new RuntimeException("Failed to make context current");
         }
 
@@ -223,7 +227,11 @@ public class OpenALSoundSystem extends SoundSystem {
         this.soundBuffers.clear();
         this.playingSources.clear();
         if (this.context != 0L) {
-            ALC10.alcMakeContextCurrent(0);
+            if (this.captureAudioFormat != null) {
+                EXTThreadLocalContext.alcSetThreadContext(0);
+            } else {
+                ALC10.alcMakeContextCurrent(0);
+            }
             ALC10.alcDestroyContext(this.context);
             this.context = 0L;
         }
@@ -235,7 +243,11 @@ public class OpenALSoundSystem extends SoundSystem {
             MemoryUtil.memFree(this.captureBuffer);
             this.captureBuffer = null;
         }
-        instance = null;
+        if (this.captureAudioFormat != null) {
+            tlsInstance.remove();
+        } else {
+            instance = null;
+        }
     }
 
     @Override

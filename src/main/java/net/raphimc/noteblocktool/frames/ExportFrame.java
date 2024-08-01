@@ -66,7 +66,7 @@ public class ExportFrame extends JFrame {
     private final List<ListFrame.LoadedSong> loadedSongs;
     private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "MP3 (Using LAME encoder)", "WAV", "AIF"});
     private final JLabel soundSystemLabel = new JLabel("Sound System:");
-    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Javax (parallel capable, normalized)"});
+    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (faster, better sound quality)", "Javax (normalized)"});
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
     private final JLabel bitDepthLabel = new JLabel("PCM Bit Depth:");
@@ -325,7 +325,7 @@ public class ExportFrame extends JFrame {
                 }
             } else {
                 final int threadCount;
-                if (!isAudioFile || this.soundSystem.getSelectedIndex() == 0) threadCount = 1;
+                if (!isAudioFile) threadCount = 1;
                 else threadCount = Math.min(this.loadedSongs.size(), Runtime.getRuntime().availableProcessors());
                 ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadCount);
                 Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
