@@ -18,7 +18,6 @@
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import com.sun.jna.ptr.FloatByReference;
-import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.BassLibrary;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.IOUtil;
@@ -27,8 +26,7 @@ import net.raphimc.noteblocktool.util.SoundSampleUtil;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
-import java.io.InputStream;
-import java.net.URL;
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,14 +36,14 @@ public class BassSoundSystem extends SoundSystem {
 
     private static BassSoundSystem instance;
 
-    public static BassSoundSystem createPlayback(final int maxSounds) {
+    public static BassSoundSystem createPlayback(final Map<String, byte[]> soundData, final int maxSounds) {
         if (instance != null) {
             throw new IllegalStateException("BASS sound system already initialized");
         }
         if (!BassLibrary.isLoaded()) {
             throw new IllegalStateException("BASS library is not available");
         }
-        instance = new BassSoundSystem(maxSounds);
+        instance = new BassSoundSystem(soundData, maxSounds);
         return instance;
     }
 
@@ -61,7 +59,7 @@ public class BassSoundSystem extends SoundSystem {
         }
     };
 
-    private BassSoundSystem(final int maxSounds) {
+    private BassSoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
         super(maxSounds);
 
         final int version = BassLibrary.INSTANCE.BASS_GetVersion();
@@ -80,8 +78,8 @@ public class BassSoundSystem extends SoundSystem {
         }
 
         try {
-            for (Map.Entry<String, URL> entry : SoundMap.SOUND_LOCATIONS.entrySet()) {
-                this.soundSamples.put(entry.getKey(), this.loadAudioFile(entry.getValue().openStream()));
+            for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
+                this.soundSamples.put(entry.getKey(), this.loadAudioFile(entry.getValue()));
             }
         } catch (Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
@@ -170,9 +168,9 @@ public class BassSoundSystem extends SoundSystem {
         }
     }
 
-    private int loadAudioFile(final InputStream inputStream) {
+    private int loadAudioFile(final byte[] data) {
         try {
-            AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(inputStream);
+            AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(new ByteArrayInputStream(data));
             final AudioFormat audioFormat = audioInputStream.getFormat();
             final AudioFormat targetFormat = new AudioFormat(audioFormat.getSampleRate(), 16, audioFormat.getChannels(), true, false);
             if (!audioFormat.matches(targetFormat)) audioInputStream = AudioSystem.getAudioInputStream(targetFormat, audioInputStream);

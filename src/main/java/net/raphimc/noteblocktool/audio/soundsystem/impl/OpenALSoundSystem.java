@@ -17,7 +17,6 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
-import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.IOUtil;
 import net.raphimc.noteblocktool.util.SampleOutputStream;
@@ -27,8 +26,7 @@ import org.lwjgl.system.MemoryUtil;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
-import java.io.InputStream;
-import java.net.URL;
+import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,19 +37,19 @@ public class OpenALSoundSystem extends SoundSystem {
 
     private static OpenALSoundSystem instance;
 
-    public static OpenALSoundSystem createPlayback(final int maxSounds) {
+    public static OpenALSoundSystem createPlayback(final Map<String, byte[]> soundData, final int maxSounds) {
         if (instance != null) {
             throw new IllegalStateException("OpenAL sound system already initialized");
         }
-        instance = new OpenALSoundSystem(maxSounds);
+        instance = new OpenALSoundSystem(soundData, maxSounds);
         return instance;
     }
 
-    public static OpenALSoundSystem createCapture(final int maxSounds, final AudioFormat captureAudioFormat) {
+    public static OpenALSoundSystem createCapture(final Map<String, byte[]> soundData, final int maxSounds, final AudioFormat captureAudioFormat) {
         if (instance != null) {
             throw new IllegalStateException("OpenAL sound system already initialized");
         }
-        instance = new OpenALSoundSystem(maxSounds, captureAudioFormat);
+        instance = new OpenALSoundSystem(soundData, maxSounds, captureAudioFormat);
         return instance;
     }
 
@@ -64,11 +62,11 @@ public class OpenALSoundSystem extends SoundSystem {
     private Thread shutdownHook;
     private ByteBuffer captureBuffer;
 
-    private OpenALSoundSystem(final int maxSounds) {
-        this(maxSounds, null);
+    private OpenALSoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
+        this(soundData, maxSounds, null);
     }
 
-    private OpenALSoundSystem(final int maxSounds, final AudioFormat captureAudioFormat) {
+    private OpenALSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final AudioFormat captureAudioFormat) {
         super(maxSounds);
 
         this.captureAudioFormat = captureAudioFormat;
@@ -128,8 +126,8 @@ public class OpenALSoundSystem extends SoundSystem {
         this.checkALError("Failed to set listener orientation");
 
         try {
-            for (Map.Entry<String, URL> entry : SoundMap.SOUND_LOCATIONS.entrySet()) {
-                this.soundBuffers.put(entry.getKey(), this.loadAudioFile(entry.getValue().openStream()));
+            for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
+                this.soundBuffers.put(entry.getKey(), this.loadAudioFile(entry.getValue()));
             }
         } catch (Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
@@ -251,9 +249,9 @@ public class OpenALSoundSystem extends SoundSystem {
         this.checkALError("Failed to set listener gain");
     }
 
-    private int loadAudioFile(final InputStream inputStream) {
+    private int loadAudioFile(final byte[] data) {
         try {
-            final AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(inputStream);
+            final AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(new ByteArrayInputStream(data));
             final AudioFormat audioFormat = audioInputStream.getFormat();
             final byte[] audioBytes = IOUtil.readFully(audioInputStream);
 

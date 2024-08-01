@@ -18,6 +18,7 @@
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
@@ -34,8 +35,8 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
     private final int[][] threadOutputBuffers;
     private final int[][] threadMutationBuffers;
 
-    public MultithreadedJavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
-        super(maxSounds, playbackSpeed);
+    public MultithreadedJavaxSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final float playbackSpeed) {
+        super(soundData, maxSounds, playbackSpeed);
 
         final int mergingThreads = Math.max(1, this.threadPool.getCorePoolSize() / 3);
         final int renderingThreads = this.threadPool.getCorePoolSize() - mergingThreads;

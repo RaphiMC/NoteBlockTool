@@ -44,6 +44,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.text.DecimalFormat;
+import java.util.Map;
 import java.util.Optional;
 
 public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullNoteConsumer {
@@ -269,14 +270,17 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             if (this.soundSystem == null || this.soundSystemComboBox.getSelectedIndex() != currentIndex || this.soundSystem.getMaxSounds() != (int) this.maxSoundsSpinner.getValue()) {
                 if (this.soundSystem != null) this.soundSystem.close();
 
+                final Map<String, byte[]> soundData = SoundMap.loadSoundData(this.songPlayer.getSongView());
+                final int maxSounds = ((Number) this.maxSoundsSpinner.getValue()).intValue();
+
                 if (this.soundSystemComboBox.getSelectedIndex() == 0) {
-                    this.soundSystem = OpenALSoundSystem.createPlayback(((Number) this.maxSoundsSpinner.getValue()).intValue());
+                    this.soundSystem = OpenALSoundSystem.createPlayback(soundData, maxSounds);
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 1) {
-                    this.soundSystem = BassSoundSystem.createPlayback(((Number) this.maxSoundsSpinner.getValue()).intValue());
+                    this.soundSystem = BassSoundSystem.createPlayback(soundData, maxSounds);
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 2) {
-                    this.soundSystem = new JavaxSoundSystem(((Number) this.maxSoundsSpinner.getValue()).intValue(), this.songPlayer.getSongView().getSpeed());
+                    this.soundSystem = new JavaxSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 3) {
-                    this.soundSystem = new MultithreadedJavaxSoundSystem(((Number) this.maxSoundsSpinner.getValue()).intValue(), this.songPlayer.getSongView().getSpeed());
+                    this.soundSystem = new MultithreadedJavaxSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
                 } else {
                     throw new UnsupportedOperationException(UNAVAILABLE_MESSAGE);
                 }
@@ -302,7 +306,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             public void windowClosed(WindowEvent e) {
                 SongPlayerFrame.this.songPlayer.stop();
                 SongPlayerFrame.this.updateTimer.stop();
-                SongPlayerFrame.this.soundSystem.close();
+                if (SongPlayerFrame.this.soundSystem != null) SongPlayerFrame.this.soundSystem.close();
             }
         });
     }

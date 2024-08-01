@@ -24,6 +24,8 @@ import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
 import javax.sound.sampled.AudioFormat;
+import java.io.ByteArrayInputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -34,8 +36,15 @@ public class JavaxAudioExporter extends AudioExporter {
 
     public JavaxAudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
         super(songView, format, masterVolume, progressConsumer);
-        this.sounds = SoundMap.loadInstrumentSamples(format);
-        this.merger = new AudioBuffer(this.samplesPerTick * format.getChannels() * songView.getLength());
+        try {
+            this.sounds = new HashMap<>();
+            for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(songView).entrySet()) {
+                this.sounds.put(entry.getKey(), SoundSampleUtil.readSamples(new ByteArrayInputStream(entry.getValue()), format));
+            }
+            this.merger = new AudioBuffer(this.samplesPerTick * format.getChannels() * songView.getLength());
+        } catch (Throwable e) {
+            throw new RuntimeException("Failed to initialize javax audio exporter", e);
+        }
     }
 
     @Override

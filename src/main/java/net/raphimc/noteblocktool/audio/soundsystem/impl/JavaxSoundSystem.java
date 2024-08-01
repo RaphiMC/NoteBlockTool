@@ -17,7 +17,6 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
-import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.CircularBuffer;
 import net.raphimc.noteblocktool.util.SoundSampleUtil;
@@ -25,10 +24,8 @@ import net.raphimc.noteblocktool.util.SoundSampleUtil;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.SourceDataLine;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.io.ByteArrayInputStream;
+import java.util.*;
 
 public class JavaxSoundSystem extends SoundSystem {
 
@@ -42,11 +39,14 @@ public class JavaxSoundSystem extends SoundSystem {
     protected float[] volumeDividers;
     private final int volumeDividersLength;
 
-    public JavaxSoundSystem(final int maxSounds, final float playbackSpeed) {
+    public JavaxSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final float playbackSpeed) {
         super(maxSounds);
 
         try {
-            this.sounds = SoundMap.loadInstrumentSamples(FORMAT);
+            this.sounds = new HashMap<>();
+            for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
+                this.sounds.put(entry.getKey(), SoundSampleUtil.readSamples(new ByteArrayInputStream(entry.getValue()), FORMAT));
+            }
             this.samplesPerTick = (int) (FORMAT.getSampleRate() / playbackSpeed) * FORMAT.getChannels();
             this.dataLine = AudioSystem.getSourceDataLine(FORMAT);
             this.dataLine.open(FORMAT, (int) FORMAT.getSampleRate());

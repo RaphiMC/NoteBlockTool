@@ -17,10 +17,12 @@
  */
 package net.raphimc.noteblocktool.audio;
 
+import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
+import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.Instrument;
-import net.raphimc.noteblocktool.util.SoundSampleUtil;
+import net.raphimc.noteblocklib.util.SongUtil;
+import net.raphimc.noteblocktool.util.IOUtil;
 
-import javax.sound.sampled.AudioFormat;
 import java.io.File;
 import java.net.URL;
 import java.nio.file.Files;
@@ -31,7 +33,7 @@ import java.util.Map;
 public class SoundMap {
 
     public static final Map<Instrument, String> INSTRUMENT_SOUNDS = new EnumMap<>(Instrument.class);
-    public static final Map<String, URL> SOUND_LOCATIONS = new HashMap<>();
+    private static final Map<String, URL> ALL_SOUND_LOCATIONS = new HashMap<>();
 
     static {
         INSTRUMENT_SOUNDS.put(Instrument.HARP, "harp.ogg");
@@ -55,9 +57,9 @@ public class SoundMap {
     }
 
     public static void reload(final File customSoundsFolder) {
-        SOUND_LOCATIONS.clear();
+        ALL_SOUND_LOCATIONS.clear();
         for (Map.Entry<Instrument, String> entry : INSTRUMENT_SOUNDS.entrySet()) {
-            SOUND_LOCATIONS.put(entry.getValue(), SoundMap.class.getResource("/noteblock_sounds/" + entry.getValue()));
+            ALL_SOUND_LOCATIONS.put(entry.getValue(), SoundMap.class.getResource("/noteblock_sounds/" + entry.getValue()));
         }
 
         if (customSoundsFolder != null && customSoundsFolder.exists() && customSoundsFolder.isDirectory()) {
@@ -68,7 +70,7 @@ public class SoundMap {
 
                         final String fileName = customSoundsFolder.toPath().relativize(path).toString();
                         if (fileName.endsWith(".ogg") || fileName.endsWith(".wav")) {
-                            SOUND_LOCATIONS.put(fileName.replace(File.separatorChar, '/'), path.toUri().toURL());
+                            ALL_SOUND_LOCATIONS.put(fileName.replace(File.separatorChar, '/'), path.toUri().toURL());
                         }
                     } catch (Throwable e) {
                         throw new RuntimeException("Error while loading custom sound sample", e);
@@ -80,13 +82,22 @@ public class SoundMap {
         }
     }
 
-    public static Map<String, int[]> loadInstrumentSamples(final AudioFormat targetFormat) {
+    public static Map<String, byte[]> loadSoundData(final SongView<?> songView) {
         try {
-            final Map<String, int[]> soundSamples = new HashMap<>();
-            for (Map.Entry<String, URL> entry : SOUND_LOCATIONS.entrySet()) {
-                soundSamples.put(entry.getKey(), SoundSampleUtil.readSamples(entry.getValue().openStream(), targetFormat));
+            final Map<String, byte[]> soundData = new HashMap<>();
+            for (Instrument instrument : SongUtil.getUsedVanillaInstruments(songView)) {
+                final String sound = INSTRUMENT_SOUNDS.get(instrument);
+                if (sound != null && ALL_SOUND_LOCATIONS.containsKey(sound)) {
+                    soundData.put(sound, IOUtil.readFully(ALL_SOUND_LOCATIONS.get(sound).openStream()));
+                }
             }
-            return soundSamples;
+            for (NbsCustomInstrument customInstrument : SongUtil.getUsedCustomInstruments(songView)) {
+                final String fileName = customInstrument.getSoundFileName().replace(File.separatorChar, '/');
+                if (ALL_SOUND_LOCATIONS.containsKey(fileName)) {
+                    soundData.put(fileName, IOUtil.readFully(ALL_SOUND_LOCATIONS.get(fileName).openStream()));
+                }
+            }
+            return soundData;
         } catch (Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
         }

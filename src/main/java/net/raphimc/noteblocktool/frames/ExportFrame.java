@@ -35,7 +35,6 @@ import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.export.LameLibrary;
 import net.raphimc.noteblocktool.audio.export.impl.JavaxAudioExporter;
 import net.raphimc.noteblocktool.audio.export.impl.OpenALAudioExporter;
-import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
 import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
 
@@ -274,13 +273,9 @@ public class ExportFrame extends JFrame {
                 false
         );
 
-        OpenALSoundSystem openALSoundSystem = null;
         try {
             if (isMp3 && !LameLibrary.isLoaded()) {
                 throw new IllegalStateException("MP3 LAME encoder is not available");
-            }
-            if (this.soundSystem.getSelectedIndex() == 0 && isAudioFile) {
-                openALSoundSystem = OpenALSoundSystem.createCapture(8192, format);
             }
 
             Map<ListFrame.LoadedSong, JPanel> songPanels = new ConcurrentHashMap<>();
@@ -315,7 +310,7 @@ public class ExportFrame extends JFrame {
                 JPanel songPanel = songPanels.get(this.loadedSongs.get(0));
                 JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
                 try {
-                    this.exportSong(this.loadedSongs.get(0), openALSoundSystem, format, outFile, progressConsumer.apply(progressBar));
+                    this.exportSong(this.loadedSongs.get(0), format, outFile, progressConsumer.apply(progressBar));
                 } catch (InterruptedException ignored) {
                 } catch (Throwable t) {
                     t.printStackTrace();
@@ -330,20 +325,19 @@ public class ExportFrame extends JFrame {
                 }
             } else {
                 final int threadCount;
-                if (!isAudioFile || openALSoundSystem != null) threadCount = 1;
+                if (!isAudioFile || this.soundSystem.getSelectedIndex() == 0) threadCount = 1;
                 else threadCount = Math.min(this.loadedSongs.size(), Runtime.getRuntime().availableProcessors());
                 ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadCount);
                 Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
 
                 String extension = this.format.getSelectedItem().toString().split(" ")[0].toLowerCase();
-                final OpenALSoundSystem finalOpenALSoundSystem = openALSoundSystem;
                 for (ListFrame.LoadedSong song : this.loadedSongs) {
                     threadPool.submit(() -> {
                         JPanel songPanel = songPanels.get(song);
                         JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
                         try {
                             File file = new File(outFile, song.getFile().getName().substring(0, song.getFile().getName().lastIndexOf('.')) + "." + extension);
-                            this.exportSong(song, finalOpenALSoundSystem, format, file, progressConsumer.apply(progressBar));
+                            this.exportSong(song, format, file, progressConsumer.apply(progressBar));
                             uiQueue.offer(() -> {
                                 this.progressPanel.remove(songPanel);
                                 this.progressPanel.revalidate();
@@ -388,7 +382,6 @@ public class ExportFrame extends JFrame {
             t.printStackTrace();
             JOptionPane.showMessageDialog(this, "Failed to export songs:\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
-            if (openALSoundSystem != null) openALSoundSystem.close();
             SwingUtilities.invokeLater(() -> {
                 this.format.setEnabled(true);
                 this.soundSystem.setEnabled(true);
@@ -404,7 +397,7 @@ public class ExportFrame extends JFrame {
         }
     }
 
-    private void exportSong(final ListFrame.LoadedSong song, final OpenALSoundSystem openALSoundSystem, final AudioFormat format, final File file, final Consumer<Float> progressConsumer) throws InterruptedException, IOException {
+    private void exportSong(final ListFrame.LoadedSong song, final AudioFormat format, final File file, final Consumer<Float> progressConsumer) throws InterruptedException, IOException {
         if (this.format.getSelectedIndex() == 0) {
             this.writeNbsSong(song, file);
         } else {
@@ -413,9 +406,9 @@ public class ExportFrame extends JFrame {
                 SongResampler.applyNbsTempoChangers((NbsSong) song.getSong(), (SongView<NbsNote>) songView);
             }
 
-            AudioExporter exporter;
+            final AudioExporter exporter;
             if (this.soundSystem.getSelectedIndex() == 0) {
-                exporter = new OpenALAudioExporter(openALSoundSystem, songView, format, this.volume.getValue() / 100F, progressConsumer);
+                exporter = new OpenALAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
             } else if (this.soundSystem.getSelectedIndex() == 1) {
                 exporter = new JavaxAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
             } else {

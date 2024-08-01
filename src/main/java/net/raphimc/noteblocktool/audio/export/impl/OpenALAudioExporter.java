@@ -18,6 +18,7 @@
 package net.raphimc.noteblocktool.audio.export.impl;
 
 import net.raphimc.noteblocklib.model.SongView;
+import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
 
@@ -28,9 +29,9 @@ public class OpenALAudioExporter extends AudioExporter {
 
     private final OpenALSoundSystem soundSystem;
 
-    public OpenALAudioExporter(final OpenALSoundSystem soundSystem, final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
+    public OpenALAudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
         super(songView, format, masterVolume, progressConsumer);
-        this.soundSystem = soundSystem;
+        this.soundSystem = OpenALSoundSystem.createCapture(SoundMap.loadSoundData(songView), 8192, format);
     }
 
     @Override
@@ -51,7 +52,7 @@ public class OpenALAudioExporter extends AudioExporter {
 
     @Override
     protected void finish() {
-        this.soundSystem.stopSounds();
+        this.soundSystem.close();
     }
 
 }
