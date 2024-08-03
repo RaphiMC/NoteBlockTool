@@ -66,7 +66,7 @@ public class ExportFrame extends JFrame {
     private final List<ListFrame.LoadedSong> loadedSongs;
     private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "MP3 (Using LAME encoder)", "WAV", "AIF"});
     private final JLabel soundSystemLabel = new JLabel("Sound System:");
-    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (faster, better sound quality)", "Javax (normalized)"});
+    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (best sound quality, fastest)", "Javax (normalized)"});
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
     private final JLabel bitDepthLabel = new JLabel("PCM Bit Depth:");

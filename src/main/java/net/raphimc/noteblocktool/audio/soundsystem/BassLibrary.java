@@ -207,9 +207,9 @@ public interface BassLibrary extends Library {
     int BASS_STREAM_AUTOFREE = 0x40000; // automatically free the stream when it stops/ends
 
     static BassLibrary loadNative() {
+        final Map<String, Object> options = new HashMap<>();
+        options.put(Library.OPTION_STRING_ENCODING, "UTF-8");
         try {
-            final Map<String, Object> options = new HashMap<>();
-            options.put(Library.OPTION_STRING_ENCODING, "UTF-8");
             return Native.load("bass", BassLibrary.class, options);
         } catch (Throwable ignored) {
         }

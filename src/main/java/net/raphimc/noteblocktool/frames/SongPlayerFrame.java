@@ -30,10 +30,7 @@ import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
-import net.raphimc.noteblocktool.audio.soundsystem.impl.BassSoundSystem;
-import net.raphimc.noteblocktool.audio.soundsystem.impl.JavaxSoundSystem;
-import net.raphimc.noteblocktool.audio.soundsystem.impl.MultithreadedJavaxSoundSystem;
-import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
+import net.raphimc.noteblocktool.audio.soundsystem.impl.*;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
 import net.raphimc.noteblocktool.util.MonitoringSongPlayer;
@@ -88,7 +85,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private final ListFrame.LoadedSong song;
     private final MonitoringSongPlayer songPlayer;
     private final Timer updateTimer;
-    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (better sound quality)", "Un4seen BASS", "Javax (better system compatibility)", "Javax multithreaded (experimental)"});
+    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL", "Un4seen BASS", "Javax (best system compatibility)", "Javax multithreaded (experimental)", "XAudio2 (best sound quality, Windows 10+ only)"});
     private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 10240, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, 50);
     private final JButton playStopButton = new JButton("Play");
@@ -260,6 +257,8 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             currentIndex = 3;
         } else if (this.soundSystem instanceof JavaxSoundSystem) {
             currentIndex = 2;
+        } else if (this.soundSystem instanceof XAudio2SoundSystem) {
+            currentIndex = 4;
         } else if (this.soundSystem == null) {
             currentIndex = -1;
         } else {
@@ -281,6 +280,8 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
                     this.soundSystem = new JavaxSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 3) {
                     this.soundSystem = new MultithreadedJavaxSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
+                }  else if (this.soundSystemComboBox.getSelectedIndex() == 4) {
+                    this.soundSystem = new XAudio2SoundSystem(soundData, maxSounds);
                 } else {
                     throw new UnsupportedOperationException(UNAVAILABLE_MESSAGE);
                 }
