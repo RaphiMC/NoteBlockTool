@@ -124,7 +124,7 @@ public class OpenALSoundSystem extends SoundSystem {
 
         AL10.alDistanceModel(AL10.AL_NONE);
         this.checkALError("Failed to set distance model");
-        AL10.alListener3f(AL10.AL_POSITION, 0F, 0F, 0F);
+        AL10.alListener3f(AL10.AL_POSITION, 0F, 0F, 1F);
         this.checkALError("Failed to set listener position");
         AL10.alListenerfv(AL10.AL_ORIENTATION, new float[]{0F, 0F, -1F, 0F, 1F, 0F});
         this.checkALError("Failed to set listener orientation");
