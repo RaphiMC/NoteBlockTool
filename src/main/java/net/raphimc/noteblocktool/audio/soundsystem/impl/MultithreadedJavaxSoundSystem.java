@@ -31,7 +31,7 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
     private final Queue<SoundInstance> soundsToRender = new ConcurrentLinkedQueue<>();
     private final Queue<SoundInstance> soundsToMerge = new ConcurrentLinkedQueue<>();
     private final AtomicInteger syncLock = new AtomicInteger(0);
-    private final long[][] threadSamples;
+    private final int[][] threadSamples;
     private final int[][] threadOutputBuffers;
     private final int[][] threadMutationBuffers;
 
@@ -40,9 +40,9 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
 
         final int mergingThreads = Math.max(1, this.threadPool.getCorePoolSize() / 3);
         final int renderingThreads = this.threadPool.getCorePoolSize() - mergingThreads;
-        this.threadSamples = new long[mergingThreads][];
+        this.threadSamples = new int[mergingThreads][];
         for (int i = 0; i < mergingThreads; i++) {
-            this.threadSamples[i] = new long[this.samplesPerTick];
+            this.threadSamples[i] = new int[this.samplesPerTick];
         }
         this.threadOutputBuffers = new int[mergingThreads][];
         for (int i = 0; i < mergingThreads; i++) {
@@ -101,15 +101,15 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
     }
 
     @Override
-    protected long[] render() {
+    protected int[] render() {
         this.soundsToRender.addAll(this.playingSounds);
         this.syncLock.set(this.playingSounds.size());
         while (this.syncLock.get() != 0 && !Thread.currentThread().isInterrupted()) {
             // Wait for all sounds to be rendered and merged
         }
 
-        final long[] samples = new long[this.samplesPerTick];
-        for (long[] threadSamples : this.threadSamples) {
+        final int[] samples = new int[this.samplesPerTick];
+        for (int[] threadSamples : this.threadSamples) {
             for (int i = 0; i < samples.length; i++) {
                 samples[i] += threadSamples[i];
             }

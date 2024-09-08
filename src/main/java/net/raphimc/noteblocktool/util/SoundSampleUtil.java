@@ -153,9 +153,9 @@ public class SoundSampleUtil {
         return ((long) mutatedSamplesLength << 32) | ((int) (mutatedLength * pitch) * channels);
     }
 
-    public static long getMax(final long[] samples) {
-        long max = 1;
-        for (long sample : samples) max = Math.max(max, Math.abs(sample));
+    public static int getMax(final int[] samples) {
+        int max = 1;
+        for (int sample : samples) max = Math.max(max, Math.abs(sample));
         return max;
     }
 

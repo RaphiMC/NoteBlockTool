@@ -75,7 +75,7 @@ public class JavaxSoundSystem extends SoundSystem {
 
     @Override
     public synchronized void postTick() {
-        final long[] samples = this.render();
+        final int[] samples = this.render();
         if (this.dataLine.available() < samples.length * 2) {
             // In case of buffer overrun, flush the queued samples
             this.dataLine.flush();
@@ -107,8 +107,8 @@ public class JavaxSoundSystem extends SoundSystem {
         this.masterVolume = volume;
     }
 
-    protected long[] render() {
-        final long[] samples = new long[this.samplesPerTick];
+    protected int[] render() {
+        final int[] samples = new int[this.samplesPerTick];
         final int[] outputBuffer = new int[this.samplesPerTick];
         final int[] mutationBuffer = new int[this.samplesPerTick * 2];
         for (SoundInstance playingSound : this.playingSounds) {
@@ -118,9 +118,9 @@ public class JavaxSoundSystem extends SoundSystem {
         return samples;
     }
 
-    private byte[] normalize(final long[] samples) {
+    private byte[] normalize(final int[] samples) {
         final byte[] out = new byte[samples.length * 2];
-        final long max = SoundSampleUtil.getMax(samples);
+        final int max = SoundSampleUtil.getMax(samples);
         float div = Math.max(1, (float) max / Short.MAX_VALUE);
         if (this.volumeDividers == null) {
             this.volumeDividers = new float[this.volumeDividersLength];
@@ -176,7 +176,7 @@ public class JavaxSoundSystem extends SoundSystem {
             }
         }
 
-        public void write(final long[] samples, final int[] outputBuffer) {
+        public void write(final int[] samples, final int[] outputBuffer) {
             if (samples.length < outputBuffer.length) {
                 throw new IllegalArgumentException("Buffer is too small");
             }

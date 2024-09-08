@@ -21,16 +21,16 @@ import net.raphimc.noteblocktool.util.SoundSampleUtil;
 
 public class AudioBuffer {
 
-    private long[] samples;
+    private int[] samples;
     private int sampleIndex;
 
     public AudioBuffer(final int initialSize) {
-        this.samples = new long[initialSize];
+        this.samples = new int[initialSize];
     }
 
     public void pushSamples(final int[] samples) {
         if (this.sampleIndex + samples.length >= this.samples.length) {
-            final long[] newSamples = new long[this.sampleIndex + samples.length];
+            final int[] newSamples = new int[this.sampleIndex + samples.length];
             System.arraycopy(this.samples, 0, newSamples, 0, this.samples.length);
             this.samples = newSamples;
         }
@@ -65,17 +65,15 @@ public class AudioBuffer {
     public int[] normalizeInts() {
         this.normalize(Integer.MAX_VALUE);
         final int[] ints = new int[this.samples.length];
-        for (int i = 0; i < this.samples.length; i++) {
-            ints[i] = (int) this.samples[i];
-        }
+        System.arraycopy(this.samples, 0, ints, 0, this.samples.length);
         return ints;
     }
 
-    private void normalize(final long maxValue) {
-        final long max = SoundSampleUtil.getMax(this.samples);
+    private void normalize(final int maxValue) {
+        final int max = SoundSampleUtil.getMax(this.samples);
         final float factor = (float) maxValue / max;
         for (int i = 0; i < this.samples.length; i++) {
-            this.samples[i] = (long) (this.samples[i] * factor);
+            this.samples[i] = (int) (this.samples[i] * factor);
         }
     }
 
