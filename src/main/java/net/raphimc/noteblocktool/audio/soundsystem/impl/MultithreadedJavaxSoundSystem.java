@@ -102,8 +102,8 @@ public class MultithreadedJavaxSoundSystem extends JavaxSoundSystem {
 
     @Override
     protected int[] render() {
-        this.soundsToRender.addAll(this.playingSounds);
         this.syncLock.set(this.playingSounds.size());
+        this.soundsToRender.addAll(this.playingSounds);
         while (this.syncLock.get() != 0 && !Thread.currentThread().isInterrupted()) {
             // Wait for all sounds to be rendered and merged
         }
