@@ -107,7 +107,7 @@ public class XAudio2SoundSystem extends SoundSystem {
     public synchronized void preTick() {
         final XAudio2Library.XAUDIO2_VOICE_STATE.ByReference voiceState = new XAudio2Library.XAUDIO2_VOICE_STATE.ByReference();
         this.playingVoices.removeIf(voice -> {
-            voice.GetState(voiceState, 0);
+            voice.GetState(voiceState, XAudio2Library.XAUDIO2_VOICE_NOSAMPLESPLAYED);
             if (voiceState.BuffersQueued == 0) {
                 voice.DestroyVoice();
                 return true;

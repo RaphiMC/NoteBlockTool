@@ -39,6 +39,7 @@ public interface XAudio2Library extends Library {
     int WAVE_FORMAT_PCM = 1;
     int XAUDIO2_END_OF_STREAM = 0x40;
     int XAUDIO2_COMMIT_NOW = 0;
+    int XAUDIO2_VOICE_NOSAMPLESPLAYED = 0x100;
 
     int SPEAKER_FRONT_LEFT = 0x00000001;
     int SPEAKER_FRONT_RIGHT = 0x00000002;

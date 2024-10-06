@@ -280,7 +280,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
                     this.soundSystem = new JavaxSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 3) {
                     this.soundSystem = new MultithreadedJavaxSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
-                }  else if (this.soundSystemComboBox.getSelectedIndex() == 4) {
+                } else if (this.soundSystemComboBox.getSelectedIndex() == 4) {
                     this.soundSystem = new XAudio2SoundSystem(soundData, maxSounds);
                 } else {
                     throw new UnsupportedOperationException(UNAVAILABLE_MESSAGE);
