@@ -17,11 +17,15 @@
  */
 package net.raphimc.noteblocktool.audio.export.impl;
 
+import net.raphimc.audiomixer.AudioMixer;
+import net.raphimc.audiomixer.sound.source.MonoSound;
+import net.raphimc.audiomixer.util.AudioFormats;
+import net.raphimc.audiomixer.util.SoundSampleUtil;
+import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocktool.audio.SoundMap;
-import net.raphimc.noteblocktool.audio.export.AudioBuffer;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
-import net.raphimc.noteblocktool.util.SoundSampleUtil;
+import net.raphimc.noteblocktool.util.SoundFileUtil;
 
 import javax.sound.sampled.AudioFormat;
 import java.io.ByteArrayInputStream;
@@ -29,21 +33,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class JavaxAudioExporter extends AudioExporter {
+public class AudioMixerAudioExporter extends AudioExporter {
 
     private final Map<String, int[]> sounds;
-    private final AudioBuffer merger;
+    private final AudioMixer audioMixer;
 
-    public JavaxAudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
+    public AudioMixerAudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
         super(songView, format, masterVolume, progressConsumer);
         try {
             this.sounds = new HashMap<>();
             for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(songView).entrySet()) {
-                this.sounds.put(entry.getKey(), SoundSampleUtil.readSamples(new ByteArrayInputStream(entry.getValue()), format));
+                this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), AudioFormats.withChannels(format, 1)));
             }
-            this.merger = new AudioBuffer(this.samplesPerTick * format.getChannels() * songView.getLength());
+            this.audioMixer = new AudioMixer(format, 8192);
         } catch (Throwable e) {
-            throw new RuntimeException("Failed to initialize javax audio exporter", e);
+            throw new RuntimeException("Failed to initialize AudioMixer audio exporter", e);
         }
     }
 
@@ -51,35 +55,17 @@ public class JavaxAudioExporter extends AudioExporter {
     protected void processSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        this.merger.pushSamples(SoundSampleUtil.mutate(this.format, this.sounds.get(sound), pitch, volume, panning));
+        this.audioMixer.playSound(new MonoSound(this.sounds.get(sound), pitch, volume, panning));
     }
 
     @Override
     protected void postTick() {
-        this.merger.advanceIndex(this.samplesPerTick * this.format.getChannels());
+        this.samples.add(this.audioMixer.mix(this.samplesPerTick * this.format.getChannels()));
     }
 
     @Override
     protected void finish() {
-        switch (this.format.getSampleSizeInBits()) {
-            case 8:
-                for (byte b : this.merger.normalizeBytes()) {
-                    this.sampleOutputStream.writeSample(b);
-                }
-                break;
-            case 16:
-                for (short s : this.merger.normalizeShorts()) {
-                    this.sampleOutputStream.writeSample(s);
-                }
-                break;
-            case 32:
-                for (int i : this.merger.normalizeInts()) {
-                    this.sampleOutputStream.writeSample(i);
-                }
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported sample size: " + this.format.getSampleSizeInBits());
-        }
+        SoundSampleUtil.normalize(this.samples.getArrayDirect(), (int) Math.pow(2, this.format.getSampleSizeInBits() - 1) - 1);
     }
 
 }

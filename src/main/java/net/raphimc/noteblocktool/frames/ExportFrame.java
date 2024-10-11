@@ -21,6 +21,7 @@ import com.sun.jna.Pointer;
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
+import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.format.mcsp.McSpSong;
@@ -33,7 +34,7 @@ import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.export.LameLibrary;
-import net.raphimc.noteblocktool.audio.export.impl.JavaxAudioExporter;
+import net.raphimc.noteblocktool.audio.export.impl.AudioMixerAudioExporter;
 import net.raphimc.noteblocktool.audio.export.impl.OpenALAudioExporter;
 import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
@@ -66,7 +67,7 @@ public class ExportFrame extends JFrame {
     private final List<ListFrame.LoadedSong> loadedSongs;
     private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "MP3 (Using LAME encoder)", "WAV", "AIF"});
     private final JLabel soundSystemLabel = new JLabel("Sound System:");
-    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (best sound quality, fastest)", "Javax (normalized)"});
+    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (best sound quality, fastest)", "AudioMixer (normalized)"});
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
     private final JLabel bitDepthLabel = new JLabel("PCM Bit Depth:");
@@ -410,13 +411,13 @@ public class ExportFrame extends JFrame {
             if (this.soundSystem.getSelectedIndex() == 0) {
                 exporter = new OpenALAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
             } else if (this.soundSystem.getSelectedIndex() == 1) {
-                exporter = new JavaxAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
+                exporter = new AudioMixerAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
             } else {
                 throw new UnsupportedOperationException("Unsupported sound system: " + this.soundSystem.getSelectedIndex());
             }
 
             exporter.render();
-            final byte[] samples = exporter.getSamples();
+            final byte[] samples = SoundIO.writeSamples(exporter.getSamples(), format);
 
             if (this.format.getSelectedIndex() == 2 || this.format.getSelectedIndex() == 3) {
                 progressConsumer.accept(10F);

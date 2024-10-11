@@ -17,6 +17,7 @@
  */
 package net.raphimc.noteblocktool.audio.export;
 
+import net.raphimc.audiomixer.util.GrowableArray;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.model.Note;
 import net.raphimc.noteblocklib.model.SongView;
@@ -24,7 +25,6 @@ import net.raphimc.noteblocklib.player.FullNoteConsumer;
 import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.audio.SoundMap;
-import net.raphimc.noteblocktool.util.SampleOutputStream;
 
 import javax.sound.sampled.AudioFormat;
 import java.io.File;
@@ -37,7 +37,7 @@ public abstract class AudioExporter implements FullNoteConsumer {
     protected final AudioFormat format;
     private final float masterVolume;
     private final Consumer<Float> progressConsumer;
-    protected SampleOutputStream sampleOutputStream;
+    protected GrowableArray samples;
     private final long noteCount;
     protected final int samplesPerTick;
     private int processedNotes;
@@ -47,10 +47,10 @@ public abstract class AudioExporter implements FullNoteConsumer {
         this.format = format;
         this.progressConsumer = progressConsumer;
         this.masterVolume = masterVolume;
-        this.sampleOutputStream = new SampleOutputStream(format);
 
         this.noteCount = SongUtil.getNoteCount(songView);
         this.samplesPerTick = (int) (format.getSampleRate() / songView.getSpeed());
+        this.samples = new GrowableArray(this.samplesPerTick * format.getChannels() * (songView.getLength() + Math.round(this.songView.getSpeed() * 3)));
     }
 
     public void render() throws InterruptedException {
@@ -74,8 +74,8 @@ public abstract class AudioExporter implements FullNoteConsumer {
         this.finish();
     }
 
-    public byte[] getSamples() {
-        return this.sampleOutputStream.getBytes();
+    public int[] getSamples() {
+        return this.samples.getArray();
     }
 
     @Override

@@ -17,10 +17,10 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
+import net.raphimc.audiomixer.util.GrowableArray;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.IOUtil;
-import net.raphimc.noteblocktool.util.SampleOutputStream;
-import net.raphimc.noteblocktool.util.SoundSampleUtil;
+import net.raphimc.noteblocktool.util.SoundFileUtil;
 import org.lwjgl.openal.*;
 import org.lwjgl.system.MemoryUtil;
 
@@ -187,7 +187,7 @@ public class OpenALSoundSystem extends SoundSystem {
         });
     }
 
-    public synchronized void renderSamples(final SampleOutputStream outputStream, final int sampleCount) {
+    public synchronized void renderSamples(final GrowableArray samples, final int sampleCount) {
         final int samplesLength = sampleCount * this.captureAudioFormat.getChannels();
         if (samplesLength * this.captureAudioFormat.getSampleSizeInBits() / 8 > this.captureBuffer.capacity()) {
             throw new IllegalArgumentException("Sample count too high");
@@ -196,15 +196,15 @@ public class OpenALSoundSystem extends SoundSystem {
         this.checkALError("Failed to render samples");
         if (this.captureAudioFormat.getSampleSizeInBits() == 8) {
             for (int i = 0; i < samplesLength; i++) {
-                outputStream.writeSample(this.captureBuffer.get(i));
+                samples.add(this.captureBuffer.get(i));
             }
         } else if (this.captureAudioFormat.getSampleSizeInBits() == 16) {
             for (int i = 0; i < samplesLength; i++) {
-                outputStream.writeSample(this.captureBuffer.getShort(i * 2));
+                samples.add(this.captureBuffer.getShort(i * 2));
             }
         } else if (this.captureAudioFormat.getSampleSizeInBits() == 32) {
             for (int i = 0; i < samplesLength; i++) {
-                outputStream.writeSample(this.captureBuffer.getInt(i * 4));
+                samples.add(this.captureBuffer.getInt(i * 4));
             }
         }
     }
@@ -263,7 +263,7 @@ public class OpenALSoundSystem extends SoundSystem {
 
     private int loadAudioFile(final byte[] data) {
         try {
-            final AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(new ByteArrayInputStream(data));
+            final AudioInputStream audioInputStream = SoundFileUtil.readAudioFile(new ByteArrayInputStream(data));
             final AudioFormat audioFormat = audioInputStream.getFormat();
             final byte[] audioBytes = IOUtil.readFully(audioInputStream);
 

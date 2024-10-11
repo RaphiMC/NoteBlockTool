@@ -23,7 +23,7 @@ import com.sun.jna.ptr.PointerByReference;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.audio.soundsystem.XAudio2Library;
 import net.raphimc.noteblocktool.util.IOUtil;
-import net.raphimc.noteblocktool.util.SoundSampleUtil;
+import net.raphimc.noteblocktool.util.SoundFileUtil;
 import net.raphimc.noteblocktool.util.jna.Ole32;
 
 import javax.sound.sampled.AudioFormat;
@@ -154,7 +154,7 @@ public class XAudio2SoundSystem extends SoundSystem {
 
     private SoundBuffer loadAudioFile(final byte[] data) {
         try {
-            final AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(new ByteArrayInputStream(data));
+            final AudioInputStream audioInputStream = SoundFileUtil.readAudioFile(new ByteArrayInputStream(data));
             final AudioFormat audioFormat = audioInputStream.getFormat();
             final byte[] audioBytes = IOUtil.readFully(audioInputStream);
 

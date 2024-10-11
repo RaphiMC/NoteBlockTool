@@ -21,7 +21,7 @@ import com.sun.jna.ptr.FloatByReference;
 import net.raphimc.noteblocktool.audio.soundsystem.BassLibrary;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.IOUtil;
-import net.raphimc.noteblocktool.util.SoundSampleUtil;
+import net.raphimc.noteblocktool.util.SoundFileUtil;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -170,7 +170,7 @@ public class BassSoundSystem extends SoundSystem {
 
     private int loadAudioFile(final byte[] data) {
         try {
-            AudioInputStream audioInputStream = SoundSampleUtil.readAudioFile(new ByteArrayInputStream(data));
+            AudioInputStream audioInputStream = SoundFileUtil.readAudioFile(new ByteArrayInputStream(data));
             final AudioFormat audioFormat = audioInputStream.getFormat();
             final AudioFormat targetFormat = new AudioFormat(audioFormat.getSampleRate(), 16, audioFormat.getChannels(), true, false);
             if (!audioFormat.matches(targetFormat)) audioInputStream = AudioSystem.getAudioInputStream(targetFormat, audioInputStream);

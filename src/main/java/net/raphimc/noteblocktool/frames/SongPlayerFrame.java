@@ -85,8 +85,8 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private final ListFrame.LoadedSong song;
     private final MonitoringSongPlayer songPlayer;
     private final Timer updateTimer;
-    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (best sound quality)", "Un4seen BASS", "Javax (best system compatibility)", "Javax multithreaded (experimental)", "XAudio2 (Windows 10+ only)"});
-    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 10240, 64));
+    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (best sound quality)", "Un4seen BASS", "AudioMixer (best system compatibility)", "AudioMixer multithreaded (experimental)", "XAudio2 (Windows 10+ only)"});
+    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 40960, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, 50);
     private final JButton playStopButton = new JButton("Play");
     private final JButton pauseResumeButton = new JButton("Pause");
@@ -253,9 +253,9 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             currentIndex = 0;
         } else if (this.soundSystem instanceof BassSoundSystem) {
             currentIndex = 1;
-        } else if (this.soundSystem instanceof MultithreadedJavaxSoundSystem) {
+        } else if (this.soundSystem instanceof MultithreadedAudioMixerSoundSystem) {
             currentIndex = 3;
-        } else if (this.soundSystem instanceof JavaxSoundSystem) {
+        } else if (this.soundSystem instanceof AudioMixerSoundSystem) {
             currentIndex = 2;
         } else if (this.soundSystem instanceof XAudio2SoundSystem) {
             currentIndex = 4;
@@ -277,9 +277,9 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 1) {
                     this.soundSystem = BassSoundSystem.createPlayback(soundData, maxSounds);
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 2) {
-                    this.soundSystem = new JavaxSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
+                    this.soundSystem = new AudioMixerSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 3) {
-                    this.soundSystem = new MultithreadedJavaxSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
+                    this.soundSystem = new MultithreadedAudioMixerSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 4) {
                     this.soundSystem = new XAudio2SoundSystem(soundData, maxSounds);
                 } else {
