@@ -35,8 +35,8 @@ import java.util.function.Consumer;
 
 public class AudioMixerAudioExporter extends AudioExporter {
 
-    private final Map<String, int[]> sounds;
-    private final AudioMixer audioMixer;
+    protected final Map<String, int[]> sounds;
+    protected final AudioMixer audioMixer;
 
     public AudioMixerAudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
         super(songView, format, masterVolume, progressConsumer);

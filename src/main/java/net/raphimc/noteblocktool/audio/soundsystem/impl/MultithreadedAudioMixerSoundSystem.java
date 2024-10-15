@@ -18,10 +18,9 @@
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import net.raphimc.audiomixer.AudioMixer;
-import net.raphimc.audiomixer.sound.Sound;
 import net.raphimc.audiomixer.sound.source.MonoSound;
+import net.raphimc.audiomixer.sound.source.StaticStereoSound;
 
-import javax.sound.sampled.AudioFormat;
 import java.util.Map;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -76,7 +75,7 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
             throw new RuntimeException(e);
         }
         for (int[] threadSamples : this.threadSamples) {
-            this.audioMixer.playSound(new StaticSound(threadSamples));
+            this.audioMixer.playSound(new StaticStereoSound(threadSamples));
         }
         super.postTick();
         if (this.audioMixer.getActiveSounds() != 0) {
@@ -97,24 +96,6 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
             mixedSounds += audioMixer.getMixedSounds();
         }
         return "Sounds: " + mixedSounds + " / " + this.maxSounds + ", " + this.threadPool.getActiveCount() + " threads";
-    }
-
-    private record StaticSound(int[] samples) implements Sound {
-
-        @Override
-        public void render(final AudioFormat audioFormat, final int[] renderedSamples, final int renderedSamplesLength) {
-            if (renderedSamplesLength != renderedSamples.length) {
-                throw new IllegalArgumentException("Rendered samples length must match the length of the rendered samples array");
-            }
-
-            System.arraycopy(this.samples, 0, renderedSamples, 0, renderedSamplesLength);
-        }
-
-        @Override
-        public boolean isFinished() {
-            return true;
-        }
-
     }
 
 }
