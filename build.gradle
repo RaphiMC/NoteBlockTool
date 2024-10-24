@@ -29,7 +29,7 @@ repositories {
 
 dependencies {
     include "net.raphimc:NoteBlockLib:2.1.3"
-    include "net.raphimc:audio-mixer:1.0.1-SNAPSHOT"
+    include "net.raphimc:audio-mixer:1.1.0-SNAPSHOT"
     include "com.formdev:flatlaf:3.5.2"
     include "net.lenni0451.commons:swing:1.6.1"
     include "org.lwjgl:lwjgl:3.3.4"
