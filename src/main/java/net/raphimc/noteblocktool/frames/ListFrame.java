@@ -86,7 +86,7 @@ public class ListFrame extends JFrame {
         this.table.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_DELETE) ListFrame.this.removeButton.doClick();
+                if (e.getKeyCode() == KeyEvent.VK_DELETE) ListFrame.this.removeButton.doClick(0);
             }
         });
         this.addContextMenu();
@@ -190,17 +190,17 @@ public class ListFrame extends JFrame {
         });
 
         JMenuItem contextMenuRemove = new JMenuItem("Remove");
-        contextMenuRemove.addActionListener(e -> this.removeButton.doClick());
+        contextMenuRemove.addActionListener(e -> this.removeButton.doClick(0));
         contextMenu.add(contextMenuRemove);
         JMenuItem contextMenuEdit = new JMenuItem("Edit");
-        contextMenuEdit.addActionListener(e -> this.editButton.doClick());
+        contextMenuEdit.addActionListener(e -> this.editButton.doClick(0));
         contextMenu.add(contextMenuEdit);
         JMenuItem contextMenuPlay = new JMenuItem("Play");
-        contextMenuPlay.addActionListener(e -> this.playButton.doClick());
+        contextMenuPlay.addActionListener(e -> this.playButton.doClick(0));
         contextMenu.add(contextMenuPlay);
         this.table.getSelectionModel().addListSelectionListener(e -> contextMenuPlay.setEnabled(this.table.getSelectedRows().length == 1));
         JMenuItem contextMenuExport = new JMenuItem("Export");
-        contextMenuExport.addActionListener(e -> this.exportButton.doClick());
+        contextMenuExport.addActionListener(e -> this.exportButton.doClick(0));
         contextMenu.add(contextMenuExport);
         this.table.setComponentPopupMenu(contextMenu);
     }

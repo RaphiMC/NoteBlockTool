@@ -72,7 +72,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             instance.soundSystemComboBox.setSelectedIndex(lastSoundSystem);
             instance.maxSoundsSpinner.setValue(lastMaxSounds);
             instance.volumeSlider.setValue(lastVolume);
-            instance.playStopButton.doClick();
+            instance.playStopButton.doClick(0);
             instance.setVisible(true);
         });
     }
