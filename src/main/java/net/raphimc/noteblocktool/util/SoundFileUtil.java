@@ -17,6 +17,7 @@
  */
 package net.raphimc.noteblocktool.util;
 
+import net.raphimc.noteblocktool.audio.OggAudioInputStream;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.stb.STBVorbis;
 import org.lwjgl.system.MemoryStack;
@@ -46,27 +47,33 @@ public class SoundFileUtil {
         bis.reset();
         if (Arrays.equals(magic, OGG_MAGIC)) {
             final byte[] data = IOUtil.readFully(bis);
-            final ByteBuffer dataBuffer = (ByteBuffer) MemoryUtil.memAlloc(data.length).put(data).flip();
-            try (MemoryStack memoryStack = MemoryStack.stackPush()) {
-                final IntBuffer channels = memoryStack.callocInt(1);
-                final IntBuffer sampleRate = memoryStack.callocInt(1);
-                final PointerBuffer samples = memoryStack.callocPointer(1);
+            try {
+                final ByteBuffer dataBuffer = MemoryUtil.memAlloc(data.length).put(data).flip();
+                try (MemoryStack memoryStack = MemoryStack.stackPush()) {
+                    final IntBuffer channels = memoryStack.callocInt(1);
+                    final IntBuffer sampleRate = memoryStack.callocInt(1);
+                    final PointerBuffer samples = memoryStack.callocPointer(1);
 
-                final int samplesCount = STBVorbis.stb_vorbis_decode_memory(dataBuffer, channels, sampleRate, samples);
-                if (samplesCount == -1) {
+                    final int samplesCount = STBVorbis.stb_vorbis_decode_memory(dataBuffer, channels, sampleRate, samples);
+                    if (samplesCount == -1) {
+                        MemoryUtil.memFree(dataBuffer);
+                        throw new RuntimeException("Failed to decode ogg file");
+                    }
+
+                    final ByteBuffer samplesBuffer = samples.getByteBuffer(samplesCount * 2);
+                    final byte[] samplesArray = new byte[samplesCount * 2];
+                    samplesBuffer.get(samplesArray);
+
                     MemoryUtil.memFree(dataBuffer);
-                    throw new RuntimeException("Failed to decode ogg file");
+                    MemoryUtil.memFree(samplesBuffer);
+
+                    final AudioFormat audioFormat = new AudioFormat(sampleRate.get(), 16, channels.get(), true, false);
+                    return new AudioInputStream(new ByteArrayInputStream(samplesArray), audioFormat, samplesArray.length);
                 }
-
-                final ByteBuffer samplesBuffer = samples.getByteBuffer(samplesCount * 2);
-                final byte[] samplesArray = new byte[samplesCount * 2];
-                samplesBuffer.get(samplesArray);
-
-                MemoryUtil.memFree(dataBuffer);
-                MemoryUtil.memFree(samplesBuffer);
-
-                final AudioFormat audioFormat = new AudioFormat(sampleRate.get(), 16, channels.get(), true, false);
-                return new AudioInputStream(new ByteArrayInputStream(samplesArray), audioFormat, samplesArray.length);
+            } catch (Throwable e) { // Fallback if natives aren't available or if STB Vorbis fails to parse the file
+                System.err.println("Failed to decode ogg file using STB Vorbis, falling back to JOrbis");
+                e.printStackTrace();
+                return OggAudioInputStream.create(new ByteArrayInputStream(data));
             }
         } else {
             return AudioSystem.getAudioInputStream(bis);

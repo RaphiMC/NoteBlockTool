@@ -25,10 +25,8 @@ import java.io.InputStream;
 public class IOUtil {
 
     public static byte[] readFully(final InputStream inputStream) throws IOException {
-        try {
+        try (inputStream) {
             return ByteStreams.toByteArray(inputStream);
-        } finally {
-            inputStream.close();
         }
     }
 
