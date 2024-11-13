@@ -18,7 +18,8 @@
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import net.raphimc.audiomixer.SourceDataLineAudioMixer;
-import net.raphimc.audiomixer.sound.source.MonoSound;
+import net.raphimc.audiomixer.pcmsource.impl.MonoIntPcmSource;
+import net.raphimc.audiomixer.sound.source.pcm.OptimizedMonoSound;
 import net.raphimc.audiomixer.util.AudioFormats;
 import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
@@ -46,7 +47,8 @@ public class AudioMixerSoundSystem extends SoundSystem {
             for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
                 this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), AudioFormats.withChannels(FORMAT, 1)));
             }
-            this.audioMixer = new SourceDataLineAudioMixer(AudioSystem.getSourceDataLine(FORMAT), maxSounds, (int) (FORMAT.getSampleRate() / playbackSpeed) * FORMAT.getChannels());
+            this.audioMixer = new SourceDataLineAudioMixer(AudioSystem.getSourceDataLine(FORMAT), (int) Math.ceil(FORMAT.getSampleRate() / playbackSpeed) * FORMAT.getChannels());
+            this.audioMixer.getMasterMixSound().setMaxSounds(maxSounds);
         } catch (Throwable e) {
             throw new RuntimeException("Failed to initialize AudioMixer sound system", e);
         }
@@ -56,7 +58,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
     public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        this.audioMixer.playSound(new MonoSound(this.sounds.get(sound), pitch, volume, panning));
+        this.audioMixer.playSound(new OptimizedMonoSound(new MonoIntPcmSource(this.sounds.get(sound)), pitch, volume, panning));
     }
 
     @Override
@@ -80,7 +82,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
 
     @Override
     public synchronized String getStatusLine() {
-        return "Sounds: " + this.audioMixer.getMixedSounds() + " / " + this.maxSounds;
+        return "Sounds: " + this.audioMixer.getMasterMixSound().getMixedSounds() + " / " + this.maxSounds;
     }
 
     @Override

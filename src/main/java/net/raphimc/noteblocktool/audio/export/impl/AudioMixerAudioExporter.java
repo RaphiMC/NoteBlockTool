@@ -18,7 +18,8 @@
 package net.raphimc.noteblocktool.audio.export.impl;
 
 import net.raphimc.audiomixer.AudioMixer;
-import net.raphimc.audiomixer.sound.source.MonoSound;
+import net.raphimc.audiomixer.pcmsource.impl.MonoIntPcmSource;
+import net.raphimc.audiomixer.sound.source.pcm.OptimizedMonoSound;
 import net.raphimc.audiomixer.util.AudioFormats;
 import net.raphimc.audiomixer.util.SoundSampleUtil;
 import net.raphimc.audiomixer.util.io.SoundIO;
@@ -45,7 +46,8 @@ public class AudioMixerAudioExporter extends AudioExporter {
             for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(songView).entrySet()) {
                 this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), AudioFormats.withChannels(format, 1)));
             }
-            this.audioMixer = new AudioMixer(format, 8192);
+            this.audioMixer = new AudioMixer(format);
+            this.audioMixer.getMasterMixSound().setMaxSounds(8192);
         } catch (Throwable e) {
             throw new RuntimeException("Failed to initialize AudioMixer audio exporter", e);
         }
@@ -55,7 +57,7 @@ public class AudioMixerAudioExporter extends AudioExporter {
     protected void processSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        this.audioMixer.playSound(new MonoSound(this.sounds.get(sound), pitch, volume, panning));
+        this.audioMixer.playSound(new OptimizedMonoSound(new MonoIntPcmSource(this.sounds.get(sound)), pitch, volume, panning));
     }
 
     @Override

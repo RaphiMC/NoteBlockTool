@@ -18,8 +18,10 @@
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import net.raphimc.audiomixer.AudioMixer;
-import net.raphimc.audiomixer.sound.source.MonoSound;
-import net.raphimc.audiomixer.sound.source.StaticStereoSound;
+import net.raphimc.audiomixer.pcmsource.impl.MonoIntPcmSource;
+import net.raphimc.audiomixer.pcmsource.impl.StereoIntPcmSource;
+import net.raphimc.audiomixer.sound.source.pcm.OptimizedMonoSound;
+import net.raphimc.audiomixer.sound.source.pcm.StereoSound;
 
 import java.util.Map;
 import java.util.concurrent.BrokenBarrierException;
@@ -39,9 +41,10 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
     public MultithreadedAudioMixerSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final float playbackSpeed) {
         super(soundData, maxSounds, playbackSpeed);
 
-        final int mixSampleCount = (int) (this.audioMixer.getAudioFormat().getSampleRate() / playbackSpeed) * this.audioMixer.getAudioFormat().getChannels();
+        final int mixSampleCount = (int) Math.ceil(this.audioMixer.getAudioFormat().getSampleRate() / playbackSpeed) * this.audioMixer.getAudioFormat().getChannels();
         for (int i = 0; i < this.audioMixers.length; i++) {
-            this.audioMixers[i] = new AudioMixer(this.audioMixer.getAudioFormat(), maxSounds / this.audioMixers.length);
+            this.audioMixers[i] = new AudioMixer(this.audioMixer.getAudioFormat());
+            this.audioMixers[i].getMasterMixSound().setMaxSounds(maxSounds / this.audioMixers.length);
         }
         for (int i = 0; i < this.threadPool.getCorePoolSize(); i++) {
             final int mixerIndex = i;
@@ -62,7 +65,7 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
     public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        this.audioMixers[this.currentMixer].playSound(new MonoSound(this.sounds.get(sound), pitch, volume, panning));
+        this.audioMixers[this.currentMixer].playSound(new OptimizedMonoSound(new MonoIntPcmSource(this.sounds.get(sound)), pitch, volume, panning));
         this.currentMixer = (this.currentMixer + 1) % this.audioMixers.length;
     }
 
@@ -75,10 +78,10 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
             throw new RuntimeException(e);
         }
         for (int[] threadSamples : this.threadSamples) {
-            this.audioMixer.playSound(new StaticStereoSound(threadSamples));
+            this.audioMixer.playSound(new StereoSound(new StereoIntPcmSource(threadSamples)));
         }
         super.postTick();
-        if (this.audioMixer.getActiveSounds() != 0) {
+        if (this.audioMixer.getMasterMixSound().getActiveSounds() != 0) {
             throw new IllegalStateException("Mixer still has active sounds after mixing");
         }
     }
@@ -93,7 +96,7 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
     public synchronized String getStatusLine() {
         int mixedSounds = 0;
         for (AudioMixer audioMixer : this.audioMixers) {
-            mixedSounds += audioMixer.getMixedSounds();
+            mixedSounds += audioMixer.getMasterMixSound().getMixedSounds();
         }
         return "Sounds: " + mixedSounds + " / " + this.maxSounds + ", " + this.threadPool.getActiveCount() + " threads";
     }

@@ -49,7 +49,7 @@ public abstract class AudioExporter implements FullNoteConsumer {
         this.masterVolume = masterVolume;
 
         this.noteCount = SongUtil.getNoteCount(songView);
-        this.samplesPerTick = (int) (format.getSampleRate() / songView.getSpeed());
+        this.samplesPerTick = (int) Math.ceil(format.getSampleRate() / songView.getSpeed());
         this.samples = new GrowableArray(this.samplesPerTick * format.getChannels() * (songView.getLength() + Math.round(this.songView.getSpeed() * 3)));
     }
 
