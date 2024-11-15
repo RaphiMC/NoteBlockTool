@@ -35,14 +35,14 @@ import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
 import net.raphimc.noteblocktool.util.MonitoringSongPlayer;
 
+import javax.swing.Timer;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.text.DecimalFormat;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullNoteConsumer {
 
@@ -117,7 +117,22 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
         if (this.song.getSong() instanceof NbsSong) {
             SongResampler.applyNbsTempoChangers(((NbsSong) this.song.getSong()), (SongView<NbsNote>) view);
         }
+        applyLagSimulation(view);
+
         return view;
+    }
+
+    public static <N extends Note> void applyLagSimulation(final SongView<N> songView) {
+        SongResampler.changeTickSpeed(songView, 1000F);
+        final Random random = new Random();
+
+        final Map<Integer, java.util.List<N>> newNotes = new TreeMap<>();
+        for (Map.Entry<Integer, java.util.List<N>> entry : songView.getNotes().entrySet()) {
+            newNotes.computeIfAbsent(entry.getKey() + random.nextInt(-5, 6), k -> new ArrayList<>()).addAll(entry.getValue());
+        }
+
+        songView.setNotes(newNotes);
+        songView.recalculateLength();
     }
 
     private void initComponents() {

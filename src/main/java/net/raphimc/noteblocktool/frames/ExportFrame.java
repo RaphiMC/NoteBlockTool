@@ -406,6 +406,7 @@ public class ExportFrame extends JFrame {
             if (song.getSong() instanceof NbsSong) {
                 SongResampler.applyNbsTempoChangers((NbsSong) song.getSong(), (SongView<NbsNote>) songView);
             }
+            SongPlayerFrame.applyLagSimulation(songView);
 
             final AudioExporter exporter;
             if (this.soundSystem.getSelectedIndex() == 0) {
