@@ -23,8 +23,8 @@ import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
-import net.raphimc.noteblocktool.util.jna.COMInvoker;
 import net.raphimc.noteblocktool.util.jna.COMObject;
+import net.raphimc.noteblocktool.util.jna.VTableHandler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -84,23 +84,23 @@ public interface XAudio2Library extends Library {
         return INSTANCE != null;
     }
 
-    long XAudio2Create(final PointerByReference ppXAudio2, final int Flags, final int XAudio2Processor);
+    int XAudio2Create(final PointerByReference ppXAudio2, final int Flags, final int XAudio2Processor);
 
     class XAudio2 extends COMObject {
 
         public XAudio2() {
         }
 
-        public XAudio2(final Pointer pvInstance) {
-            super(pvInstance);
+        public XAudio2(final Pointer p) {
+            super(p);
         }
 
-        public long CreateSourceVoice(final PointerByReference ppSourceVoice, final WAVEFORMATEX.ByReference pSourceFormat, final int Flags, final float MaxFrequencyRatio, final Pointer pCallback, final Pointer pSendList, final Pointer pEffectChain) {
-            return this.getVtableFunction(5).invokeLong(new Object[]{this.getPointer(), ppSourceVoice, pSourceFormat, Flags, MaxFrequencyRatio, pCallback, pSendList, pEffectChain});
+        public int CreateSourceVoice(final PointerByReference ppSourceVoice, final WAVEFORMATEX.ByReference pSourceFormat, final int Flags, final float MaxFrequencyRatio, final Pointer pCallback, final Pointer pSendList, final Pointer pEffectChain) {
+            return this.getVtableFunction(5).invokeInt(new Object[]{this.getPointer(), ppSourceVoice, pSourceFormat, Flags, MaxFrequencyRatio, pCallback, pSendList, pEffectChain});
         }
 
-        public long CreateMasteringVoice(final PointerByReference ppMasteringVoice, final int InputChannels, final int InputSampleRate, final int Flags, final String szDeviceId, final Pointer pEffectChain, final int StreamCategory) {
-            return this.getVtableFunction(7).invokeLong(new Object[]{this.getPointer(), ppMasteringVoice, InputChannels, InputSampleRate, Flags, szDeviceId, pEffectChain, StreamCategory});
+        public int CreateMasteringVoice(final PointerByReference ppMasteringVoice, final int InputChannels, final int InputSampleRate, final int Flags, final String szDeviceId, final Pointer pEffectChain, final int StreamCategory) {
+            return this.getVtableFunction(7).invokeInt(new Object[]{this.getPointer(), ppMasteringVoice, InputChannels, InputSampleRate, Flags, szDeviceId, pEffectChain, StreamCategory});
         }
 
         public void GetPerformanceData(final XAUDIO2_PERFORMANCE_DATA.ByReference pPerfData) {
@@ -109,25 +109,25 @@ public interface XAudio2Library extends Library {
 
     }
 
-    class XAudio2Voice extends COMInvoker {
+    class XAudio2Voice extends VTableHandler {
 
         public XAudio2Voice() {
         }
 
-        public XAudio2Voice(final Pointer pvInstance) {
-            super(pvInstance);
+        public XAudio2Voice(final Pointer p) {
+            super(p);
         }
 
         public void GetVoiceDetails(final XAUDIO2_VOICE_DETAILS.ByReference pVoiceDetails) {
             this.getVtableFunction(0).invokeVoid(new Object[]{this.getPointer(), pVoiceDetails});
         }
 
-        public long SetVolume(final float Volume, final int OperationSet) {
-            return this.getVtableFunction(12).invokeLong(new Object[]{this.getPointer(), Volume, OperationSet});
+        public int SetVolume(final float Volume, final int OperationSet) {
+            return this.getVtableFunction(12).invokeInt(new Object[]{this.getPointer(), Volume, OperationSet});
         }
 
-        public long SetOutputMatrix(final XAudio2Voice pDestinationVoice, final int SourceChannels, final int DestinationChannels, final float[] pLevelMatrix, final int OperationSet) {
-            return this.getVtableFunction(16).invokeLong(new Object[]{this.getPointer(), pDestinationVoice.getPointer(), SourceChannels, DestinationChannels, pLevelMatrix, OperationSet});
+        public int SetOutputMatrix(final XAudio2Voice pDestinationVoice, final int SourceChannels, final int DestinationChannels, final float[] pLevelMatrix, final int OperationSet) {
+            return this.getVtableFunction(16).invokeInt(new Object[]{this.getPointer(), pDestinationVoice.getPointer(), SourceChannels, DestinationChannels, pLevelMatrix, OperationSet});
         }
 
         public void DestroyVoice() {
@@ -141,12 +141,12 @@ public interface XAudio2Library extends Library {
         public XAudio2MasteringVoice() {
         }
 
-        public XAudio2MasteringVoice(final Pointer pvInstance) {
-            super(pvInstance);
+        public XAudio2MasteringVoice(final Pointer p) {
+            super(p);
         }
 
-        public long GetChannelMask(final IntByReference pChannelMask) {
-            return this.getVtableFunction(19).invokeLong(new Object[]{this.getPointer(), pChannelMask});
+        public int GetChannelMask(final IntByReference pChannelMask) {
+            return this.getVtableFunction(19).invokeInt(new Object[]{this.getPointer(), pChannelMask});
         }
 
     }
@@ -156,36 +156,36 @@ public interface XAudio2Library extends Library {
         public XAudio2SourceVoice() {
         }
 
-        public XAudio2SourceVoice(final Pointer pvInstance) {
-            super(pvInstance);
+        public XAudio2SourceVoice(final Pointer p) {
+            super(p);
         }
 
-        public long Start(final int Flags, final int OperationSet) {
-            return this.getVtableFunction(19).invokeLong(new Object[]{this.getPointer(), Flags, OperationSet});
+        public int Start(final int Flags, final int OperationSet) {
+            return this.getVtableFunction(19).invokeInt(new Object[]{this.getPointer(), Flags, OperationSet});
         }
 
-        public long Stop(final int Flags, final int OperationSet) {
-            return this.getVtableFunction(20).invokeLong(new Object[]{this.getPointer(), Flags, OperationSet});
+        public int Stop(final int Flags, final int OperationSet) {
+            return this.getVtableFunction(20).invokeInt(new Object[]{this.getPointer(), Flags, OperationSet});
         }
 
-        public long SubmitSourceBuffer(final XAUDIO2_BUFFER.ByReference pBuffer, final Pointer pBufferWMA) {
-            return this.getVtableFunction(21).invokeLong(new Object[]{this.getPointer(), pBuffer, pBufferWMA});
+        public int SubmitSourceBuffer(final XAUDIO2_BUFFER.ByReference pBuffer, final Pointer pBufferWMA) {
+            return this.getVtableFunction(21).invokeInt(new Object[]{this.getPointer(), pBuffer, pBufferWMA});
         }
 
-        public long FlushSourceBuffers() {
-            return this.getVtableFunction(22).invokeLong(new Object[]{this.getPointer()});
+        public int FlushSourceBuffers() {
+            return this.getVtableFunction(22).invokeInt(new Object[]{this.getPointer()});
         }
 
         public void GetState(final XAUDIO2_VOICE_STATE.ByReference pVoiceState, final int Flags) {
             this.getVtableFunction(25).invokeVoid(new Object[]{this.getPointer(), pVoiceState, Flags});
         }
 
-        public long SetFrequencyRatio(final float Ratio, final int OperationSet) {
-            return this.getVtableFunction(26).invokeLong(new Object[]{this.getPointer(), Ratio, OperationSet});
+        public int SetFrequencyRatio(final float Ratio, final int OperationSet) {
+            return this.getVtableFunction(26).invokeInt(new Object[]{this.getPointer(), Ratio, OperationSet});
         }
 
-        public long SetSourceSampleRate(final int NewSourceSampleRate) {
-            return this.getVtableFunction(28).invokeLong(new Object[]{this.getPointer(), NewSourceSampleRate});
+        public int SetSourceSampleRate(final int NewSourceSampleRate) {
+            return this.getVtableFunction(28).invokeInt(new Object[]{this.getPointer(), NewSourceSampleRate});
         }
 
     }
@@ -211,6 +211,11 @@ public interface XAudio2Library extends Library {
         public XAUDIO2_PERFORMANCE_DATA() {
         }
 
+        public XAUDIO2_PERFORMANCE_DATA(final Pointer p) {
+            super(p);
+            this.read();
+        }
+
         public static class ByReference extends XAUDIO2_PERFORMANCE_DATA implements Structure.ByReference {
         }
 
@@ -231,6 +236,11 @@ public interface XAudio2Library extends Library {
         public short cbSize;
 
         public WAVEFORMATEX() {
+        }
+
+        public WAVEFORMATEX(final Pointer p) {
+            super(p);
+            this.read();
         }
 
         public static class ByReference extends WAVEFORMATEX implements Structure.ByReference {
@@ -257,6 +267,11 @@ public interface XAudio2Library extends Library {
         public XAUDIO2_BUFFER() {
         }
 
+        public XAUDIO2_BUFFER(final Pointer p) {
+            super(p);
+            this.read();
+        }
+
         public static class ByReference extends XAUDIO2_BUFFER implements Structure.ByReference {
         }
 
@@ -273,6 +288,11 @@ public interface XAudio2Library extends Library {
         public long SamplesPlayed;
 
         public XAUDIO2_VOICE_STATE() {
+        }
+
+        public XAUDIO2_VOICE_STATE(final Pointer p) {
+            super(p);
+            this.read();
         }
 
         public static class ByReference extends XAUDIO2_VOICE_STATE implements Structure.ByReference {
@@ -292,6 +312,11 @@ public interface XAudio2Library extends Library {
         public int InputSampleRate;
 
         public XAUDIO2_VOICE_DETAILS() {
+        }
+
+        public XAUDIO2_VOICE_DETAILS(final Pointer p) {
+            super(p);
+            this.read();
         }
 
         public static class ByReference extends XAUDIO2_VOICE_DETAILS implements Structure.ByReference {

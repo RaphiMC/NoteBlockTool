@@ -216,9 +216,9 @@ public class XAudio2SoundSystem extends SoundSystem {
         return outputMatrix;
     }
 
-    private void checkError(final long result, final String message, final long... allowedErrors) {
+    private void checkError(final int result, final String message, final int... allowedErrors) {
         if (result < 0) {
-            for (long ignoreError : allowedErrors) {
+            for (int ignoreError : allowedErrors) {
                 if (result == ignoreError) {
                     return;
                 }

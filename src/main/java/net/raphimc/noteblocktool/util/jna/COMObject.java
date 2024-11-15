@@ -19,7 +19,7 @@ package net.raphimc.noteblocktool.util.jna;
 
 import com.sun.jna.Pointer;
 
-public abstract class COMObject extends COMInvoker {
+public abstract class COMObject extends VTableHandler {
 
     public COMObject() {
     }

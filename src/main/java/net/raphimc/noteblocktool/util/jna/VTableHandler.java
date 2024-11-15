@@ -22,18 +22,23 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-public abstract class COMInvoker extends PointerType {
+public abstract class VTableHandler extends PointerType {
 
-    public COMInvoker() {
+    public VTableHandler() {
     }
 
-    public COMInvoker(final Pointer pvInstance) {
+    public VTableHandler(final Pointer pvInstance) {
         super(pvInstance);
     }
 
     public Function getVtableFunction(final int index) {
         final Pointer vtblPtr = this.getPointer().getPointer(0);
         return Function.getFunction(vtblPtr.getPointer((long) index * Native.POINTER_SIZE));
+    }
+
+    public void setVtableFunction(final int index, final Pointer function) {
+        final Pointer vtblPtr = this.getPointer().getPointer(0);
+        vtblPtr.setPointer((long) index * Native.POINTER_SIZE, function);
     }
 
 }

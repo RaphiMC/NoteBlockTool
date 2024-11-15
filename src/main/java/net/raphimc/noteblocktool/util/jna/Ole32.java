@@ -39,7 +39,9 @@ public interface Ole32 extends Library {
         return INSTANCE != null;
     }
 
-    long CoInitializeEx(final Pointer reserved, final int dwCoInit);
+    int CoInitialize(final Pointer reserved);
+
+    int CoInitializeEx(final Pointer reserved, final int dwCoInit);
 
     void CoUninitialize();
 
