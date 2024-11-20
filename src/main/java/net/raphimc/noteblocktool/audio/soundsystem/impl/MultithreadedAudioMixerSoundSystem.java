@@ -20,8 +20,8 @@ package net.raphimc.noteblocktool.audio.soundsystem.impl;
 import net.raphimc.audiomixer.AudioMixer;
 import net.raphimc.audiomixer.pcmsource.impl.MonoIntPcmSource;
 import net.raphimc.audiomixer.pcmsource.impl.StereoIntPcmSource;
-import net.raphimc.audiomixer.sound.source.pcm.OptimizedMonoSound;
-import net.raphimc.audiomixer.sound.source.pcm.StereoSound;
+import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
+import net.raphimc.audiomixer.sound.impl.pcm.StereoSound;
 
 import java.util.Map;
 import java.util.concurrent.BrokenBarrierException;

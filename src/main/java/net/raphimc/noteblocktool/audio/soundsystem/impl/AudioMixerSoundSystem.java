@@ -19,7 +19,7 @@ package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import net.raphimc.audiomixer.SourceDataLineAudioMixer;
 import net.raphimc.audiomixer.pcmsource.impl.MonoIntPcmSource;
-import net.raphimc.audiomixer.sound.source.pcm.OptimizedMonoSound;
+import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
 import net.raphimc.audiomixer.util.AudioFormats;
 import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
