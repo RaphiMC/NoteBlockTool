@@ -17,8 +17,12 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
+import com.sun.jna.Memory;
 import com.sun.jna.ptr.FloatByReference;
+import net.raphimc.audiomixer.soundmodifier.impl.NormalizationModifier;
+import net.raphimc.audiomixer.util.GrowableArray;
 import net.raphimc.noteblocktool.audio.soundsystem.BassLibrary;
+import net.raphimc.noteblocktool.audio.soundsystem.BassMixLibrary;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.IOUtil;
 import net.raphimc.noteblocktool.util.SoundFileUtil;
@@ -47,10 +51,25 @@ public class BassSoundSystem extends SoundSystem {
         return instance;
     }
 
+    public static BassSoundSystem createCapture(final Map<String, byte[]> soundData, final int maxSounds, final AudioFormat captureAudioFormat) {
+        if (instance != null) {
+            throw new IllegalStateException("BASS sound system already initialized");
+        }
+        if (!BassLibrary.isLoaded()) {
+            throw new IllegalStateException("BASS library is not available");
+        }
+        instance = new BassSoundSystem(soundData, maxSounds, captureAudioFormat);
+        return instance;
+    }
+
 
     private final Map<String, Integer> soundSamples = new HashMap<>();
     private final List<Integer> playingChannels = new ArrayList<>();
+    private final AudioFormat captureAudioFormat;
     private Thread shutdownHook;
+    private int captureChannel;
+    private Memory captureMemory;
+    private NormalizationModifier captureNormalizer;
 
     @SuppressWarnings("FieldCanBeLocal")
     private final BassLibrary.SYNCPROC channelFreeSync = (handle, channel, data, user) -> {
@@ -60,13 +79,18 @@ public class BassSoundSystem extends SoundSystem {
     };
 
     private BassSoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
+        this(soundData, maxSounds, null);
+    }
+
+    private BassSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final AudioFormat captureAudioFormat) {
         super(maxSounds);
 
+        this.captureAudioFormat = captureAudioFormat;
         final int version = BassLibrary.INSTANCE.BASS_GetVersion();
         if (((version >> 16) & 0xFFFF) != BassLibrary.BASSVERSION) {
             throw new RuntimeException("BASS version is not correct");
         }
-        if (!BassLibrary.INSTANCE.BASS_Init(-1, 48000, 0, 0, null)) {
+        if (!BassLibrary.INSTANCE.BASS_Init(this.captureAudioFormat == null ? -1 : 0, 48000, 0, 0, null)) {
             this.checkError("Failed to open device");
         }
         final BassLibrary.BASS_DEVICEINFO.ByReference deviceInfo = new BassLibrary.BASS_DEVICEINFO.ByReference();
@@ -90,6 +114,16 @@ public class BassSoundSystem extends SoundSystem {
             this.close();
         }));
 
+        if (this.captureAudioFormat != null) {
+            this.captureChannel = BassMixLibrary.INSTANCE.BASS_Mixer_StreamCreate((int) this.captureAudioFormat.getSampleRate(), this.captureAudioFormat.getChannels(), BassLibrary.BASS_STREAM_DECODE | BassLibrary.BASS_SAMPLE_FLOAT);
+            this.checkError("Failed to create mixer stream");
+            if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(this.captureChannel, BassMixLibrary.BASS_ATTRIB_MIXER_THREADS, Runtime.getRuntime().availableProcessors())) {
+                this.checkError("Failed to set mixer threads");
+            }
+            this.captureMemory = new Memory((long) this.captureAudioFormat.getSampleRate() * this.captureAudioFormat.getChannels() * 4 * 30);
+            this.captureNormalizer = new NormalizationModifier();
+        }
+
         final String versionString = "v" + ((version >> 24) & 0xFF) + "." + ((version >> 16) & 0xFF) + "." + ((version >> 8) & 0xFF) + "." + (version & 0xFF);
         System.out.println("Initialized BASS " + versionString + " on " + deviceInfo.name);
     }
@@ -104,7 +138,7 @@ public class BassSoundSystem extends SoundSystem {
             }
         }
 
-        final int channel = BassLibrary.INSTANCE.BASS_SampleGetChannel(this.soundSamples.get(sound), BassLibrary.BASS_SAMCHAN_STREAM | BassLibrary.BASS_STREAM_AUTOFREE);
+        final int channel = BassLibrary.INSTANCE.BASS_SampleGetChannel(this.soundSamples.get(sound), BassLibrary.BASS_SAMCHAN_STREAM | (this.captureAudioFormat == null ? BassLibrary.BASS_STREAM_AUTOFREE : BassLibrary.BASS_STREAM_DECODE));
         if (channel == 0) {
             this.checkError("Failed to get audio channel");
         }
@@ -125,10 +159,31 @@ public class BassSoundSystem extends SoundSystem {
         if (sync == 0) {
             this.checkError("Failed to set audio channel end sync");
         }
-        if (!BassLibrary.INSTANCE.BASS_ChannelStart(channel)) {
-            this.checkError("Failed to play audio channel");
+        if (this.captureAudioFormat == null) {
+            if (!BassLibrary.INSTANCE.BASS_ChannelStart(channel)) {
+                this.checkError("Failed to play audio channel");
+            }
+        } else {
+            if (!BassMixLibrary.INSTANCE.BASS_Mixer_StreamAddChannel(this.captureChannel, channel, BassLibrary.BASS_STREAM_AUTOFREE)) {
+                this.checkError("Failed to add audio channel to mixer");
+            }
         }
         this.playingChannels.add(channel);
+    }
+
+    public synchronized void renderSamples(final GrowableArray samples, final int sampleCount) {
+        final int samplesLength = sampleCount * this.captureAudioFormat.getChannels();
+        if (BassLibrary.INSTANCE.BASS_ChannelGetData(this.captureChannel, this.captureMemory, samplesLength * 4 | BassLibrary.BASS_DATA_FLOAT) < 0) {
+            this.checkError("Failed to get audio data");
+        }
+
+        final int[] sampleData = this.captureMemory.getIntArray(0, samplesLength);
+        final int maxValue = (int) Math.pow(2, this.captureAudioFormat.getSampleSizeInBits() - 1) - 1;
+        for (int i = 0; i < sampleData.length; i++) {
+            sampleData[i] = (int) (Float.intBitsToFloat(sampleData[i]) * maxValue);
+        }
+        this.captureNormalizer.modify(this.captureAudioFormat, sampleData);
+        samples.add(sampleData);
     }
 
     @Override
@@ -150,6 +205,10 @@ public class BassSoundSystem extends SoundSystem {
         }
         this.soundSamples.clear();
         this.playingChannels.clear();
+        if (this.captureMemory != null) {
+            this.captureMemory.close();
+            this.captureMemory = null;
+        }
         if (instance != null) {
             BassLibrary.INSTANCE.BASS_Free();
             instance = null;

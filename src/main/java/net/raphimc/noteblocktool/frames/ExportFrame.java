@@ -35,6 +35,7 @@ import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.export.LameLibrary;
 import net.raphimc.noteblocktool.audio.export.impl.AudioMixerAudioExporter;
+import net.raphimc.noteblocktool.audio.export.impl.BassAudioExporter;
 import net.raphimc.noteblocktool.audio.export.impl.OpenALAudioExporter;
 import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
@@ -67,7 +68,7 @@ public class ExportFrame extends JFrame {
     private final List<ListFrame.LoadedSong> loadedSongs;
     private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "MP3 (Using LAME encoder)", "WAV", "AIF"});
     private final JLabel soundSystemLabel = new JLabel("Sound System:");
-    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (best sound quality, fastest)", "AudioMixer (normalized)"});
+    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (best sound quality, fastest)", "AudioMixer (normalized)", "Un4seen BASS"});
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
     private final JLabel bitDepthLabel = new JLabel("PCM Bit Depth:");
@@ -266,6 +267,7 @@ public class ExportFrame extends JFrame {
     private void doExport(final File outFile) {
         final boolean isAudioFile = this.format.getSelectedIndex() != 0;
         final boolean isMp3 = this.format.getSelectedIndex() == 1;
+        final boolean bassSoundSystem = this.soundSystem.getSelectedIndex() == 2;
         final AudioFormat format = new AudioFormat(
                 ((Number) this.sampleRate.getValue()).floatValue(),
                 !isMp3 ? Integer.parseInt(this.bitDepth.getSelectedItem().toString().substring(4)) : 16,
@@ -326,7 +328,7 @@ public class ExportFrame extends JFrame {
                 }
             } else {
                 final int threadCount;
-                if (!isAudioFile) threadCount = 1;
+                if (!isAudioFile || bassSoundSystem) threadCount = 1;
                 else threadCount = Math.min(this.loadedSongs.size(), Runtime.getRuntime().availableProcessors());
                 ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadCount);
                 Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
@@ -412,6 +414,8 @@ public class ExportFrame extends JFrame {
                 exporter = new OpenALAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
             } else if (this.soundSystem.getSelectedIndex() == 1) {
                 exporter = new AudioMixerAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
+            } else if (this.soundSystem.getSelectedIndex() == 2) {
+                exporter = new BassAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
             } else {
                 throw new UnsupportedOperationException("Unsupported sound system: " + this.soundSystem.getSelectedIndex());
             }

@@ -180,6 +180,25 @@ public interface BassLibrary extends Library {
     int BASS_ATTRIB_MUSIC_VOL_CHAN = 0x200; // + channel #
     int BASS_ATTRIB_MUSIC_VOL_INST = 0x300; // + instrument #
 
+    // BASS_ChannelGetData flags
+    int BASS_DATA_AVAILABLE = 0; // query how much data is buffered
+    int BASS_DATA_NOREMOVE = 0x10000000; // flag: don't remove data from recording buffer
+    int BASS_DATA_FIXED = 0x20000000; // unused
+    int BASS_DATA_FLOAT = 0x40000000; // flag: return floating-point sample data
+    int BASS_DATA_FFT256 = 0x80000000; // 256 sample FFT
+    int BASS_DATA_FFT512 = 0x80000001; // 512 FFT
+    int BASS_DATA_FFT1024 = 0x80000002; // 1024 FFT
+    int BASS_DATA_FFT2048 = 0x80000003; // 2048 FFT
+    int BASS_DATA_FFT4096 = 0x80000004; // 4096 FFT
+    int BASS_DATA_FFT8192 = 0x80000005; // 8192 FFT
+    int BASS_DATA_FFT16384 = 0x80000006; // 16384 FFT
+    int BASS_DATA_FFT32768 = 0x80000007; // 32768 FFT
+    int BASS_DATA_FFT_INDIVIDUAL = 0x10; // FFT flag: FFT for each channel, else all combined
+    int BASS_DATA_FFT_NOWINDOW = 0x20; // FFT flag: no Hanning window
+    int BASS_DATA_FFT_REMOVEDC = 0x40; // FFT flag: pre-remove DC bias
+    int BASS_DATA_FFT_COMPLEX = 0x80; // FFT flag: return complex data
+    int BASS_DATA_FFT_NYQUIST = 0x100; // FFT flag: return extra Nyquist value
+
     // BASS_SampleGetChannel flags
     int BASS_SAMCHAN_NEW = 1; // get a new playback channel
     int BASS_SAMCHAN_STREAM = 2; // create a stream
@@ -202,6 +221,19 @@ public interface BassLibrary extends Library {
     int BASS_SYNC_THREAD = 0x20000000; // flag: call sync in other thread
     int BASS_SYNC_MIXTIME = 0x40000000; // flag: sync at mixtime, else at playtime
     int BASS_SYNC_ONETIME = 0x80000000; // flag: sync only once, else continuously
+
+    int BASS_SAMPLE_8BITS = 1;// 8 bit
+    int BASS_SAMPLE_FLOAT = 256; // 32 bit floating-point
+    int BASS_SAMPLE_MONO = 2; // mono
+    int BASS_SAMPLE_LOOP = 4; // looped
+    int BASS_SAMPLE_3D = 8; // 3D functionality
+    int BASS_SAMPLE_SOFTWARE = 16; // unused
+    int BASS_SAMPLE_MUTEMAX = 32; // mute at max distance (3D only)
+    int BASS_SAMPLE_VAM = 64; // unused
+    int BASS_SAMPLE_FX = 128; // unused
+    int BASS_SAMPLE_OVER_VOL = 0x10000; // override lowest volume
+    int BASS_SAMPLE_OVER_POS = 0x20000; // override longest playing
+    int BASS_SAMPLE_OVER_DIST = 0x30000; // override furthest from listener (3D only)
 
     int BASS_STREAM_DECODE = 0x200000; // don't play the stream, only decode
     int BASS_STREAM_AUTOFREE = 0x40000; // automatically free the stream when it stops/ends
@@ -257,6 +289,8 @@ public interface BassLibrary extends Library {
     int BASS_ChannelSetSync(final int handle, final int type, final long param, final SYNCPROC proc, final Pointer user);
 
     boolean BASS_ChannelFree(final int handle);
+
+    int BASS_ChannelGetData(final int handle, final Pointer buffer, final int length);
 
     interface SYNCPROC extends Callback {
 
