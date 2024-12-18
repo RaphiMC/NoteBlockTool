@@ -20,6 +20,7 @@ package net.raphimc.noteblocktool.audio.export.impl;
 import net.raphimc.audiomixer.AudioMixer;
 import net.raphimc.audiomixer.pcmsource.impl.MonoIntPcmSource;
 import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
+import net.raphimc.audiomixer.soundmodifier.impl.NormalizationModifier;
 import net.raphimc.audiomixer.util.AudioFormats;
 import net.raphimc.audiomixer.util.SoundSampleUtil;
 import net.raphimc.audiomixer.util.io.SoundIO;
@@ -36,11 +37,14 @@ import java.util.function.Consumer;
 
 public class AudioMixerAudioExporter extends AudioExporter {
 
+    private final boolean globalNormalization;
     protected final Map<String, int[]> sounds;
     protected final AudioMixer audioMixer;
 
-    public AudioMixerAudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
+    public AudioMixerAudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final boolean globalNormalization, final Consumer<Float> progressConsumer) {
         super(songView, format, masterVolume, progressConsumer);
+        this.globalNormalization = globalNormalization;
+
         try {
             this.sounds = new HashMap<>();
             for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(songView).entrySet()) {
@@ -48,6 +52,9 @@ public class AudioMixerAudioExporter extends AudioExporter {
             }
             this.audioMixer = new AudioMixer(format);
             this.audioMixer.getMasterMixSound().setMaxSounds(8192);
+            if (!this.globalNormalization) {
+                this.audioMixer.getMasterMixSound().getSoundModifiers().append(new NormalizationModifier());
+            }
         } catch (Throwable e) {
             throw new RuntimeException("Failed to initialize AudioMixer audio exporter", e);
         }
@@ -67,7 +74,9 @@ public class AudioMixerAudioExporter extends AudioExporter {
 
     @Override
     protected void finish() {
-        SoundSampleUtil.normalize(this.samples.getArrayDirect(), (int) Math.pow(2, this.format.getSampleSizeInBits() - 1) - 1);
+        if (this.globalNormalization) {
+            SoundSampleUtil.normalize(this.samples.getArrayDirect(), (int) Math.pow(2, this.format.getSampleSizeInBits() - 1) - 1);
+        }
     }
 
 }

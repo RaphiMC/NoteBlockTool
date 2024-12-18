@@ -68,7 +68,7 @@ public class ExportFrame extends JFrame {
     private final List<ListFrame.LoadedSong> loadedSongs;
     private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "MP3 (Using LAME encoder)", "WAV", "AIF"});
     private final JLabel soundSystemLabel = new JLabel("Sound System:");
-    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (best sound quality, fastest)", "AudioMixer (normalized)", "Un4seen BASS"});
+    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (best sound quality, fastest)", "AudioMixer", "AudioMixer (global normalized)", "Un4seen BASS"});
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
     private final JLabel bitDepthLabel = new JLabel("PCM Bit Depth:");
@@ -267,7 +267,7 @@ public class ExportFrame extends JFrame {
     private void doExport(final File outFile) {
         final boolean isAudioFile = this.format.getSelectedIndex() != 0;
         final boolean isMp3 = this.format.getSelectedIndex() == 1;
-        final boolean bassSoundSystem = this.soundSystem.getSelectedIndex() == 2;
+        final boolean bassSoundSystem = this.soundSystem.getSelectedIndex() == 3;
         final AudioFormat format = new AudioFormat(
                 ((Number) this.sampleRate.getValue()).floatValue(),
                 !isMp3 ? Integer.parseInt(this.bitDepth.getSelectedItem().toString().substring(4)) : 16,
@@ -413,8 +413,10 @@ public class ExportFrame extends JFrame {
             if (this.soundSystem.getSelectedIndex() == 0) {
                 exporter = new OpenALAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
             } else if (this.soundSystem.getSelectedIndex() == 1) {
-                exporter = new AudioMixerAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
+                exporter = new AudioMixerAudioExporter(songView, format, this.volume.getValue() / 100F, false, progressConsumer);
             } else if (this.soundSystem.getSelectedIndex() == 2) {
+                exporter = new AudioMixerAudioExporter(songView, format, this.volume.getValue() / 100F, true, progressConsumer);
+            } else if (this.soundSystem.getSelectedIndex() == 3) {
                 exporter = new BassAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
             } else {
                 throw new UnsupportedOperationException("Unsupported sound system: " + this.soundSystem.getSelectedIndex());
