@@ -85,7 +85,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private final ListFrame.LoadedSong song;
     private final MonitoringSongPlayer songPlayer;
     private final Timer updateTimer;
-    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"OpenAL (best sound quality)", "Un4seen BASS", "AudioMixer (best system compatibility)", "AudioMixer multithreaded (experimental)", "XAudio2 (Windows 10+ only)"});
+    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"AudioMixer", "OpenAL", "Un4seen BASS", "AudioMixer multithreaded (experimental)", "XAudio2 (Windows 10+ only)"});
     private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 40960, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, 50);
     private final JButton playStopButton = new JButton("Play");
@@ -249,13 +249,13 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
 
     private boolean initSoundSystem() {
         final int currentIndex;
-        if (this.soundSystem instanceof OpenALSoundSystem) {
-            currentIndex = 0;
-        } else if (this.soundSystem instanceof BassSoundSystem) {
-            currentIndex = 1;
-        } else if (this.soundSystem instanceof MultithreadedAudioMixerSoundSystem) {
+        if (this.soundSystem instanceof MultithreadedAudioMixerSoundSystem) {
             currentIndex = 3;
         } else if (this.soundSystem instanceof AudioMixerSoundSystem) {
+            currentIndex = 0;
+        } else if (this.soundSystem instanceof OpenALSoundSystem) {
+            currentIndex = 1;
+        } else if (this.soundSystem instanceof BassSoundSystem) {
             currentIndex = 2;
         } else if (this.soundSystem instanceof XAudio2SoundSystem) {
             currentIndex = 4;
@@ -273,11 +273,11 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
                 final int maxSounds = ((Number) this.maxSoundsSpinner.getValue()).intValue();
 
                 if (this.soundSystemComboBox.getSelectedIndex() == 0) {
-                    this.soundSystem = OpenALSoundSystem.createPlayback(soundData, maxSounds);
-                } else if (this.soundSystemComboBox.getSelectedIndex() == 1) {
-                    this.soundSystem = BassSoundSystem.createPlayback(soundData, maxSounds);
-                } else if (this.soundSystemComboBox.getSelectedIndex() == 2) {
                     this.soundSystem = new AudioMixerSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
+                } else if (this.soundSystemComboBox.getSelectedIndex() == 1) {
+                    this.soundSystem = OpenALSoundSystem.createPlayback(soundData, maxSounds);
+                } else if (this.soundSystemComboBox.getSelectedIndex() == 2) {
+                    this.soundSystem = BassSoundSystem.createPlayback(soundData, maxSounds);
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 3) {
                     this.soundSystem = new MultithreadedAudioMixerSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 4) {

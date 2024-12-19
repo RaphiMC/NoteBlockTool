@@ -21,15 +21,11 @@ configurations {
 
 repositories {
     mavenCentral()
-    maven {
-        name = "Lenni0451"
-        url = "https://maven.lenni0451.net/everything"
-    }
 }
 
 dependencies {
-    include "net.raphimc:NoteBlockLib:2.1.4-SNAPSHOT"
-    include "net.raphimc:audio-mixer:2.0.0-SNAPSHOT"
+    include "net.raphimc:NoteBlockLib:2.1.4"
+    include "net.raphimc:audio-mixer:2.0.0"
     include "org.jcraft:jorbis:0.0.17"
     include "com.formdev:flatlaf:3.5.4"
     include "net.lenni0451.commons:swing:1.6.1"
