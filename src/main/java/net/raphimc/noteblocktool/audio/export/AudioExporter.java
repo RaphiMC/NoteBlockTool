@@ -36,7 +36,7 @@ public abstract class AudioExporter extends SongPlayer {
     private final float masterVolume;
     private final Consumer<Float> progressConsumer;
     protected GrowableArray samples;
-    private final long noteCount;
+    private final int noteCount;
     private int processedNotes;
 
     public AudioExporter(final Song song, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {

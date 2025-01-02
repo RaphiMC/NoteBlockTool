@@ -79,8 +79,9 @@ public class SoundSystemSongPlayer extends SongPlayer {
     }
 
     @Override
-    protected void preTick() {
+    protected boolean preTick() {
         this.soundSystem.preTick();
+        return super.preTick();
     }
 
     @Override
