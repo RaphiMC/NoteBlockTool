@@ -38,10 +38,9 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
     private final int[][] threadSamples = new int[this.audioMixers.length][];
     private int currentMixer = 0;
 
-    public MultithreadedAudioMixerSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final float playbackSpeed) {
-        super(soundData, maxSounds, playbackSpeed);
+    public MultithreadedAudioMixerSoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
+        super(soundData, maxSounds);
 
-        final int mixSampleCount = (int) Math.ceil(this.audioMixer.getAudioFormat().getSampleRate() / playbackSpeed) * this.audioMixer.getAudioFormat().getChannels();
         for (int i = 0; i < this.audioMixers.length; i++) {
             this.audioMixers[i] = new AudioMixer(this.audioMixer.getAudioFormat());
             this.audioMixers[i].getMasterMixSound().setMaxSounds(maxSounds / this.audioMixers.length);
@@ -52,7 +51,7 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
                 try {
                     while (!Thread.currentThread().isInterrupted()) {
                         this.startBarrier.await();
-                        this.threadSamples[mixerIndex] = this.audioMixers[mixerIndex].mix(mixSampleCount);
+                        this.threadSamples[mixerIndex] = this.audioMixers[mixerIndex].mix(this.audioMixer.getMixSliceSampleCount());
                         this.stopBarrier.await();
                     }
                 } catch (InterruptedException | BrokenBarrierException ignored) {
@@ -70,7 +69,7 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
     }
 
     @Override
-    public synchronized void postTick() {
+    public synchronized void mixSlice() {
         try {
             this.startBarrier.await();
             this.stopBarrier.await();
@@ -80,10 +79,18 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
         for (int[] threadSamples : this.threadSamples) {
             this.audioMixer.playSound(new StereoSound(new StereoIntPcmSource(threadSamples)));
         }
-        super.postTick();
+        super.mixSlice();
         if (this.audioMixer.getMasterMixSound().getActiveSounds() != 0) {
             throw new IllegalStateException("Mixer still has active sounds after mixing");
         }
+    }
+
+    @Override
+    public synchronized void stopSounds() {
+        for (AudioMixer mixer : this.audioMixers) {
+            mixer.stopAllSounds();
+        }
+        super.stopSounds();
     }
 
     @Override

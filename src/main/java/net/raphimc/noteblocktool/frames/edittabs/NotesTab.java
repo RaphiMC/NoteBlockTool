@@ -19,8 +19,6 @@ package net.raphimc.noteblocktool.frames.edittabs;
 
 import net.lenni0451.commons.swing.GBC;
 import net.raphimc.noteblocklib.model.Song;
-import net.raphimc.noteblocklib.model.SongView;
-import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.elements.formatter.IntFormatterFactory;
 import net.raphimc.noteblocktool.frames.ListFrame;
 import net.raphimc.noteblocktool.util.MinecraftOctaveClamp;
@@ -76,11 +74,11 @@ public class NotesTab extends EditTab {
     }
 
     @Override
-    public void apply(final Song<?, ?, ?> song, final SongView<?> view) {
-        SongUtil.applyToAllNotes(view, note -> ((MinecraftOctaveClamp) this.octaveClamp.getSelectedItem()).correctNote(note));
-        SongUtil.removeSilentNotes(view, (int) this.volumeSpinner.getValue());
+    public void apply(final Song song) {
+        song.getNotes().forEach(note -> ((MinecraftOctaveClamp) this.octaveClamp.getSelectedItem()).correctNote(note));
+        song.getNotes().removeSilentNotes((int) this.volumeSpinner.getValue() / 100F);
         if (this.removeDoubleNotes.isSelected()) {
-            SongUtil.removeDoubleNotes(view);
+            song.getNotes().removeDoubleNotes();
         }
     }
 

@@ -24,7 +24,7 @@ import net.raphimc.audiomixer.soundmodifier.impl.NormalizationModifier;
 import net.raphimc.audiomixer.util.AudioFormats;
 import net.raphimc.audiomixer.util.SoundSampleUtil;
 import net.raphimc.audiomixer.util.io.SoundIO;
-import net.raphimc.noteblocklib.model.SongView;
+import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.util.SoundFileUtil;
@@ -41,13 +41,13 @@ public class AudioMixerAudioExporter extends AudioExporter {
     protected final Map<String, int[]> sounds;
     protected final AudioMixer audioMixer;
 
-    public AudioMixerAudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final boolean globalNormalization, final Consumer<Float> progressConsumer) {
-        super(songView, format, masterVolume, progressConsumer);
+    public AudioMixerAudioExporter(final Song song, final AudioFormat format, final float masterVolume, final boolean globalNormalization, final Consumer<Float> progressConsumer) {
+        super(song, format, masterVolume, progressConsumer);
         this.globalNormalization = globalNormalization;
 
         try {
             this.sounds = new HashMap<>();
-            for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(songView).entrySet()) {
+            for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(song).entrySet()) {
                 this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), AudioFormats.withChannels(format, 1)));
             }
             this.audioMixer = new AudioMixer(format);
@@ -61,6 +61,14 @@ public class AudioMixerAudioExporter extends AudioExporter {
     }
 
     @Override
+    public void render() throws InterruptedException {
+        super.render();
+        if (this.globalNormalization) {
+            SoundSampleUtil.normalize(this.samples.getArrayDirect(), (int) Math.pow(2, this.format.getSampleSizeInBits() - 1) - 1);
+        }
+    }
+
+    @Override
     protected void processSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
@@ -68,15 +76,8 @@ public class AudioMixerAudioExporter extends AudioExporter {
     }
 
     @Override
-    protected void postTick() {
-        this.samples.add(this.audioMixer.mix(this.samplesPerTick * this.format.getChannels()));
-    }
-
-    @Override
-    protected void finish() {
-        if (this.globalNormalization) {
-            SoundSampleUtil.normalize(this.samples.getArrayDirect(), (int) Math.pow(2, this.format.getSampleSizeInBits() - 1) - 1);
-        }
+    protected void mix(final int samplesPerTick) {
+        this.samples.add(this.audioMixer.mix(samplesPerTick * this.format.getChannels()));
     }
 
 }

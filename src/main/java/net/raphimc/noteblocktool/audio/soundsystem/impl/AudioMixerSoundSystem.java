@@ -39,7 +39,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
     protected final Map<String, int[]> sounds;
     protected final SourceDataLineAudioMixer audioMixer;
 
-    public AudioMixerSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final float playbackSpeed) {
+    public AudioMixerSoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
         super(maxSounds);
 
         try {
@@ -47,7 +47,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
             for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
                 this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), AudioFormats.withChannels(FORMAT, 1)));
             }
-            this.audioMixer = new SourceDataLineAudioMixer(AudioSystem.getSourceDataLine(FORMAT), (int) Math.ceil(FORMAT.getSampleRate() / playbackSpeed) * FORMAT.getChannels());
+            this.audioMixer = new SourceDataLineAudioMixer(AudioSystem.getSourceDataLine(FORMAT), 0);
             this.audioMixer.getMasterMixSound().setMaxSounds(maxSounds);
         } catch (Throwable e) {
             throw new RuntimeException("Failed to initialize AudioMixer sound system", e);
@@ -61,8 +61,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
         this.audioMixer.playSound(new OptimizedMonoSound(new MonoIntPcmSource(this.sounds.get(sound)), pitch, volume, panning));
     }
 
-    @Override
-    public synchronized void postTick() {
+    public synchronized void mixSlice() {
         this.audioMixer.mixSlice();
     }
 
@@ -88,6 +87,10 @@ public class AudioMixerSoundSystem extends SoundSystem {
     @Override
     public synchronized void setMasterVolume(final float volume) {
         this.audioMixer.setMasterVolume(volume);
+    }
+
+    public synchronized void updateMixSliceSize(final float ticksPerSecond) {
+        this.audioMixer.setMixSliceSampleCount((int) Math.ceil(this.audioMixer.getAudioFormat().getSampleRate() / ticksPerSecond) * this.audioMixer.getAudioFormat().getChannels());
     }
 
 }

@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.elements.instruments;
 
-import net.raphimc.noteblocklib.util.Instrument;
+import net.raphimc.noteblocklib.data.MinecraftInstrument;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -28,13 +28,13 @@ public class InstrumentsTable extends JTable {
         super(new InstrumentsModel("Original", "Replacement"));
         this.getTableHeader().setReorderingAllowed(false);
 
-        JComboBox<Instrument> instruments = new JComboBox<>();
+        JComboBox<MinecraftInstrument> instruments = new JComboBox<>();
         if (addEmptyEntry) instruments.addItem(null);
-        for (Instrument instrument : Instrument.values()) instruments.addItem(instrument);
+        for (MinecraftInstrument instrument : MinecraftInstrument.values()) instruments.addItem(instrument);
         this.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(instruments));
     }
 
-    public void addRow(final String original, final Instrument instrument) {
+    public void addRow(final String original, final MinecraftInstrument instrument) {
         ((DefaultTableModel) this.getModel()).addRow(new Object[]{
                 original,
                 instrument

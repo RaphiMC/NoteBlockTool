@@ -17,7 +17,6 @@
  */
 package net.raphimc.noteblocktool.elements.drag;
 
-import net.raphimc.noteblocklib.util.MinecraftDefinitions;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
@@ -32,7 +31,7 @@ import java.util.List;
 public class DragTable extends JTable {
 
     public DragTable() {
-        super(new DragTableModel("Path", "Title", "Author", "Length", "Notes", "Speed", "Minecraft compatible"));
+        super(new DragTableModel("Path", "Title", "Author", "Length", "Notes", "Tempo", "Minecraft compatible"));
 
         this.getTableHeader().setReorderingAllowed(false);
         this.getColumnModel().getColumn(1).setPreferredWidth(250);
@@ -44,7 +43,7 @@ public class DragTable extends JTable {
         List<RowSorter.SortKey> sortKeys = new ArrayList<>();
         for (int i = 0; i < 6; i++) sortKeys.add(new RowSorter.SortKey(i, SortOrder.UNSORTED));
         sorter.setSortKeys(sortKeys);
-        sorter.setComparator(4, Comparator.comparingInt(o -> (int) o));
+        sorter.setComparator(4, Comparator.comparingLong(o -> (long) o));
         sorter.setComparator(5, Comparator.comparingDouble(o -> (float) o));
         this.setRowSorter(sorter);
     }
@@ -52,11 +51,11 @@ public class DragTable extends JTable {
     public void addRow(final ListFrame.LoadedSong song) {
         ((DragTableModel) this.getModel()).addRow(new Object[]{
                 song,
-                song.getSong().getView().getTitle(),
-                song.getAuthor().orElse("Unknown"),
-                song.getLength(),
-                song.getNoteCount(),
-                song.getSong().getView().getSpeed(),
+                song.song().getTitleOrFileNameOr("No Title"),
+                song.song().getAuthorOr("Unknown"),
+                song.song().getHumanReadableLength(),
+                song.song().getNotes().getNoteCount(),
+                song.song().getTempoEvents().getHumanReadableTempoRange(),
                 this.isSchematicCompatible(song)
         });
     }
@@ -64,11 +63,11 @@ public class DragTable extends JTable {
     public void refreshRow(final ListFrame.LoadedSong song) {
         for (int i = 0; i < this.getModel().getRowCount(); i++) {
             if (this.getModel().getValueAt(i, 0) == song) {
-                this.getModel().setValueAt(song.getSong().getView().getTitle(), i, 1);
-                this.getModel().setValueAt(song.getAuthor().orElse("Unknown"), i, 2);
-                this.getModel().setValueAt(song.getLength(), i, 3);
-                this.getModel().setValueAt(song.getNoteCount(), i, 4);
-                this.getModel().setValueAt(song.getSong().getView().getSpeed(), i, 5);
+                this.getModel().setValueAt(song.song().getTitleOrFileNameOr("No Title"), i, 1);
+                this.getModel().setValueAt(song.song().getAuthorOr("Unknown"), i, 2);
+                this.getModel().setValueAt(song.song().getHumanReadableLength(), i, 3);
+                this.getModel().setValueAt(song.song().getNotes().getNoteCount(), i, 4);
+                this.getModel().setValueAt(song.song().getTempoEvents().getHumanReadableTempoRange(), i, 5);
                 this.getModel().setValueAt(this.isSchematicCompatible(song), i, 6);
                 break;
             }
@@ -89,20 +88,18 @@ public class DragTable extends JTable {
     }
 
     private CompatibilityResult isSchematicCompatible(final ListFrame.LoadedSong song) {
-        CompatibilityResult result = new CompatibilityResult();
+        final CompatibilityResult result = new CompatibilityResult();
 
-        float speed = song.getSong().getView().getSpeed();
-        if (speed != 2.5F && speed != 5F && speed != 10F) result.add("The speed must be 2.5, 5 or 10 TPS");
+        final float[] tempoRange = song.song().getTempoEvents().getTempoRange();
+        if (tempoRange[0] != tempoRange[1] || (tempoRange[0] != 2.5F && tempoRange[0] != 5F && tempoRange[0] != 10F)) {
+            result.add("The tempo must be 2.5, 5 or 10 TPS");
+        }
 
-        SongUtil.iterateAllNotes(song.getSong().getView(), note -> {
-            if (note.getKey() < MinecraftDefinitions.MC_LOWEST_KEY || note.getKey() > MinecraftDefinitions.MC_HIGHEST_KEY) {
-                result.add("The song contains notes which are outside of the Minecraft octave range");
-                return true;
-            }
-            return false;
-        });
+        if (SongUtil.hasOutsideMinecraftOctaveRangeNotes(song.song())) {
+            result.add("The song contains notes which are outside of the Minecraft octave range");
+        }
 
-        if (!SongUtil.getUsedCustomInstruments(song.getSong().getView()).isEmpty()) {
+        if (!SongUtil.getUsedNbsCustomInstruments(song.song()).isEmpty()) {
             result.add("The song contains notes with custom instruments");
         }
 

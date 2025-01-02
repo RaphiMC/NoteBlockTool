@@ -30,9 +30,6 @@ public abstract class SoundSystem implements AutoCloseable {
     public void preTick() {
     }
 
-    public void postTick() {
-    }
-
     public abstract void stopSounds();
 
     @Override

@@ -20,7 +20,6 @@ package net.raphimc.noteblocktool.frames.edittabs;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
 import net.raphimc.noteblocklib.model.Song;
-import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
@@ -56,7 +55,7 @@ public abstract class EditTab extends JPanel {
 
     protected abstract void initComponents(final JPanel center);
 
-    public abstract void apply(final Song<?, ?, ?> song, final SongView<?> view);
+    public abstract void apply(final Song song);
 
     protected final JLabel html(final String... lines) {
         return new JLabel("<html>" + String.join("<br>", lines) + "</html>");

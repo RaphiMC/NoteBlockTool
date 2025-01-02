@@ -17,9 +17,8 @@
  */
 package net.raphimc.noteblocktool.frames.edittabs;
 
+import net.raphimc.noteblocklib.data.MinecraftInstrument;
 import net.raphimc.noteblocklib.model.Song;
-import net.raphimc.noteblocklib.model.SongView;
-import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.instruments.InstrumentsTable;
@@ -31,7 +30,7 @@ import java.util.*;
 public class InstrumentsTab extends EditTab {
 
     private InstrumentsTable table;
-    private Set<Instrument> usedInstruments;
+    private Set<MinecraftInstrument> usedInstruments;
 
     public InstrumentsTab(final List<ListFrame.LoadedSong> songs) {
         super("Instruments", songs);
@@ -44,25 +43,25 @@ public class InstrumentsTab extends EditTab {
         this.table = new InstrumentsTable(false);
         this.add(new FastScrollPane(this.table));
         this.usedInstruments = this.songs.stream()
-                .map(song -> SongUtil.getUsedVanillaInstruments(song.getSong().getView()))
-                .reduce(EnumSet.noneOf(Instrument.class), (a, b) -> {
+                .map(song -> SongUtil.getUsedVanillaInstruments(song.song()))
+                .reduce(EnumSet.noneOf(MinecraftInstrument.class), (a, b) -> {
                     a.addAll(b);
                     return a;
                 });
-        for (Instrument instrument : this.usedInstruments) this.table.addRow(instrument.name(), instrument);
+        for (MinecraftInstrument instrument : this.usedInstruments) this.table.addRow(instrument.name(), instrument);
     }
 
     @Override
-    public void apply(Song<?, ?, ?> song, SongView<?> view) {
-        Map<Instrument, Instrument> replacements = new HashMap<>();
+    public void apply(final Song song) {
+        Map<MinecraftInstrument, MinecraftInstrument> replacements = new HashMap<>();
         int i = 0;
-        for (Instrument instrument : this.usedInstruments) {
-            Instrument replacement = (Instrument) this.table.getValueAt(i, 1);
+        for (MinecraftInstrument instrument : this.usedInstruments) {
+            MinecraftInstrument replacement = (MinecraftInstrument) this.table.getValueAt(i, 1);
             replacements.put(instrument, replacement);
             i++;
         }
-        SongUtil.applyToAllNotes(view, note -> {
-            Instrument replacement = replacements.get(note.getInstrument());
+        song.getNotes().forEach(note -> {
+            MinecraftInstrument replacement = replacements.get(note.getInstrument());
             if (replacement != null) note.setInstrument(replacement);
         });
     }

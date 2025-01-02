@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.frames;
 
-import net.raphimc.noteblocklib.model.SongView;
+import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.frames.edittabs.*;
 
@@ -76,7 +76,7 @@ public class EditFrame extends JFrame {
                 tabs.setEnabledAt(metadataTabIndex, false);
                 tabs.setToolTipTextAt(metadataTabIndex, "This tab is only available when editing a single song");
             }
-            if (this.songs.size() != 1 || SongUtil.getUsedCustomInstruments(this.songs.get(0).getSong().getView()).isEmpty()) {
+            if (this.songs.size() != 1 || SongUtil.getUsedNbsCustomInstruments(this.songs.get(0).song()).isEmpty()) {
                 int customInstrumentsTabIndex = tabs.indexOfTab(this.customInstrumentsTab.getTitle());
                 tabs.removeTabAt(customInstrumentsTabIndex);
                 this.customInstrumentsTab = null;
@@ -93,15 +93,15 @@ public class EditFrame extends JFrame {
 
             JButton apply = new JButton("Save");
             apply.addActionListener(e -> {
-                for (ListFrame.LoadedSong song : this.songs) {
-                    SongView<?> view = song.getSong().getView();
-                    this.resamplingTab.apply(song.getSong(), view);
-                    this.instrumentsTab.apply(song.getSong(), view);
+                for (ListFrame.LoadedSong loadedSong : this.songs) {
+                    final Song song = loadedSong.song();
+                    this.resamplingTab.apply(song);
+                    this.instrumentsTab.apply(song);
                     if (this.customInstrumentsTab != null) {
-                        this.customInstrumentsTab.apply(song.getSong(), view);
+                        this.customInstrumentsTab.apply(song);
                     }
-                    this.notesTab.apply(song.getSong(), view);
-                    this.metadataTab.apply(song.getSong(), view);
+                    this.notesTab.apply(song);
+                    this.metadataTab.apply(song);
                 }
                 JOptionPane.showMessageDialog(this, "Saved all changes", "Saved", JOptionPane.INFORMATION_MESSAGE);
                 for (ListFrame.LoadedSong song : this.songs) this.songRefreshConsumer.accept(song);
@@ -109,15 +109,14 @@ public class EditFrame extends JFrame {
             south.add(apply);
             JButton preview = new JButton("Preview");
             preview.addActionListener(e -> {
-                ListFrame.LoadedSong song = this.songs.get(0);
-                SongView<?> view = song.getSong().getView().clone();
-                this.resamplingTab.apply(song.getSong(), view);
-                this.instrumentsTab.apply(song.getSong(), view);
+                final Song song = this.songs.get(0).song().copy();
+                this.resamplingTab.apply(song);
+                this.instrumentsTab.apply(song);
                 if (this.customInstrumentsTab != null) {
-                    this.customInstrumentsTab.apply(song.getSong(), view);
+                    this.customInstrumentsTab.apply(song);
                 }
-                this.notesTab.apply(song.getSong(), view);
-                SongPlayerFrame.open(song, view);
+                this.notesTab.apply(song);
+                SongPlayerFrame.open(song);
             });
             if (this.songs.size() != 1) {
                 preview.setEnabled(false);

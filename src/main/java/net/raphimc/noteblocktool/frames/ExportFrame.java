@@ -23,15 +23,8 @@ import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
 import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocklib.NoteBlockLib;
-import net.raphimc.noteblocklib.format.SongFormat;
-import net.raphimc.noteblocklib.format.mcsp.McSpSong;
-import net.raphimc.noteblocklib.format.mcsp.model.McSpHeader;
-import net.raphimc.noteblocklib.format.nbs.NbsSong;
-import net.raphimc.noteblocklib.format.nbs.model.NbsHeader;
-import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
+import net.raphimc.noteblocklib.format.nbs.NbsConverter;
 import net.raphimc.noteblocklib.model.Song;
-import net.raphimc.noteblocklib.model.SongView;
-import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.export.LameLibrary;
 import net.raphimc.noteblocktool.audio.export.impl.AudioMixerAudioExporter;
@@ -290,7 +283,7 @@ public class ExportFrame extends JFrame {
 
                     this.progressPanel.add(songPanel);
 
-                    GBC.create(songPanel).grid(0, 0).insets(0).anchor(GBC.LINE_START).add(new JLabel(song.getSong().getView().getTitle()));
+                    GBC.create(songPanel).grid(0, 0).insets(0).anchor(GBC.LINE_START).add(new JLabel(song.song().getTitleOrFileNameOr("No Title")));
                     GBC.create(songPanel).grid(1, 0).insets(0, 5, 0, 0).weightx(1).fill(GBC.HORIZONTAL).add(new JProgressBar(), p -> p.setStringPainted(true));
                 }
                 this.progressPanel.revalidate();
@@ -317,7 +310,7 @@ public class ExportFrame extends JFrame {
                 } catch (InterruptedException ignored) {
                 } catch (Throwable t) {
                     t.printStackTrace();
-                    JOptionPane.showMessageDialog(this, "Failed to export song:\n" + this.loadedSongs.get(0).getFile().getAbsolutePath() + "\n" + t.getClass().getSimpleName() + ": " + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Failed to export song:\n" + this.loadedSongs.get(0).file().getAbsolutePath() + "\n" + t.getClass().getSimpleName() + ": " + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 } finally {
                     songPanels.remove(this.loadedSongs.get(0));
                     SwingUtilities.invokeLater(() -> {
@@ -339,7 +332,7 @@ public class ExportFrame extends JFrame {
                         JPanel songPanel = songPanels.get(song);
                         JProgressBar progressBar = (JProgressBar) songPanel.getComponent(1);
                         try {
-                            File file = new File(outFile, song.getFile().getName().substring(0, song.getFile().getName().lastIndexOf('.')) + "." + extension);
+                            File file = new File(outFile, song.file().getName().substring(0, song.file().getName().lastIndexOf('.')) + "." + extension);
                             this.exportSong(song, format, file, progressConsumer.apply(progressBar));
                             uiQueue.offer(() -> {
                                 this.progressPanel.remove(songPanel);
@@ -404,20 +397,15 @@ public class ExportFrame extends JFrame {
         if (this.format.getSelectedIndex() == 0) {
             this.writeNbsSong(song, file);
         } else {
-            SongView<?> songView = song.getSong().getView().clone();
-            if (song.getSong() instanceof NbsSong) {
-                SongResampler.applyNbsTempoChangers((NbsSong) song.getSong(), (SongView<NbsNote>) songView);
-            }
-
             final AudioExporter exporter;
             if (this.soundSystem.getSelectedIndex() == 0) {
-                exporter = new OpenALAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
+                exporter = new OpenALAudioExporter(song.song(), format, this.volume.getValue() / 100F, progressConsumer);
             } else if (this.soundSystem.getSelectedIndex() == 1) {
-                exporter = new AudioMixerAudioExporter(songView, format, this.volume.getValue() / 100F, false, progressConsumer);
+                exporter = new AudioMixerAudioExporter(song.song(), format, this.volume.getValue() / 100F, false, progressConsumer);
             } else if (this.soundSystem.getSelectedIndex() == 2) {
-                exporter = new AudioMixerAudioExporter(songView, format, this.volume.getValue() / 100F, true, progressConsumer);
+                exporter = new AudioMixerAudioExporter(song.song(), format, this.volume.getValue() / 100F, true, progressConsumer);
             } else if (this.soundSystem.getSelectedIndex() == 3) {
-                exporter = new BassAudioExporter(songView, format, this.volume.getValue() / 100F, progressConsumer);
+                exporter = new BassAudioExporter(song.song(), format, this.volume.getValue() / 100F, progressConsumer);
             } else {
                 throw new UnsupportedOperationException("Unsupported sound system: " + this.soundSystem.getSelectedIndex());
             }
@@ -472,43 +460,11 @@ public class ExportFrame extends JFrame {
 
     private void writeNbsSong(final ListFrame.LoadedSong song, final File file) {
         try {
-            final Song<?, ?, ?> exportSong = NoteBlockLib.createSongFromView(song.getSong().getView(), SongFormat.NBS);
-            final NbsSong exportNbsSong = (NbsSong) exportSong;
-            final NbsHeader exportNbsHeader = exportNbsSong.getHeader();
-            if (song.getSong() instanceof NbsSong) {
-                final NbsHeader nbsHeader = ((NbsSong) song.getSong()).getHeader();
-                exportNbsHeader.setVersion((byte) Math.max(nbsHeader.getVersion(), exportNbsHeader.getVersion()));
-                exportNbsHeader.setAuthor(nbsHeader.getAuthor());
-                exportNbsHeader.setOriginalAuthor(nbsHeader.getOriginalAuthor());
-                exportNbsHeader.setDescription(nbsHeader.getDescription());
-                exportNbsHeader.setAutoSave(nbsHeader.isAutoSave());
-                exportNbsHeader.setAutoSaveInterval(nbsHeader.getAutoSaveInterval());
-                exportNbsHeader.setTimeSignature(nbsHeader.getTimeSignature());
-                exportNbsHeader.setMinutesSpent(nbsHeader.getMinutesSpent());
-                exportNbsHeader.setLeftClicks(nbsHeader.getLeftClicks());
-                exportNbsHeader.setRightClicks(nbsHeader.getRightClicks());
-                exportNbsHeader.setNoteBlocksAdded(nbsHeader.getNoteBlocksAdded());
-                exportNbsHeader.setNoteBlocksRemoved(nbsHeader.getNoteBlocksRemoved());
-                exportNbsHeader.setSourceFileName(nbsHeader.getSourceFileName());
-                exportNbsHeader.setLoop(nbsHeader.isLoop());
-                exportNbsHeader.setMaxLoopCount(nbsHeader.getMaxLoopCount());
-                exportNbsHeader.setLoopStartTick(nbsHeader.getLoopStartTick());
-            } else if (song.getSong() instanceof McSpSong) {
-                final McSpHeader mcSpHeader = ((McSpSong) song.getSong()).getHeader();
-                exportNbsHeader.setAuthor(mcSpHeader.getAuthor());
-                exportNbsHeader.setOriginalAuthor(mcSpHeader.getOriginalAuthor());
-                exportNbsHeader.setAutoSave(mcSpHeader.getAutoSaveInterval() != 0);
-                exportNbsHeader.setAutoSaveInterval((byte) mcSpHeader.getAutoSaveInterval());
-                exportNbsHeader.setMinutesSpent(mcSpHeader.getMinutesSpent());
-                exportNbsHeader.setLeftClicks(mcSpHeader.getLeftClicks());
-                exportNbsHeader.setRightClicks(mcSpHeader.getRightClicks());
-                exportNbsHeader.setNoteBlocksAdded(mcSpHeader.getNoteBlocksAdded());
-                exportNbsHeader.setNoteBlocksRemoved(mcSpHeader.getNoteBlocksRemoved());
-            }
+            final Song exportSong = NbsConverter.createSong(song.song());
             NoteBlockLib.writeSong(exportSong, file);
         } catch (Throwable t) {
             t.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Failed to export song:\n" + song.getFile().getAbsolutePath() + "\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Failed to export song:\n" + song.file().getAbsolutePath() + "\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

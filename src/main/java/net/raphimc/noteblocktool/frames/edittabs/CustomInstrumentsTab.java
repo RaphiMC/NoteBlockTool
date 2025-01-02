@@ -17,11 +17,9 @@
  */
 package net.raphimc.noteblocktool.frames.edittabs;
 
+import net.raphimc.noteblocklib.data.MinecraftInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
-import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
 import net.raphimc.noteblocklib.model.Song;
-import net.raphimc.noteblocklib.model.SongView;
-import net.raphimc.noteblocklib.util.Instrument;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.instruments.InstrumentsTable;
@@ -48,29 +46,24 @@ public class CustomInstrumentsTab extends EditTab {
 
         this.table = new InstrumentsTable(true);
         this.add(new FastScrollPane(this.table));
-        this.usedInstruments = SongUtil.getUsedCustomInstruments(this.songs.get(0).getSong().getView());
+        this.usedInstruments = SongUtil.getUsedNbsCustomInstruments(this.songs.get(0).song());
         for (NbsCustomInstrument customInstrument : this.usedInstruments) {
-            this.table.addRow(customInstrument.getName() + " (" + customInstrument.getSoundFileName() + ")", null);
+            this.table.addRow(customInstrument.getNameOr("No Name") + " (" + customInstrument.getSoundFilePathOr("No Sound File") + ")", null);
         }
     }
 
     @Override
-    public void apply(Song<?, ?, ?> song, SongView<?> view) {
-        Map<NbsCustomInstrument, Instrument> replacements = new HashMap<>();
+    public void apply(final Song song) {
+        Map<NbsCustomInstrument, MinecraftInstrument> replacements = new HashMap<>();
         int i = 0;
         for (NbsCustomInstrument customInstrument : this.usedInstruments) {
-            Instrument replacement = (Instrument) this.table.getValueAt(i, 1);
+            MinecraftInstrument replacement = (MinecraftInstrument) this.table.getValueAt(i, 1);
             replacements.put(customInstrument, replacement);
             i++;
         }
-        SongUtil.applyToAllNotes(view, note -> {
-            if (note instanceof NbsNote) {
-                final NbsCustomInstrument customInstrument = ((NbsNote) note).getCustomInstrument();
-                Instrument replacement = replacements.get(customInstrument);
-                if (replacement != null) {
-                    note.setInstrument(replacement);
-                }
-            }
+        song.getNotes().forEach(note -> {
+            MinecraftInstrument replacement = replacements.get(note.getInstrument());
+            if (replacement != null) note.setInstrument(replacement);
         });
     }
 

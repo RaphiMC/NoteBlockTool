@@ -17,8 +17,8 @@
  */
 package net.raphimc.noteblocktool.util;
 
+import net.raphimc.noteblocklib.data.MinecraftDefinitions;
 import net.raphimc.noteblocklib.model.Note;
-import net.raphimc.noteblocklib.util.MinecraftDefinitions;
 
 public enum MinecraftOctaveClamp {
 

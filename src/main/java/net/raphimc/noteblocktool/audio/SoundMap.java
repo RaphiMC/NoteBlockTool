@@ -17,9 +17,9 @@
  */
 package net.raphimc.noteblocktool.audio;
 
+import net.raphimc.noteblocklib.data.MinecraftInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
-import net.raphimc.noteblocklib.model.SongView;
-import net.raphimc.noteblocklib.util.Instrument;
+import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.util.IOUtil;
 
@@ -32,33 +32,33 @@ import java.util.Map;
 
 public class SoundMap {
 
-    public static final Map<Instrument, String> INSTRUMENT_SOUNDS = new EnumMap<>(Instrument.class);
+    public static final Map<MinecraftInstrument, String> INSTRUMENT_SOUNDS = new EnumMap<>(MinecraftInstrument.class);
     private static final Map<String, URL> ALL_SOUND_LOCATIONS = new HashMap<>();
 
     static {
-        INSTRUMENT_SOUNDS.put(Instrument.HARP, "harp.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.BASS, "bass.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.BASS_DRUM, "bd.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.SNARE, "snare.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.HAT, "hat.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.GUITAR, "guitar.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.FLUTE, "flute.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.BELL, "bell.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.CHIME, "icechime.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.XYLOPHONE, "xylobone.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.IRON_XYLOPHONE, "iron_xylophone.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.COW_BELL, "cow_bell.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.DIDGERIDOO, "didgeridoo.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.BIT, "bit.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.BANJO, "banjo.ogg");
-        INSTRUMENT_SOUNDS.put(Instrument.PLING, "pling.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.HARP, "harp.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.BASS, "bass.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.BASS_DRUM, "bd.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.SNARE, "snare.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.HAT, "hat.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.GUITAR, "guitar.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.FLUTE, "flute.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.BELL, "bell.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.CHIME, "icechime.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.XYLOPHONE, "xylobone.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.IRON_XYLOPHONE, "iron_xylophone.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.COW_BELL, "cow_bell.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.DIDGERIDOO, "didgeridoo.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.BIT, "bit.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.BANJO, "banjo.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.PLING, "pling.ogg");
 
         reload(null);
     }
 
     public static void reload(final File customSoundsFolder) {
         ALL_SOUND_LOCATIONS.clear();
-        for (Map.Entry<Instrument, String> entry : INSTRUMENT_SOUNDS.entrySet()) {
+        for (Map.Entry<MinecraftInstrument, String> entry : INSTRUMENT_SOUNDS.entrySet()) {
             ALL_SOUND_LOCATIONS.put(entry.getValue(), SoundMap.class.getResource("/noteblock_sounds/" + entry.getValue()));
         }
 
@@ -82,17 +82,17 @@ public class SoundMap {
         }
     }
 
-    public static Map<String, byte[]> loadSoundData(final SongView<?> songView) {
+    public static Map<String, byte[]> loadSoundData(final Song song) {
         try {
             final Map<String, byte[]> soundData = new HashMap<>();
-            for (Instrument instrument : SongUtil.getUsedVanillaInstruments(songView)) {
+            for (MinecraftInstrument instrument : SongUtil.getUsedVanillaInstruments(song)) {
                 final String sound = INSTRUMENT_SOUNDS.get(instrument);
                 if (sound != null && ALL_SOUND_LOCATIONS.containsKey(sound)) {
                     soundData.put(sound, IOUtil.readFully(ALL_SOUND_LOCATIONS.get(sound).openStream()));
                 }
             }
-            for (NbsCustomInstrument customInstrument : SongUtil.getUsedCustomInstruments(songView)) {
-                final String fileName = customInstrument.getSoundFileName().replace(File.separatorChar, '/');
+            for (NbsCustomInstrument customInstrument : SongUtil.getUsedNbsCustomInstruments(song)) {
+                final String fileName = customInstrument.getSoundFilePathOr("").replace(File.separatorChar, '/');
                 if (ALL_SOUND_LOCATIONS.containsKey(fileName)) {
                     soundData.put(fileName, IOUtil.readFully(ALL_SOUND_LOCATIONS.get(fileName).openStream()));
                 }

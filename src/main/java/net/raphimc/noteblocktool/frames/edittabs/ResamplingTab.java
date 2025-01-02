@@ -18,10 +18,7 @@
 package net.raphimc.noteblocktool.frames.edittabs;
 
 import net.lenni0451.commons.swing.GBC;
-import net.raphimc.noteblocklib.format.nbs.NbsSong;
-import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
 import net.raphimc.noteblocklib.model.Song;
-import net.raphimc.noteblocklib.model.SongView;
 import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.elements.formatter.DoubleFormatterFactory;
 import net.raphimc.noteblocktool.frames.ListFrame;
@@ -32,9 +29,9 @@ import java.util.List;
 
 public class ResamplingTab extends EditTab {
 
-    private JCheckBox changeSpeedEnabled;
-    private JSpinner changeSpeedSpinner;
-    private JCheckBox precomputeNbsTempoChanges;
+    private JCheckBox changeTempoEnabled;
+    private JSpinner changeTempoSpinner;
+    private JCheckBox precomputeTempoEvents;
 
     public ResamplingTab(final List<ListFrame.LoadedSong> songs) {
         super("Resampling", songs);
@@ -44,14 +41,14 @@ public class ResamplingTab extends EditTab {
     protected void initComponents(JPanel center) {
         JPanel resampling = new JPanel();
         resampling.setLayout(new GridBagLayout());
-        resampling.setBorder(BorderFactory.createTitledBorder("Change speed"));
+        resampling.setBorder(BorderFactory.createTitledBorder("Change tempo"));
         center.add(resampling);
         GBC.create(resampling).grid(0, 0).insets(5, 5, 0, 5).width(2).anchor(GBC.LINE_START).add(new JCheckBox("Enabled"), checkBox -> {
-            this.changeSpeedEnabled = checkBox;
+            this.changeTempoEnabled = checkBox;
         });
-        GBC.create(resampling).grid(0, 1).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(html("New speed:"));
+        GBC.create(resampling).grid(0, 1).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(html("New tempo:"));
         GBC.create(resampling).grid(1, 1).insets(5, 5, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(new JSpinner(new SpinnerNumberModel(20D, 5D, 100D, 1D)), spinner -> {
-            this.changeSpeedSpinner = spinner;
+            this.changeTempoSpinner = spinner;
             ((JSpinner.DefaultEditor) spinner.getEditor()).getTextField().setFormatterFactory(new DoubleFormatterFactory(" TPS"));
         });
 
@@ -59,19 +56,19 @@ public class ResamplingTab extends EditTab {
         nbsTempoChanger.setLayout(new GridBagLayout());
         nbsTempoChanger.setBorder(BorderFactory.createTitledBorder("NBS tempo changer"));
         center.add(nbsTempoChanger);
-        GBC.create(nbsTempoChanger).grid(0, 0).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JCheckBox("Precompute NBS tempo changes"), checkBox -> {
-            this.precomputeNbsTempoChanges = checkBox;
+        GBC.create(nbsTempoChanger).grid(0, 0).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JCheckBox("Precompute NBS tempo changer"), checkBox -> {
+            this.precomputeTempoEvents = checkBox;
         });
-        GBC.create(nbsTempoChanger).grid(0, 1).insets(5, 5, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(html("Applies the undocumented tempo changers from Note Block Studio.This allows the song to be played in players which aren't handling those."));
+        GBC.create(nbsTempoChanger).grid(0, 1).insets(5, 5, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(html("Converts a song with dynamic tempo changes into one with a static tempo. This allows the song to be played in players which don't support dynamic tempo changes."));
     }
 
     @Override
-    public void apply(final Song<?, ?, ?> song, final SongView<?> view) {
-        if ((this.precomputeNbsTempoChanges.isSelected() || this.changeSpeedEnabled.isSelected()) && song instanceof NbsSong) {
-            SongResampler.applyNbsTempoChangers((NbsSong) song, (SongView<NbsNote>) view);
+    public void apply(final Song song) {
+        if (this.precomputeTempoEvents.isSelected()) {
+            SongResampler.precomputeTempoEvents(song);
         }
-        if (this.changeSpeedEnabled.isSelected()) {
-            SongResampler.changeTickSpeed(view, ((Double) this.changeSpeedSpinner.getValue()).floatValue());
+        if (this.changeTempoEnabled.isSelected()) {
+            SongResampler.changeTickSpeed(song, ((Double) this.changeTempoSpinner.getValue()).floatValue());
         }
     }
 

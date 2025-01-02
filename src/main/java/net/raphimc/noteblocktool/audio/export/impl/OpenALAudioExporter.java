@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.audio.export.impl;
 
-import net.raphimc.noteblocklib.model.SongView;
+import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
@@ -29,9 +29,18 @@ public class OpenALAudioExporter extends AudioExporter {
 
     private final OpenALSoundSystem soundSystem;
 
-    public OpenALAudioExporter(final SongView<?> songView, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
-        super(songView, format, masterVolume, progressConsumer);
-        this.soundSystem = OpenALSoundSystem.createCapture(SoundMap.loadSoundData(songView), 8192, format);
+    public OpenALAudioExporter(final Song song, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
+        super(song, format, masterVolume, progressConsumer);
+        this.soundSystem = OpenALSoundSystem.createCapture(SoundMap.loadSoundData(song), 8192, format);
+    }
+
+    @Override
+    public void render() throws InterruptedException {
+        try {
+            super.render();
+        } finally {
+            this.soundSystem.close();
+        }
     }
 
     @Override
@@ -45,14 +54,8 @@ public class OpenALAudioExporter extends AudioExporter {
     }
 
     @Override
-    protected void postTick() {
-        this.soundSystem.renderSamples(this.samples, this.samplesPerTick);
-        this.soundSystem.postTick();
-    }
-
-    @Override
-    protected void finish() {
-        this.soundSystem.close();
+    protected void mix(final int samplesPerTick) {
+        this.soundSystem.renderSamples(this.samples, samplesPerTick);
     }
 
 }

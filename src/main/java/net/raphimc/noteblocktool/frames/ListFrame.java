@@ -20,11 +20,7 @@ package net.raphimc.noteblocktool.frames;
 import net.lenni0451.commons.swing.GBC;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
-import net.raphimc.noteblocklib.format.mcsp.McSpSong;
-import net.raphimc.noteblocklib.format.nbs.NbsSong;
 import net.raphimc.noteblocklib.model.Song;
-import net.raphimc.noteblocklib.model.SongView;
-import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.TextOverlayPanel;
@@ -148,7 +144,7 @@ public class ListFrame extends JFrame {
                 final int[] rows = this.table.getSelectedRows();
                 if (rows.length == 1) {
                     final LoadedSong song = (LoadedSong) this.table.getValueAt(rows[0], 0);
-                    SongPlayerFrame.open(song);
+                    SongPlayerFrame.open(song.song());
                 }
             });
         });
@@ -228,9 +224,9 @@ public class ListFrame extends JFrame {
                     final File[] subFiles = file.listFiles();
                     if (subFiles != null) queue.addAll(Arrays.asList(subFiles));
                 } else if (file.isFile()) {
-                    if (this.loadedSongs.stream().anyMatch(s -> s.getFile().equals(file))) continue;
+                    if (this.loadedSongs.stream().anyMatch(s -> s.file().equals(file))) continue;
                     try {
-                        final Song<?, ?, ?> song = NoteBlockLib.readSong(file);
+                        final Song song = NoteBlockLib.readSong(file);
                         final LoadedSong loadedSong = new LoadedSong(file, song);
                         this.loadedSongs.add(loadedSong);
                         this.runSync(() -> {
@@ -239,7 +235,7 @@ public class ListFrame extends JFrame {
                             for (int i = 0; i < 5; i++) {
                                 int index = this.loadedSongs.size() - i - 1;
                                 if (index < 0) break;
-                                text.append(this.loadedSongs.get(index).getFile().getName()).append("\n");
+                                text.append(this.loadedSongs.get(index).file().getName()).append("\n");
                             }
                             if (text.toString().endsWith("\n")) text = new StringBuilder(text.substring(0, text.length() - 1));
                             this.textOverlayPanel.setText(text.toString());
@@ -281,81 +277,13 @@ public class ListFrame extends JFrame {
         }
     }
 
-
-    public static class LoadedSong {
-        private final File file;
-        private final Song<?, ?, ?> song;
-
-        public LoadedSong(final File file, final Song<?, ?, ?> song) {
-            this.file = file;
-            this.song = song;
-        }
-
-        public File getFile() {
-            return this.file;
-        }
-
-        public Song<?, ?, ?> getSong() {
-            return this.song;
-        }
-
-        public String getLength() {
-            return this.getLength(this.song.getView());
-        }
-
-        public String getLength(final SongView<?> view) {
-            int length = (int) Math.ceil(view.getLength() / view.getSpeed());
-            return String.format("%02d:%02d:%02d", length / 3600, (length / 60) % 60, length % 60);
-        }
-
-        public Optional<String> getAuthor() {
-            String author = "";
-            if (this.song instanceof NbsSong) {
-                final NbsSong nbsSong = (NbsSong) this.song;
-                author = nbsSong.getHeader().getAuthor();
-            } else if (this.song instanceof McSpSong) {
-                final McSpSong mcSpSong = (McSpSong) this.song;
-                author = mcSpSong.getHeader().getAuthor();
-            }
-            if (author.isEmpty()) return Optional.empty();
-            else return Optional.of(author);
-        }
-
-        public Optional<String> getOriginalAuthor() {
-            String originalAuthor = "";
-            if (this.song instanceof NbsSong) {
-                final NbsSong nbsSong = (NbsSong) this.song;
-                originalAuthor = nbsSong.getHeader().getOriginalAuthor();
-            } else if (this.song instanceof McSpSong) {
-                final McSpSong mcSpSong = (McSpSong) this.song;
-                originalAuthor = mcSpSong.getHeader().getOriginalAuthor();
-            }
-            if (originalAuthor.isEmpty()) return Optional.empty();
-            else return Optional.of(originalAuthor);
-        }
-
-        public Optional<String> getDescription() {
-            String description = "";
-            if (this.song instanceof NbsSong) {
-                final NbsSong nbsSong = (NbsSong) this.song;
-                description = nbsSong.getHeader().getDescription();
-            }
-            if (description.isEmpty()) return Optional.empty();
-            else return Optional.of(description);
-        }
-
-        public int getNoteCount() {
-            return this.getNoteCount(this.song.getView());
-        }
-
-        public int getNoteCount(final SongView<?> view) {
-            return (int) SongUtil.getNoteCount(view);
-        }
+    public record LoadedSong(File file, Song song) {
 
         @Override
         public String toString() {
             return this.file.getAbsolutePath();
         }
+
     }
 
 }

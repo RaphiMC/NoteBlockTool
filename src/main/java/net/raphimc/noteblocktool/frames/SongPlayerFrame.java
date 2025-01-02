@@ -19,46 +19,32 @@ package net.raphimc.noteblocktool.frames;
 
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
-import net.raphimc.noteblocklib.format.nbs.NbsSong;
-import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
-import net.raphimc.noteblocklib.format.nbs.model.NbsNote;
-import net.raphimc.noteblocklib.model.Note;
-import net.raphimc.noteblocklib.model.SongView;
-import net.raphimc.noteblocklib.player.FullNoteConsumer;
-import net.raphimc.noteblocklib.player.SongPlayerCallback;
-import net.raphimc.noteblocklib.util.Instrument;
-import net.raphimc.noteblocklib.util.SongResampler;
+import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.*;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
-import net.raphimc.noteblocktool.util.MonitoringSongPlayer;
+import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
 import java.text.DecimalFormat;
 import java.util.Map;
-import java.util.Optional;
 
-public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullNoteConsumer {
+public class SongPlayerFrame extends JFrame {
 
     private static final String UNAVAILABLE_MESSAGE = "An error occurred while initializing the sound system.\nPlease make sure that your system supports the selected sound system.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
     private static SongPlayerFrame instance;
     private static Point lastPosition;
     private static int lastSoundSystem;
-    private static int lastMaxSounds = 256;
+    private static int lastMaxSounds = 1024;
     private static int lastVolume = 50;
 
-    public static void open(final ListFrame.LoadedSong song) {
-        open(song, song.getSong().getView().clone());
-    }
-
-    public static void open(final ListFrame.LoadedSong song, final SongView<?> view) {
+    public static void open(final Song song) {
         if (instance != null && instance.isVisible()) {
             lastPosition = instance.getLocation();
             lastSoundSystem = instance.soundSystemComboBox.getSelectedIndex();
@@ -67,7 +53,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             instance.dispose();
         }
         SwingUtilities.invokeLater(() -> {
-            instance = new SongPlayerFrame(song, view);
+            instance = new SongPlayerFrame(song);
             if (lastPosition != null) instance.setLocation(lastPosition);
             instance.soundSystemComboBox.setSelectedIndex(lastSoundSystem);
             instance.maxSoundsSpinner.setValue(lastMaxSounds);
@@ -82,12 +68,12 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     }
 
 
-    private final ListFrame.LoadedSong song;
-    private final MonitoringSongPlayer songPlayer;
+    private final Song song;
+    private final SoundSystemSongPlayer songPlayer;
     private final Timer updateTimer;
     private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"AudioMixer", "OpenAL", "Un4seen BASS", "AudioMixer multithreaded (experimental)", "XAudio2 (Windows 10+ only)"});
-    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(256, 64, 40960, 64));
-    private final JSlider volumeSlider = new JSlider(0, 100, 50);
+    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(lastMaxSounds, 64, 40960, 64));
+    private final JSlider volumeSlider = new JSlider(0, 100, lastVolume);
     private final JButton playStopButton = new JButton("Play");
     private final JButton pauseResumeButton = new JButton("Pause");
     private final JSlider progressSlider = new JSlider(0, 100, 0);
@@ -95,13 +81,13 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
     private final JLabel progressLabel = new JLabel("Current Position: 00:00:00");
     private SoundSystem soundSystem;
 
-    private SongPlayerFrame(final ListFrame.LoadedSong song, final SongView<?> view) {
+    private SongPlayerFrame(final Song song) {
         this.song = song;
-        this.songPlayer = new MonitoringSongPlayer(this.getSongView(view), this);
+        this.songPlayer = new SoundSystemSongPlayer(song);
         this.updateTimer = new Timer(50, e -> this.tick());
         this.updateTimer.start();
 
-        this.setTitle("NoteBlockTool Song Player - " + this.songPlayer.getSongView().getTitle());
+        this.setTitle("NoteBlockTool Song Player - " + song.getTitleOrFileNameOr("No Title"));
         this.setIconImage(new ImageIcon(this.getClass().getResource("/icon.png")).getImage());
         this.setSize(500, 400);
         this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -111,13 +97,6 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
         this.initFrameHandler();
 
         this.setMinimumSize(this.getSize());
-    }
-
-    private SongView<?> getSongView(final SongView<?> view) {
-        if (this.song.getSong() instanceof NbsSong) {
-            SongResampler.applyNbsTempoChangers(((NbsSong) this.song.getSong()), (SongView<NbsNote>) view);
-        }
-        return view;
     }
 
     private void initComponents() {
@@ -162,34 +141,31 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
 
             int gridy = 0;
             GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Title:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.songPlayer.getSongView().getTitle()));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getTitleOrFileNameOr("No Title")));
 
-            Optional<String> author = this.song.getAuthor();
-            if (author.isPresent()) {
+            if (this.song.getAuthor() != null) {
                 GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Author:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(author.get()));
+                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getAuthor()));
             }
 
-            Optional<String> originalAuthor = this.song.getOriginalAuthor();
-            if (originalAuthor.isPresent()) {
+            if (this.song.getOriginalAuthor() != null) {
                 GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Original Author:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(originalAuthor.get()));
+                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getOriginalAuthor()));
             }
 
-            Optional<String> description = this.song.getDescription();
-            if (description.isPresent()) {
+            if (this.song.getDescription() != null) {
                 GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Description:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(description.get()));
+                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getDescription()));
             }
 
             GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Length:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getLength(this.songPlayer.getSongView())));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getHumanReadableLength()));
 
             GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Note count:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(DECIMAL_FORMAT.format(this.song.getNoteCount(this.songPlayer.getSongView()))));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(DECIMAL_FORMAT.format(this.song.getNotes().getNoteCount())));
 
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Speed:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(DECIMAL_FORMAT.format(this.songPlayer.getSongView().getSpeed())));
+            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Tempo:"));
+            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getTempoEvents().getHumanReadableTempoRange() + " TPS"));
 
             GBC.fillVerticalSpace(centerPanel);
         }
@@ -206,8 +182,11 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
                     //Skip updates if the value is set directly
                     if (!this.progressSlider.getValueIsAdjusting()) return;
                     if (!this.songPlayer.isRunning()) {
-                        this.songPlayer.play();
-                        this.songPlayer.setPaused(true);
+                        if (this.initSoundSystem()) {
+                            this.soundSystem.setMasterVolume(this.volumeSlider.getValue() / 100F);
+                            this.songPlayer.start(this.soundSystem);
+                            this.songPlayer.setPaused(true);
+                        }
                     }
                     this.songPlayer.setTick(this.progressSlider.getValue());
                 });
@@ -224,7 +203,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
                 } else {
                     if (this.initSoundSystem()) {
                         this.soundSystem.setMasterVolume(this.volumeSlider.getValue() / 100F);
-                        this.songPlayer.play();
+                        this.songPlayer.start(this.soundSystem);
                     }
                 }
             });
@@ -269,17 +248,17 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             if (this.soundSystem == null || this.soundSystemComboBox.getSelectedIndex() != currentIndex || this.soundSystem.getMaxSounds() != (int) this.maxSoundsSpinner.getValue()) {
                 if (this.soundSystem != null) this.soundSystem.close();
 
-                final Map<String, byte[]> soundData = SoundMap.loadSoundData(this.songPlayer.getSongView());
+                final Map<String, byte[]> soundData = SoundMap.loadSoundData(this.songPlayer.getSong());
                 final int maxSounds = ((Number) this.maxSoundsSpinner.getValue()).intValue();
 
                 if (this.soundSystemComboBox.getSelectedIndex() == 0) {
-                    this.soundSystem = new AudioMixerSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
+                    this.soundSystem = new AudioMixerSoundSystem(soundData, maxSounds);
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 1) {
                     this.soundSystem = OpenALSoundSystem.createPlayback(soundData, maxSounds);
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 2) {
                     this.soundSystem = BassSoundSystem.createPlayback(soundData, maxSounds);
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 3) {
-                    this.soundSystem = new MultithreadedAudioMixerSoundSystem(soundData, maxSounds, this.songPlayer.getSongView().getSpeed());
+                    this.soundSystem = new MultithreadedAudioMixerSoundSystem(soundData, maxSounds);
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 4) {
                     this.soundSystem = new XAudio2SoundSystem(soundData, maxSounds);
                 } else {
@@ -321,7 +300,7 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             if (this.songPlayer.isPaused()) this.pauseResumeButton.setText("Resume");
             else this.pauseResumeButton.setText("Pause");
 
-            int tickCount = this.songPlayer.getSongView().getLength();
+            int tickCount = this.songPlayer.getSong().getNotes().getLengthInTicks();
             if (this.progressSlider.getMaximum() != tickCount) this.progressSlider.setMaximum(tickCount);
             this.progressSlider.setValue(this.songPlayer.getTick());
             this.statusLine.setText(this.soundSystem.getStatusLine() + ", Song Player CPU Load: " + (int) (this.songPlayer.getCpuLoad() * 100) + "%");
@@ -335,25 +314,8 @@ public class SongPlayerFrame extends JFrame implements SongPlayerCallback, FullN
             this.statusLine.setText(" ");
         }
 
-        int msLength = (int) (this.songPlayer.getTick() / this.songPlayer.getSongView().getSpeed());
-        this.progressLabel.setText("Current Position: " + String.format("%02d:%02d:%02d", msLength / 3600, (msLength / 60) % 60, msLength % 60));
-    }
-
-    @Override
-    public void playNote(Instrument instrument, float pitch, float volume, float panning) {
-        this.soundSystem.playSound(SoundMap.INSTRUMENT_SOUNDS.get(instrument), pitch, volume, panning);
-    }
-
-    @Override
-    public void playCustomNote(NbsCustomInstrument customInstrument, float pitch, float volume, float panning) {
-        this.soundSystem.playSound(customInstrument.getSoundFileName().replace(File.separatorChar, '/'), pitch, volume, panning);
-    }
-
-    @Override
-    public void playNotes(java.util.List<? extends Note> notes) {
-        this.soundSystem.preTick();
-        for (Note note : notes) this.playNote(note);
-        this.soundSystem.postTick();
+        final int seconds = (int) Math.ceil(this.songPlayer.getSong().tickToMilliseconds(this.songPlayer.getTick()) / 1000F);
+        this.progressLabel.setText("Current Position: " + String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60));
     }
 
 }
