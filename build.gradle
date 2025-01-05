@@ -35,11 +35,11 @@ dependencies {
     include "net.lenni0451.commons:swing:1.6.1"
     include "org.lwjgl:lwjgl:3.3.5"
     include "org.lwjgl:lwjgl-openal:3.3.6"
-    include "org.lwjgl:lwjgl-stb:3.3.5"
+    include "org.lwjgl:lwjgl-stb:3.3.6"
     ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64", "natives-macos", "natives-macos-arm64"].each {
         include "org.lwjgl:lwjgl:3.3.5:$it"
         include "org.lwjgl:lwjgl-openal:3.3.6:$it"
-        include "org.lwjgl:lwjgl-stb:3.3.5:$it"
+        include "org.lwjgl:lwjgl-stb:3.3.6:$it"
     }
     include "net.java.dev.jna:jna:5.16.0"
 }
