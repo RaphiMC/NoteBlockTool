@@ -89,7 +89,7 @@ public abstract class AudioExporter extends SongPlayer {
     }
 
     @Override
-    protected void createTickTask() {
+    protected void createTickTask(final long initialDelay) {
     }
 
     protected abstract void processSound(final String sound, final float pitch, final float volume, final float panning);

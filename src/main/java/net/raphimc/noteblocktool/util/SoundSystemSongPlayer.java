@@ -50,8 +50,8 @@ public class SoundSystemSongPlayer extends SongPlayer {
     }
 
     @Override
-    protected void createTickTask() {
-        super.createTickTask();
+    protected void createTickTask(final long initialDelay) {
+        super.createTickTask(initialDelay);
         if (this.soundSystem instanceof AudioMixerSoundSystem audioMixerSoundSystem) {
             audioMixerSoundSystem.updateMixSliceSize(this.getCurrentTicksPerSecond());
         }
