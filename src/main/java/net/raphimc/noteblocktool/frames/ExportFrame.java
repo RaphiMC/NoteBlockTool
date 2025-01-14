@@ -23,7 +23,7 @@ import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
 import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocklib.NoteBlockLib;
-import net.raphimc.noteblocklib.format.nbs.NbsConverter;
+import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.export.LameLibrary;
@@ -59,7 +59,7 @@ public class ExportFrame extends JFrame {
 
     private final ListFrame parent;
     private final List<ListFrame.LoadedSong> loadedSongs;
-    private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "MP3 (Using LAME encoder)", "WAV", "AIF"});
+    private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "MCSP2", "TXT", "MP3 (Using LAME encoder)", "WAV", "AIF"});
     private final JLabel soundSystemLabel = new JLabel("Sound System:");
     private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (best sound quality, fastest)", "AudioMixer", "AudioMixer (global normalized)", "Un4seen BASS"});
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
@@ -152,8 +152,8 @@ public class ExportFrame extends JFrame {
     }
 
     private void updateVisibility() {
-        final boolean isAudioFile = this.format.getSelectedIndex() != 0;
-        final boolean isMp3 = this.format.getSelectedIndex() == 1;
+        final boolean isAudioFile = this.format.getSelectedIndex() >= 3;
+        final boolean isMp3 = this.format.getSelectedIndex() == 3;
 
         this.soundSystemLabel.setVisible(isAudioFile);
         this.soundSystem.setVisible(isAudioFile);
@@ -258,8 +258,8 @@ public class ExportFrame extends JFrame {
     }
 
     private void doExport(final File outFile) {
-        final boolean isAudioFile = this.format.getSelectedIndex() != 0;
-        final boolean isMp3 = this.format.getSelectedIndex() == 1;
+        final boolean isAudioFile = this.format.getSelectedIndex() >= 3;
+        final boolean isMp3 = this.format.getSelectedIndex() == 3;
         final boolean bassSoundSystem = this.soundSystem.getSelectedIndex() == 3;
         final AudioFormat format = new AudioFormat(
                 ((Number) this.sampleRate.getValue()).floatValue(),
@@ -395,7 +395,11 @@ public class ExportFrame extends JFrame {
 
     private void exportSong(final ListFrame.LoadedSong song, final AudioFormat format, final File file, final Consumer<Float> progressConsumer) throws InterruptedException, IOException {
         if (this.format.getSelectedIndex() == 0) {
-            this.writeNbsSong(song, file);
+            this.writeSong(song, file, SongFormat.NBS);
+        } else if (this.format.getSelectedIndex() == 1) {
+            this.writeSong(song, file, SongFormat.MCSP2);
+        } else if (this.format.getSelectedIndex() == 2) {
+            this.writeSong(song, file, SongFormat.TXT);
         } else {
             final AudioExporter exporter;
             if (this.soundSystem.getSelectedIndex() == 0) {
@@ -413,12 +417,12 @@ public class ExportFrame extends JFrame {
             exporter.render();
             final byte[] samples = SoundIO.writeSamples(exporter.getSamples(), format);
 
-            if (this.format.getSelectedIndex() == 2 || this.format.getSelectedIndex() == 3) {
+            if (this.format.getSelectedIndex() == 4 || this.format.getSelectedIndex() == 5) {
                 progressConsumer.accept(10F);
                 final AudioInputStream audioInputStream = new AudioInputStream(new ByteArrayInputStream(samples), format, samples.length);
-                AudioSystem.write(audioInputStream, this.format.getSelectedIndex() == 2 ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);
+                AudioSystem.write(audioInputStream, this.format.getSelectedIndex() == 4 ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);
                 audioInputStream.close();
-            } else if (this.format.getSelectedIndex() == 1) {
+            } else if (this.format.getSelectedIndex() == 3) {
                 progressConsumer.accept(2F);
                 final FileOutputStream fos = new FileOutputStream(file);
                 final int numSamples = samples.length / format.getFrameSize();
@@ -458,9 +462,9 @@ public class ExportFrame extends JFrame {
         }
     }
 
-    private void writeNbsSong(final ListFrame.LoadedSong song, final File file) {
+    private void writeSong(final ListFrame.LoadedSong song, final File file, final SongFormat format) {
         try {
-            final Song exportSong = NbsConverter.createSong(song.song());
+            final Song exportSong = NoteBlockLib.convertSong(song.song(), format);
             NoteBlockLib.writeSong(exportSong, file);
         } catch (Throwable t) {
             t.printStackTrace();
