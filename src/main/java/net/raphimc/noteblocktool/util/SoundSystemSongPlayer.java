@@ -50,6 +50,12 @@ public class SoundSystemSongPlayer extends SongPlayer {
     }
 
     @Override
+    public void stop() {
+        super.stop();
+        this.soundSystem.stopSounds();
+    }
+
+    @Override
     protected void createTickTask(final long initialDelay) {
         super.createTickTask(initialDelay);
         if (this.soundSystem instanceof AudioMixerSoundSystem audioMixerSoundSystem) {

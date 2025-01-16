@@ -199,7 +199,6 @@ public class SongPlayerFrame extends JFrame {
                 if (this.songPlayer.isRunning()) {
                     this.songPlayer.stop();
                     this.songPlayer.setTick(0);
-                    if (this.soundSystem != null) this.soundSystem.stopSounds();
                 } else {
                     if (this.initSoundSystem()) {
                         this.soundSystem.setMasterVolume(this.volumeSlider.getValue() / 100F);
