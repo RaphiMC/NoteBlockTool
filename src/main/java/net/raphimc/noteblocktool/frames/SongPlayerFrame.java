@@ -313,7 +313,7 @@ public class SongPlayerFrame extends JFrame {
             this.statusLine.setText(" ");
         }
 
-        final int seconds = (int) Math.ceil(this.songPlayer.getSong().tickToMilliseconds(this.songPlayer.getTick()) / 1000F);
+        final int seconds = (int) Math.ceil(this.songPlayer.getMillisecondPosition() / 1000F);
         this.progressLabel.setText("Current Position: " + String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60));
     }
 
