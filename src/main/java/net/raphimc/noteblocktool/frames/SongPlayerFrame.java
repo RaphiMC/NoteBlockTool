@@ -25,6 +25,7 @@ import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.*;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
+import net.raphimc.noteblocktool.frames.visualizer.VisualizerWindow;
 import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
 
 import javax.swing.*;
@@ -58,6 +59,7 @@ public class SongPlayerFrame extends JFrame {
             instance.soundSystemComboBox.setSelectedIndex(lastSoundSystem);
             instance.maxSoundsSpinner.setValue(lastMaxSounds);
             instance.volumeSlider.setValue(lastVolume);
+            VisualizerWindow.getInstance().open(instance.songPlayer);
             instance.playStopButton.doClick(0);
             instance.setVisible(true);
         });
@@ -285,6 +287,7 @@ public class SongPlayerFrame extends JFrame {
             public void windowClosed(WindowEvent e) {
                 SongPlayerFrame.this.songPlayer.stop();
                 SongPlayerFrame.this.updateTimer.stop();
+                VisualizerWindow.getInstance().hide();
                 if (SongPlayerFrame.this.soundSystem != null) SongPlayerFrame.this.soundSystem.close();
             }
         });

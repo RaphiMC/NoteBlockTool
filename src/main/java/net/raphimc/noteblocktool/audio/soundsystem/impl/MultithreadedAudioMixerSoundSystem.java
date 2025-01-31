@@ -100,7 +100,7 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
     }
 
     @Override
-    public synchronized String getStatusLine() {
+    public String getStatusLine() {
         int mixedSounds = 0;
         for (AudioMixer audioMixer : this.audioMixers) {
             mixedSounds += audioMixer.getMasterMixSound().getMixedSounds();

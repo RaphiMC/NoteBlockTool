@@ -80,7 +80,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
     }
 
     @Override
-    public synchronized String getStatusLine() {
+    public String getStatusLine() {
         return "Sounds: " + this.audioMixer.getMasterMixSound().getMixedSounds() + " / " + this.maxSounds;
     }
 

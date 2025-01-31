@@ -34,6 +34,7 @@ public class SoundSystemSongPlayer extends SongPlayer {
     private SoundSystem soundSystem;
     private long availableNanosPerTick;
     private long neededNanosPerTick;
+    private long lastTickTime;
 
     public SoundSystemSongPlayer(final Song song) {
         super(song);
@@ -65,6 +66,7 @@ public class SoundSystemSongPlayer extends SongPlayer {
 
     @Override
     protected void tick() {
+        this.lastTickTime = System.nanoTime();
         this.availableNanosPerTick = (long) (1_000_000_000L / this.getCurrentTicksPerSecond());
         final long start = System.nanoTime();
         super.tick();
@@ -99,6 +101,14 @@ public class SoundSystemSongPlayer extends SongPlayer {
 
     public float getCpuLoad() {
         return (float) this.neededNanosPerTick / this.availableNanosPerTick;
+    }
+
+    public long getLastTickTime() {
+        return this.lastTickTime;
+    }
+
+    public SoundSystem getSoundSystem() {
+        return this.soundSystem;
     }
 
 }
