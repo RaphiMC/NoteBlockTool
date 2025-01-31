@@ -53,6 +53,10 @@ public class DropRenderer {
     private static final float BLACK_KEY_WIDTH_RATIO = 0.6F;
     private static final float BLACK_KEY_HEIGHT_RATIO = 0.6F;
     private static final float PIANO_HEIGHT_DIVIDER = 7F;
+    private static final int KEY_LINE_HEIGHT = 2;
+    private static final int KEY_LINE_OFFSET = 25;
+    private static final int KEY_PRESS_DEPTH = 20;
+    private static final long KEY_ANIMATION_DURATION = 250_000_000L;
 
     private final SoundSystemSongPlayer songPlayer;
     private Font robotoFont;
@@ -207,7 +211,12 @@ public class DropRenderer {
                     Renderer2D.INSTANCE.filledRect(positionMatrix, x, y, x + noteSize, y + noteSize, Color.WHITE.withAlphaF(alpha));
                 }
                 if (tick == currentTick) {
-                    this.pianoKeyLastPlayed[nbsKey] = System.nanoTime();
+                    final long currentTime = System.nanoTime();
+                    if (currentTime - this.pianoKeyLastPlayed[nbsKey] < currentTime + KEY_ANIMATION_DURATION / 2) {
+                        this.pianoKeyLastPlayed[nbsKey] = currentTime - KEY_ANIMATION_DURATION / 2;
+                    } else {
+                        this.pianoKeyLastPlayed[nbsKey] = System.nanoTime();
+                    }
                 }
                 this.renderedNotes++;
             }
@@ -226,20 +235,22 @@ public class DropRenderer {
 
         for (int nbsKey = 0; nbsKey < this.pianoKeyPositions.length; nbsKey++) {
             final float x = this.pianoKeyPositions[nbsKey];
+            final float progress = this.pianoKeyLastColors[nbsKey] != null ? MathUtils.clamp((System.nanoTime() - this.pianoKeyLastPlayed[nbsKey]) / (float) KEY_ANIMATION_DURATION, 0F, 1F) : 1F;
+            final float pressOffset = KEY_PRESS_DEPTH - KEY_PRESS_DEPTH * (progress < 0.5F ? 1F - progress : progress);
             if (!this.isBlackKey(nbsKey)) {
-                Renderer2D.INSTANCE.filledRect(positionMatrix, x + 1, 0, x + whiteKeyWidth - 1, height, Color.WHITE);
+                Renderer2D.INSTANCE.filledRect(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, Color.WHITE);
                 if (this.pianoKeyLastColors[nbsKey] != null) {
-                    final float alpha = 1F - MathUtils.clamp((System.nanoTime() - this.pianoKeyLastPlayed[nbsKey]) / 500_000_000F, 0F, 1F);
-                    Renderer2D.INSTANCE.filledRect(positionMatrix, x + 1, 0, x + whiteKeyWidth - 1, height, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(200 * alpha)));
+                    Renderer2D.INSTANCE.filledRect(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(200 * (1 - progress))));
                 }
+                Renderer2D.INSTANCE.filledRect(positionMatrix, x, height - KEY_LINE_OFFSET + pressOffset, x + whiteKeyWidth, height - KEY_LINE_OFFSET - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
             } else {
                 positionMatrix.pushMatrix();
                 positionMatrix.translate(0, 0, 1);
-                Renderer2D.INSTANCE.filledRect(positionMatrix, x, 0, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, Color.BLACK);
+                Renderer2D.INSTANCE.filledRect(positionMatrix, x, pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, Color.BLACK);
                 if (this.pianoKeyLastColors[nbsKey] != null) {
-                    final float alpha = 1F - MathUtils.clamp((System.nanoTime() - this.pianoKeyLastPlayed[nbsKey]) / 500_000_000F, 0F, 1F);
-                    Renderer2D.INSTANCE.filledRect(positionMatrix, x, 0, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(200 * alpha)));
+                    Renderer2D.INSTANCE.filledRect(positionMatrix, x, pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(200 * (1 - progress))));
                 }
+                Renderer2D.INSTANCE.filledRect(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - KEY_LINE_OFFSET + pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - KEY_LINE_OFFSET - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
                 positionMatrix.popMatrix();
             }
         }
