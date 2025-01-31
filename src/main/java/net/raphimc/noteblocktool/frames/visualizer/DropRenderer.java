@@ -54,8 +54,8 @@ public class DropRenderer {
     private static final float BLACK_KEY_HEIGHT_RATIO = 0.6F;
     private static final float PIANO_HEIGHT_DIVIDER = 7F;
     private static final int KEY_LINE_HEIGHT = 2;
-    private static final int KEY_LINE_OFFSET = 25;
-    private static final int KEY_PRESS_DEPTH = 20;
+    private static final float KEY_LINE_OFFSET_RATIO = 11.6F;
+    private static final float KEY_PRESS_DEPTH_RATIO = 14.5F;
     private static final long KEY_ANIMATION_DURATION = 250_000_000L;
 
     private final SoundSystemSongPlayer songPlayer;
@@ -233,16 +233,17 @@ public class DropRenderer {
         Renderer2D.INSTANCE.beginGlobalBuffering();
         Renderer2D.INSTANCE.filledRect(positionMatrix, 0, 0, width, height, Color.BLACK);
 
+        final float keyLineOffset = height / KEY_LINE_OFFSET_RATIO;
         for (int nbsKey = 0; nbsKey < this.pianoKeyPositions.length; nbsKey++) {
             final float x = this.pianoKeyPositions[nbsKey];
             final float progress = this.pianoKeyLastColors[nbsKey] != null ? MathUtils.clamp((System.nanoTime() - this.pianoKeyLastPlayed[nbsKey]) / (float) KEY_ANIMATION_DURATION, 0F, 1F) : 1F;
-            final float pressOffset = KEY_PRESS_DEPTH - KEY_PRESS_DEPTH * (progress < 0.5F ? 1F - progress : progress);
+            final float pressOffset = height / KEY_PRESS_DEPTH_RATIO - height / KEY_PRESS_DEPTH_RATIO * (progress < 0.5F ? 1F - progress : progress);
             if (!this.isBlackKey(nbsKey)) {
                 Renderer2D.INSTANCE.filledRect(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, Color.WHITE);
                 if (this.pianoKeyLastColors[nbsKey] != null) {
                     Renderer2D.INSTANCE.filledRect(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(200 * (1 - progress))));
                 }
-                Renderer2D.INSTANCE.filledRect(positionMatrix, x, height - KEY_LINE_OFFSET + pressOffset, x + whiteKeyWidth, height - KEY_LINE_OFFSET - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
+                Renderer2D.INSTANCE.filledRect(positionMatrix, x, height - keyLineOffset + pressOffset, x + whiteKeyWidth, height - keyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
             } else {
                 positionMatrix.pushMatrix();
                 positionMatrix.translate(0, 0, 1);
@@ -250,7 +251,7 @@ public class DropRenderer {
                 if (this.pianoKeyLastColors[nbsKey] != null) {
                     Renderer2D.INSTANCE.filledRect(positionMatrix, x, pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(200 * (1 - progress))));
                 }
-                Renderer2D.INSTANCE.filledRect(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - KEY_LINE_OFFSET + pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - KEY_LINE_OFFSET - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
+                Renderer2D.INSTANCE.filledRect(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - keyLineOffset + pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - keyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
                 positionMatrix.popMatrix();
             }
         }
