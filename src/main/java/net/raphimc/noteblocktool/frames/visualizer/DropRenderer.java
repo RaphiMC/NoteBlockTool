@@ -55,7 +55,8 @@ public class DropRenderer {
     private static final float BLACK_KEY_HEIGHT_RATIO = 0.6F;
     private static final float PIANO_HEIGHT_DIVIDER = 7F;
     private static final int KEY_LINE_HEIGHT = 2;
-    private static final float KEY_LINE_OFFSET_RATIO = 11.6F;
+    private static final float WHITE_KEY_LINE_OFFSET_RATIO = 18F;
+    private static final float BLACK_KEY_LINE_OFFSET_RATIO = 12F;
     private static final float KEY_PRESS_DEPTH_RATIO = 14.5F;
     private static final int PRESSED_KEY_COLOR_ALPHA = 175;
     private static final long KEY_ANIMATION_DURATION = 250_000_000L;
@@ -232,7 +233,8 @@ public class DropRenderer {
 
         Renderer2D.INSTANCE.beginGlobalBuffering();
 
-        final float keyLineOffset = height / KEY_LINE_OFFSET_RATIO;
+        final float whiteKeyLineOffset = height / WHITE_KEY_LINE_OFFSET_RATIO;
+        final float blackKeyLineOffset = height / BLACK_KEY_LINE_OFFSET_RATIO;
         for (int nbsKey = 0; nbsKey < this.pianoKeyPositions.length; nbsKey++) {
             final float x = this.pianoKeyPositions[nbsKey];
             final float progress = this.pianoKeyLastColors[nbsKey] != null ? MathUtils.clamp((System.nanoTime() - this.pianoKeyLastPlayed[nbsKey]) / (float) KEY_ANIMATION_DURATION, 0F, 1F) : 1F;
@@ -246,11 +248,11 @@ public class DropRenderer {
                 if (this.pianoKeyLastColors[nbsKey] != null) {
                     Renderer2D.INSTANCE.filledRect(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
                 }
-                Renderer2D.INSTANCE.filledRect(positionMatrix, x, height - keyLineOffset + pressOffset, x + whiteKeyWidth, height - keyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
+                Renderer2D.INSTANCE.filledRect(positionMatrix, x, height - whiteKeyLineOffset + pressOffset, x + whiteKeyWidth, height - whiteKeyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
 
                 this.textRenderer.setGlobalScale(ThinGL.getWindowFramebufferWidth() / 2745F); // 0,7
                 final float nameWidth = this.textRenderer.calculateWidth(noteName);
-                this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, this.getNoteName(nbsKey), x + whiteKeyWidth / 2 - nameWidth / 2, height - keyLineOffset - KEY_LINE_HEIGHT + pressOffset - this.textRenderer.getPaddedHeight(), 0, Color.BLACK);
+                this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, this.getNoteName(nbsKey), x + whiteKeyWidth / 2 - nameWidth / 2, height - whiteKeyLineOffset - KEY_LINE_HEIGHT + pressOffset - this.textRenderer.getPaddedHeight(), 0, Color.BLACK);
                 this.textRenderer.setGlobalScale(1F);
             } else {
                 positionMatrix.pushMatrix();
@@ -260,11 +262,11 @@ public class DropRenderer {
                 if (this.pianoKeyLastColors[nbsKey] != null) {
                     Renderer2D.INSTANCE.filledRect(positionMatrix, x, pressOffset - height / KEY_PRESS_DEPTH_RATIO / 2, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
                 }
-                Renderer2D.INSTANCE.filledRect(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - keyLineOffset + pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - keyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
+                Renderer2D.INSTANCE.filledRect(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
 
                 this.textRenderer.setGlobalScale(ThinGL.getWindowFramebufferWidth() / 4000F); // 0,48
                 final float nameWidth = this.textRenderer.calculateWidth(noteName);
-                this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, this.getNoteName(nbsKey), x + blackKeyWidth / 2 - nameWidth / 2, height * BLACK_KEY_HEIGHT_RATIO - keyLineOffset - KEY_LINE_HEIGHT + pressOffset - this.textRenderer.getPaddedHeight(), 0, Color.WHITE);
+                this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, this.getNoteName(nbsKey), x + blackKeyWidth / 2 - nameWidth / 2, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset - KEY_LINE_HEIGHT + pressOffset - this.textRenderer.getPaddedHeight(), 0, Color.WHITE);
                 this.textRenderer.setGlobalScale(1F);
 
                 positionMatrix.popMatrix();
