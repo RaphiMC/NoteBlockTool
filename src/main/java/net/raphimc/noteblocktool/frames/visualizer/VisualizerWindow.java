@@ -86,6 +86,7 @@ public class VisualizerWindow {
             GL11C.glEnable(GL11C.GL_DEPTH_TEST);
             GL11C.glDepthFunc(GL11C.GL_LEQUAL);
             final TextureFramebuffer mainFramebuffer = new TextureFramebuffer();
+            mainFramebuffer.setClearColor(0.5F, 0.5F, 0.5F, 0.5F);
             final Matrix4fStack positionMatrix = new Matrix4fStack(8);
 
             while (/*!GLFW.glfwWindowShouldClose(this.window)*/true) {
@@ -98,6 +99,7 @@ public class VisualizerWindow {
                 }
                 positionMatrix.popMatrix();
 
+                mainFramebuffer.unbind();
                 mainFramebuffer.blitTo(WindowFramebuffer.INSTANCE, true, false, false);
                 ThinGL.endFrame();
                 GLFW.glfwSwapBuffers(this.window);

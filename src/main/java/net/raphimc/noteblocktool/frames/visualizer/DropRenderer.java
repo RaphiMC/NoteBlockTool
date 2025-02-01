@@ -128,8 +128,6 @@ public class DropRenderer {
         this.pianoKeyLastPlayed = new long[PIANO_KEY_COUNT];
         this.pianoKeyLastColors = new Color[PIANO_KEY_COUNT];
         this.lastFpsUpdateTime = System.nanoTime();
-        final float[] clearColor = Color.GRAY.toRGBAF();
-        ThinGL.getImplementation().getCurrentFramebuffer().setClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
     }
 
     public void delete() {
