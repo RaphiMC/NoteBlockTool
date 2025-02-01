@@ -41,7 +41,8 @@ import org.lwjgl.opengl.GL11C;
 
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.EnumMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 
 public class DropRenderer {
@@ -98,7 +99,7 @@ public class DropRenderer {
             Sneaky.sneak(e);
         }
 
-        this.instrumentColors = new HashMap<>();
+        this.instrumentColors = new EnumMap<>(MinecraftInstrument.class);
         this.instrumentColors.put(MinecraftInstrument.HARP, Color.BLUE);
         this.instrumentColors.put(MinecraftInstrument.BASS, Color.GREEN.darker(0.6F));
         this.instrumentColors.put(MinecraftInstrument.BASS_DRUM, Color.fromRGB(150, 0, 0));
@@ -116,7 +117,7 @@ public class DropRenderer {
         this.instrumentColors.put(MinecraftInstrument.BANJO, Color.RED.darker());
         this.instrumentColors.put(MinecraftInstrument.PLING, Color.DARK_GRAY);
 
-        this.customInstrumentColors = new HashMap<>();
+        this.customInstrumentColors = new IdentityHashMap<>();
         final NbsCustomInstrument[] customInstruments = SongUtil.getUsedNbsCustomInstruments(this.songPlayer.getSong()).toArray(NbsCustomInstrument[]::new);
         final float slice = 1F / (customInstruments.length + 1);
         for (int i = 0; i < customInstruments.length; i++) {
