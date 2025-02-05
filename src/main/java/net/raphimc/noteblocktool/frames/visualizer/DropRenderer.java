@@ -31,11 +31,11 @@ import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
 import net.raphimc.thingl.ThinGL;
 import net.raphimc.thingl.renderer.impl.Renderer2D;
-import net.raphimc.thingl.renderer.text.Font;
 import net.raphimc.thingl.renderer.text.SDFTextRenderer;
 import net.raphimc.thingl.resource.texture.AbstractTexture;
 import net.raphimc.thingl.resource.texture.Texture2D;
 import net.raphimc.thingl.util.GlobalObjects;
+import net.raphimc.thingl.util.font.Font;
 import org.joml.Matrix4fStack;
 import org.lwjgl.opengl.GL11C;
 
@@ -169,7 +169,7 @@ public class DropRenderer {
         final float whiteKeyWidth = (float) width / WHITE_PIANO_KEY_COUNT;
         final float blackKeyWidth = whiteKeyWidth * BLACK_KEY_WIDTH_RATIO;
         final float noteSize = 16 * Math.max(1, width / 960);
-        final float noteSquishFactor = 1.5F;
+        final float noteSquishFactor = 1F;
 
         final Song song = this.songPlayer.getSong();
         final int tickWindow = MathUtils.ceilInt(height / (noteSize / noteSquishFactor));
@@ -242,13 +242,13 @@ public class DropRenderer {
             final float pressOffset = height / KEY_PRESS_DEPTH_RATIO - height / KEY_PRESS_DEPTH_RATIO * (progress < 0.5F ? 1F - progress : progress);
             final String noteName = this.getNoteName(nbsKey);
             if (!this.isBlackKey(nbsKey)) {
-                Renderer2D.INSTANCE.filledRectangle(positionMatrix, x, pressOffset, x + 1, height, Color.BLACK);
-                Renderer2D.INSTANCE.filledRectangle(positionMatrix, x + whiteKeyWidth - 1, pressOffset, x + whiteKeyWidth, height, Color.BLACK);
                 Renderer2D.INSTANCE.filledRectangle(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, Color.WHITE);
                 if (this.pianoKeyLastColors[nbsKey] != null) {
                     Renderer2D.INSTANCE.filledRectangle(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
                 }
                 Renderer2D.INSTANCE.filledRectangle(positionMatrix, x, height - whiteKeyLineOffset + pressOffset, x + whiteKeyWidth, height - whiteKeyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
+                Renderer2D.INSTANCE.filledRectangle(positionMatrix, x, pressOffset, x + 1, height, Color.BLACK);
+                Renderer2D.INSTANCE.filledRectangle(positionMatrix, x + whiteKeyWidth - 1, pressOffset, x + whiteKeyWidth, height, Color.BLACK);
 
                 this.textRenderer.setGlobalScale(ThinGL.getWindowFramebufferWidth() / 2745F); // 0,7
                 final float nameWidth = this.textRenderer.calculateWidth(noteName);
