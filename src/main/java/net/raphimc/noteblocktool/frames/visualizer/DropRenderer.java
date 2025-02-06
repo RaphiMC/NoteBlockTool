@@ -289,20 +289,20 @@ public class DropRenderer {
 
         float textY = 5;
         this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "FPS: " + this.fps, 5, textY, 0, Color.WHITE);
-        textY += this.textRenderer.getExactHeight();
+        textY += this.textRenderer.getPaddedHeight();
 
         final int seconds = (int) Math.ceil(this.songPlayer.getMillisecondPosition() / 1000F);
         final String currentPosition = String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60);
         this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "Position: " + currentPosition + " / " + this.songPlayer.getSong().getHumanReadableLength(), 5, textY, 0, Color.WHITE);
-        textY += this.textRenderer.getExactHeight();
+        textY += this.textRenderer.getPaddedHeight();
 
         if (this.songPlayer.getSoundSystem() != null) {
             this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, this.songPlayer.getSoundSystem().getStatusLine(), 5, textY, 0, Color.WHITE);
-            textY += this.textRenderer.getExactHeight();
+            textY += this.textRenderer.getPaddedHeight();
         }
 
         this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "Song Player CPU Load: " + (int) (this.songPlayer.getCpuLoad() * 100) + "%", 5, textY, 0, Color.WHITE);
-        textY += this.textRenderer.getExactHeight();
+        textY += this.textRenderer.getPaddedHeight();
 
         this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "Rendered Notes: " + this.renderedNotes, 5, textY, 0, Color.WHITE);
 

@@ -43,13 +43,13 @@ dependencies {
     }
     include "net.java.dev.jna:jna:5.16.0"
 
-    include("net.raphimc:thingl:0.0.1-SNAPSHOT") {
+    include("net.raphimc:thingl:0.0.1-20250206.192354-19") {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
     include "org.lwjgl:lwjgl-glfw:3.3.6"
     include "org.lwjgl:lwjgl-opengl:3.3.6"
     include "org.lwjgl:lwjgl-freetype:3.3.6"
-    ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64", "natives-macos", "natives-macos-arm64"].each {
+    ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64"].each {
         include "org.lwjgl:lwjgl-glfw:3.3.6:$it"
         include "org.lwjgl:lwjgl-opengl:3.3.6:$it"
         include "org.lwjgl:lwjgl-freetype:3.3.6:$it"
