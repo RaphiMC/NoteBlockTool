@@ -147,19 +147,17 @@ public class DropRenderer {
 
     public void render(final Matrix4fStack positionMatrix) {
         final int height = ThinGL.getWindowFramebufferHeight();
-
         this.renderedNotes = 0;
         this.updatePianoKeyPositions();
 
         this.drawNotes(positionMatrix);
+        GlobalObjects.GLOBAL_BATCH.draw();
 
         positionMatrix.pushMatrix();
         positionMatrix.translate(0, height - (int) (height / PIANO_HEIGHT_DIVIDER), 0);
         this.drawPiano(positionMatrix);
         positionMatrix.popMatrix();
-
         this.drawDebugText(positionMatrix);
-
         GlobalObjects.GLOBAL_BATCH.draw();
     }
 
@@ -169,11 +167,10 @@ public class DropRenderer {
         final float whiteKeyWidth = (float) width / WHITE_PIANO_KEY_COUNT;
         final float blackKeyWidth = whiteKeyWidth * BLACK_KEY_WIDTH_RATIO;
         final float noteSize = 16 * Math.max(1, width / 960);
-        final float noteSquishFactor = 1F;
 
         final Song song = this.songPlayer.getSong();
-        final int tickWindow = MathUtils.ceilInt(height / (noteSize / noteSquishFactor));
-        final int currentTick = this.songPlayer.getTick();
+        final int tickWindow = MathUtils.ceilInt(height / noteSize);
+        final int currentTick = this.songPlayer.getTick() - 1; // SongPlayer advances the tick immediately after playing the previous one
         final int endTick = currentTick + tickWindow;
         final float ticksPerSecond = this.songPlayer.getCurrentTicksPerSecond();
         final long lastTickTime = this.songPlayer.getLastTickTime();
@@ -182,7 +179,8 @@ public class DropRenderer {
         final float tickProgress = !paused ? MathUtils.clamp(timeSinceLastTick / (1_000_000_000F / ticksPerSecond), 0F, 1F) : 0F;
 
         Renderer2D.INSTANCE.beginGlobalBuffering();
-        for (int tick = endTick; tick >= currentTick; tick--) {
+        for (int tick = endTick; tick >= currentTick - 1; tick--) {
+            final float y = height - (tick - currentTick + 1 - tickProgress) * noteSize;
             for (Note note : song.getNotes().getOrEmpty(tick)) {
                 final int nbsKey = note.getNbsKey();
                 if (nbsKey < 0 || nbsKey >= this.pianoKeyPositions.length) {
@@ -195,7 +193,6 @@ public class DropRenderer {
                     x += blackKeyWidth / 2F;
                 }
                 x -= noteSize / 2F;
-                final float y = height - (tick - currentTick + 1 - tickProgress) * noteSize / noteSquishFactor;
 
                 final float alpha = MathUtils.clamp(note.getVolume(), 0.25F, 1F);
                 if (note.getInstrument() instanceof MinecraftInstrument instrument) {
@@ -220,6 +217,18 @@ public class DropRenderer {
                     }
                 }
                 this.renderedNotes++;
+            }
+            if (song.getTempoEvents().get(tick) != 0) {
+                final float bottomY = y + noteSize;
+                final float tps = song.getTempoEvents().get(tick);
+                final String tempoString = "Tempo: " + String.format("%.2f", tps) + " t/s";
+
+                this.textRenderer.setGlobalScale(ThinGL.getWindowFramebufferWidth() / 2000F);
+                final float textHeight = this.textRenderer.calculateHeight(tempoString);
+                this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, tempoString, 10, bottomY - textHeight - 2, 0, Color.WHITE);
+                this.textRenderer.setGlobalScale(1F);
+
+                Renderer2D.INSTANCE.filledRectangle(positionMatrix, 0, bottomY, width, bottomY + 1, Color.WHITE.withAlpha(100));
             }
         }
         Renderer2D.INSTANCE.endBuffering();
@@ -294,6 +303,9 @@ public class DropRenderer {
         final int seconds = (int) Math.ceil(this.songPlayer.getMillisecondPosition() / 1000F);
         final String currentPosition = String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60);
         this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "Position: " + currentPosition + " / " + this.songPlayer.getSong().getHumanReadableLength(), 5, textY, 0, Color.WHITE);
+        textY += this.textRenderer.getPaddedHeight();
+
+        this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "Tempo: " + String.format("%.2f", this.songPlayer.getCurrentTicksPerSecond())+ " t/s", 5, textY, 0, Color.WHITE);
         textY += this.textRenderer.getPaddedHeight();
 
         if (this.songPlayer.getSoundSystem() != null) {
