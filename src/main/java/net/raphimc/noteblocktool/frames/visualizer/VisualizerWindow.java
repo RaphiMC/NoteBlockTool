@@ -18,7 +18,6 @@
 package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.lenni0451.commons.logging.impl.SysoutLogger;
-import net.raphimc.noteblocktool.frames.SongPlayerFrame;
 import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
 import net.raphimc.thingl.ThinGL;
 import net.raphimc.thingl.framebuffer.impl.TextureFramebuffer;
@@ -39,6 +38,7 @@ public class VisualizerWindow {
     private long window;
 
     private DropRenderer dropRenderer;
+    private Runnable closeCallback;
 
     public static VisualizerWindow getInstance() {
         if (INSTANCE == null) {
@@ -75,7 +75,12 @@ public class VisualizerWindow {
             GLFW.glfwSwapInterval(1);
             GL.createCapabilities();
 
-            GLFW.glfwSetWindowCloseCallback(this.window, window -> SongPlayerFrame.close());
+            GLFW.glfwSetWindowCloseCallback(this.window, window -> {
+                this.hide();
+                if (this.closeCallback != null) {
+                    this.closeCallback.run();
+                }
+            });
 
             ThinGL.LOGGER = SysoutLogger.builder().name("ThinGL").build();
             ThinGL.init(new NoteBlockToolThinGLImplementation());
@@ -121,17 +126,37 @@ public class VisualizerWindow {
         }
     }
 
-    public void open(final SoundSystemSongPlayer songPlayer) {
+    public boolean isRenderThreadAlive() {
+        return this.renderThread.isAlive() && !this.renderThread.isInterrupted();
+    }
+
+    public void open(final SoundSystemSongPlayer songPlayer, final Runnable openCallback, final Runnable closeCallback) {
+        if (!this.isRenderThreadAlive()) {
+            return;
+        }
+        if (this.isVisible()) {
+            this.hide();
+        }
+
         final DropRenderer dropRenderer = new DropRenderer(songPlayer);
         ThinGL.runOnRenderThread(() -> {
             dropRenderer.init();
             GLFW.glfwSetWindowTitle(this.window, "NoteBlockTool Song Visualizer - " + songPlayer.getSong().getTitleOrFileNameOr("No Title"));
             GLFW.glfwShowWindow(this.window);
             this.dropRenderer = dropRenderer;
+            this.closeCallback = closeCallback;
+            openCallback.run();
         });
     }
 
     public void hide() {
+        if (!this.isRenderThreadAlive()) {
+            return;
+        }
+        if (!this.isVisible()) {
+            return;
+        }
+
         ThinGL.runOnRenderThread(() -> {
             GLFW.glfwHideWindow(this.window);
             this.dropRenderer.delete();
@@ -139,8 +164,12 @@ public class VisualizerWindow {
         });
     }
 
+    public boolean isVisible() {
+        return this.dropRenderer != null;
+    }
+
     public void close() {
-        if (!this.renderThread.isAlive() || this.renderThread.isInterrupted()) {
+        if (!this.isRenderThreadAlive()) {
             return;
         }
 

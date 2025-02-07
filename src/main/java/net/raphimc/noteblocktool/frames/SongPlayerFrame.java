@@ -37,7 +37,8 @@ import java.util.Map;
 
 public class SongPlayerFrame extends JFrame {
 
-    private static final String UNAVAILABLE_MESSAGE = "An error occurred while initializing the sound system.\nPlease make sure that your system supports the selected sound system.";
+    private static final String SOUND_SYSTEM_UNAVAILABLE_MESSAGE = "An error occurred while initializing the sound system.\nPlease make sure that your system supports the selected sound system.";
+    private static final String VISUALIZER_UNAVAILABLE_MESSAGE = "An error occurred while initializing the visualizer window.\nPlease make sure that your system supports at least OpenGL 4.5.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
     private static SongPlayerFrame instance;
     private static Point lastPosition;
@@ -59,7 +60,6 @@ public class SongPlayerFrame extends JFrame {
             instance.soundSystemComboBox.setSelectedIndex(lastSoundSystem);
             instance.maxSoundsSpinner.setValue(lastMaxSounds);
             instance.volumeSlider.setValue(lastVolume);
-            VisualizerWindow.getInstance().open(instance.songPlayer);
             instance.playStopButton.doClick(0);
             instance.setVisible(true);
         });
@@ -78,6 +78,7 @@ public class SongPlayerFrame extends JFrame {
     private final JSlider volumeSlider = new JSlider(0, 100, lastVolume);
     private final JButton playStopButton = new JButton("Play");
     private final JButton pauseResumeButton = new JButton("Pause");
+    private final JButton openVisualizerButton = new JButton("Open Visualizer");
     private final JSlider progressSlider = new JSlider(0, 100, 0);
     private final JLabel statusLine = new JLabel(" ");
     private final JLabel progressLabel = new JLabel("Current Position: 00:00:00");
@@ -217,6 +218,21 @@ public class SongPlayerFrame extends JFrame {
                     this.soundSystem.stopSounds();
                 }
             });
+            buttonPanel.add(this.openVisualizerButton);
+            this.openVisualizerButton.addActionListener(e -> {
+                if (VisualizerWindow.getInstance().isVisible()) {
+                    this.openVisualizerButton.setText("Open Visualizer");
+                    VisualizerWindow.getInstance().hide();
+                } else {
+                    VisualizerWindow.getInstance().open(this.songPlayer, this::toFront, () -> SwingUtilities.invokeLater(() -> this.openVisualizerButton.setText("Open Visualizer")));
+                    if (VisualizerWindow.getInstance().isRenderThreadAlive()) {
+                        this.openVisualizerButton.setText("Close Visualizer");
+                    } else {
+                        JOptionPane.showMessageDialog(this, VISUALIZER_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
+                        this.openVisualizerButton.setEnabled(false);
+                    }
+                }
+            });
             GBC.create(southPanel).grid(0, gridy++).insets(5, 5, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(buttonPanel);
 
             final JPanel statusBar = new JPanel();
@@ -242,7 +258,7 @@ public class SongPlayerFrame extends JFrame {
         } else if (this.soundSystem == null) {
             currentIndex = -1;
         } else {
-            throw new UnsupportedOperationException(UNAVAILABLE_MESSAGE);
+            throw new UnsupportedOperationException(SOUND_SYSTEM_UNAVAILABLE_MESSAGE);
         }
 
         try {
@@ -263,14 +279,14 @@ public class SongPlayerFrame extends JFrame {
                 } else if (this.soundSystemComboBox.getSelectedIndex() == 4) {
                     this.soundSystem = new XAudio2SoundSystem(soundData, maxSounds);
                 } else {
-                    throw new UnsupportedOperationException(UNAVAILABLE_MESSAGE);
+                    throw new UnsupportedOperationException(SOUND_SYSTEM_UNAVAILABLE_MESSAGE);
                 }
             }
             return this.soundSystem != null;
         } catch (Throwable t) {
             this.soundSystem = null;
             t.printStackTrace();
-            JOptionPane.showMessageDialog(this, UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, SOUND_SYSTEM_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
         }
         return false;
     }
