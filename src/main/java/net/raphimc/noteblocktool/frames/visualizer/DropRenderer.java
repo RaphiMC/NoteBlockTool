@@ -84,14 +84,14 @@ public class DropRenderer {
         try {
             try (final InputStream stream = DropRenderer.class.getResourceAsStream("/fonts/Roboto-Regular.ttf")) {
                 if (stream == null) {
-                    throw new IllegalStateException("Could not find Roboto font");
+                    throw new IllegalStateException("Failed to find Roboto font");
                 }
                 this.robotoFont = new Font(stream.readAllBytes(), TEXT_SIZE);
             }
             this.textRenderer = new SDFTextRenderer(this.robotoFont);
             try (final InputStream stream = DropRenderer.class.getResourceAsStream("/textures/note_block.png")) {
                 if (stream == null) {
-                    throw new IllegalStateException("Could not find note block texture");
+                    throw new IllegalStateException("Failed to find note block texture");
                 }
                 this.noteBlockTexture = new Texture2D(AbstractTexture.InternalFormat.RGBA8, stream.readAllBytes());
                 this.noteBlockTexture.setFilter(GL11C.GL_NEAREST);

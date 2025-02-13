@@ -50,20 +50,20 @@ public class XAudio2SoundSystem extends SoundSystem {
             throw new IllegalStateException("XAudio2 library is not available");
         }
 
-        this.checkError(Ole32.INSTANCE.CoInitializeEx(null, Ole32.COINIT_MULTITHREADED), "Could not initialize COM");
+        this.checkError(Ole32.INSTANCE.CoInitializeEx(null, Ole32.COINIT_MULTITHREADED), "Failed to initialize COM");
 
         final PointerByReference ppXAudio2 = new PointerByReference();
-        this.checkError(XAudio2Library.INSTANCE.XAudio2Create(ppXAudio2, 0, XAudio2Library.XAUDIO2_ANY_PROCESSOR), "Could not create XAudio2 instance");
+        this.checkError(XAudio2Library.INSTANCE.XAudio2Create(ppXAudio2, 0, XAudio2Library.XAUDIO2_ANY_PROCESSOR), "Failed to create XAudio2 instance");
         this.xAudio2 = new XAudio2Library.XAudio2(ppXAudio2.getValue());
 
         final PointerByReference ppMasteringVoice = new PointerByReference();
-        this.checkError(this.xAudio2.CreateMasteringVoice(ppMasteringVoice, XAudio2Library.XAUDIO2_DEFAULT_CHANNELS, XAudio2Library.XAUDIO2_DEFAULT_SAMPLERATE, 0, null, null, 0), "Could not create mastering voice");
+        this.checkError(this.xAudio2.CreateMasteringVoice(ppMasteringVoice, XAudio2Library.XAUDIO2_DEFAULT_CHANNELS, XAudio2Library.XAUDIO2_DEFAULT_SAMPLERATE, 0, null, null, 0), "Failed to create mastering voice");
         this.masteringVoice = new XAudio2Library.XAudio2MasteringVoice(ppMasteringVoice.getValue());
         final IntByReference masteringVoiceChannelMask = new IntByReference();
-        this.checkError(this.masteringVoice.GetChannelMask(masteringVoiceChannelMask), "Could not get channel mask");
+        this.checkError(this.masteringVoice.GetChannelMask(masteringVoiceChannelMask), "Failed to get channel mask");
         this.masteringVoiceChannelMask = masteringVoiceChannelMask.getValue();
         final XAudio2Library.XAUDIO2_VOICE_DETAILS.ByReference masteringVoiceDetails = new XAudio2Library.XAUDIO2_VOICE_DETAILS.ByReference();
-        masteringVoice.GetVoiceDetails(masteringVoiceDetails);
+        this.masteringVoice.GetVoiceDetails(masteringVoiceDetails);
         this.masteringVoiceChannels = masteringVoiceDetails.InputChannels;
 
         try {
@@ -71,7 +71,7 @@ public class XAudio2SoundSystem extends SoundSystem {
                 this.soundBuffers.put(entry.getKey(), this.loadAudioFile(entry.getValue()));
             }
         } catch (Throwable e) {
-            throw new RuntimeException("Could not load sound samples", e);
+            throw new RuntimeException("Failed to load sound samples", e);
         }
 
         Runtime.getRuntime().addShutdownHook(this.shutdownHook = new Thread(() -> {
@@ -92,14 +92,14 @@ public class XAudio2SoundSystem extends SoundSystem {
         }
 
         final PointerByReference ppSourceVoice = new PointerByReference();
-        this.checkError(this.xAudio2.CreateSourceVoice(ppSourceVoice, buffer.waveFormat, 0, 10F, null, null, null), "Could not create source voice");
+        this.checkError(this.xAudio2.CreateSourceVoice(ppSourceVoice, buffer.waveFormat, 0, 10F, null, null, null), "Failed to create source voice");
         final XAudio2Library.XAudio2SourceVoice sourceVoice = new XAudio2Library.XAudio2SourceVoice(ppSourceVoice.getValue());
 
-        this.checkError(sourceVoice.SubmitSourceBuffer(buffer.buffer, null), "Could not submit source buffer");
-        this.checkError(sourceVoice.SetFrequencyRatio(pitch, XAudio2Library.XAUDIO2_COMMIT_NOW), "Could not frequency ratio");
-        this.checkError(sourceVoice.SetVolume(volume, XAudio2Library.XAUDIO2_COMMIT_NOW), "Could not set volume");
-        this.checkError(sourceVoice.SetOutputMatrix(masteringVoice, 1, this.masteringVoiceChannels, this.createPanMatrix(panning), XAudio2Library.XAUDIO2_COMMIT_NOW), "Could not set output matrix");
-        this.checkError(sourceVoice.Start(0, XAudio2Library.XAUDIO2_COMMIT_NOW), "Could not start source voice");
+        this.checkError(sourceVoice.SubmitSourceBuffer(buffer.buffer, null), "Failed to submit source buffer");
+        this.checkError(sourceVoice.SetFrequencyRatio(pitch, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to frequency ratio");
+        this.checkError(sourceVoice.SetVolume(volume, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to set volume");
+        this.checkError(sourceVoice.SetOutputMatrix(masteringVoice, 1, this.masteringVoiceChannels, this.createPanMatrix(panning), XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to set output matrix");
+        this.checkError(sourceVoice.Start(0, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to start source voice");
         this.playingVoices.add(sourceVoice);
     }
 
@@ -149,7 +149,7 @@ public class XAudio2SoundSystem extends SoundSystem {
 
     @Override
     public synchronized void setMasterVolume(final float volume) {
-        this.checkError(this.masteringVoice.SetVolume(volume, XAudio2Library.XAUDIO2_COMMIT_NOW), "Could not set master volume");
+        this.checkError(this.masteringVoice.SetVolume(volume, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to set master volume");
     }
 
     private SoundBuffer loadAudioFile(final byte[] data) {
