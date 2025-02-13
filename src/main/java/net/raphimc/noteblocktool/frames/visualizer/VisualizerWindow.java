@@ -47,6 +47,10 @@ public class VisualizerWindow {
         return INSTANCE;
     }
 
+    public static boolean hasInstance() {
+        return INSTANCE != null;
+    }
+
     private VisualizerWindow() {
         this.renderThread = new Thread(() -> {
             GLFWErrorCallback.createPrint(System.err).set();

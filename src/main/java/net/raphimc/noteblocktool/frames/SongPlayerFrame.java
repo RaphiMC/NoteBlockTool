@@ -303,7 +303,9 @@ public class SongPlayerFrame extends JFrame {
             public void windowClosed(WindowEvent e) {
                 SongPlayerFrame.this.songPlayer.stop();
                 SongPlayerFrame.this.updateTimer.stop();
-                VisualizerWindow.getInstance().hide();
+                if (VisualizerWindow.hasInstance()) {
+                    VisualizerWindow.getInstance().hide();
+                }
                 if (SongPlayerFrame.this.soundSystem != null) SongPlayerFrame.this.soundSystem.close();
             }
         });
