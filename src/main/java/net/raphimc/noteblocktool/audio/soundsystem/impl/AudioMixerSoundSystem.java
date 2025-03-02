@@ -38,6 +38,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
 
     protected final Map<String, int[]> sounds;
     protected final SourceDataLineAudioMixer audioMixer;
+    private final int sampleCountFor50ms;
 
     public AudioMixerSoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
         super(maxSounds);
@@ -47,8 +48,10 @@ public class AudioMixerSoundSystem extends SoundSystem {
             for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
                 this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), AudioFormats.withChannels(FORMAT, 1)));
             }
-            this.audioMixer = new SourceDataLineAudioMixer(AudioSystem.getSourceDataLine(FORMAT), 0);
+            this.audioMixer = new SourceDataLineAudioMixer(AudioSystem.getSourceDataLine(FORMAT), 100, 1000);
             this.audioMixer.getMasterMixSound().setMaxSounds(maxSounds);
+            this.audioMixer.setBufferOverrunStrategy(SourceDataLineAudioMixer.BufferOverrunStrategy.FLUSH);
+            this.sampleCountFor50ms = (int) Math.ceil(this.audioMixer.getAudioFormat().getSampleRate() / 1000F * 50) * this.audioMixer.getAudioFormat().getChannels();
         } catch (Throwable e) {
             throw new RuntimeException("Failed to initialize AudioMixer sound system", e);
         }
@@ -91,6 +94,10 @@ public class AudioMixerSoundSystem extends SoundSystem {
 
     public synchronized void updateMixSliceSize(final float ticksPerSecond) {
         this.audioMixer.setMixSliceSampleCount((int) Math.ceil(this.audioMixer.getAudioFormat().getSampleRate() / ticksPerSecond) * this.audioMixer.getAudioFormat().getChannels());
+    }
+
+    public synchronized boolean isWithinLatencyTarget() {
+        return this.audioMixer.getBufferedSampleCount() <= Math.max(this.audioMixer.getMixSliceSampleCount() * 3, this.sampleCountFor50ms);
     }
 
 }

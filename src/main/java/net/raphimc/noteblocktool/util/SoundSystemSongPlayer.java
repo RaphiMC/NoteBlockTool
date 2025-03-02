@@ -89,7 +89,10 @@ public class SoundSystemSongPlayer extends SongPlayer {
     @Override
     protected boolean preTick() {
         this.soundSystem.preTick();
-        return super.preTick();
+        if (this.soundSystem instanceof AudioMixerSoundSystem audioMixerSoundSystem) {
+            return audioMixerSoundSystem.isWithinLatencyTarget();
+        }
+        return true;
     }
 
     @Override
