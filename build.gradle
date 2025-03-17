@@ -41,7 +41,7 @@ dependencies {
         include "org.lwjgl:lwjgl-openal:3.3.6:$it"
         include "org.lwjgl:lwjgl-stb:3.3.6:$it"
     }
-    include "net.java.dev.jna:jna:5.16.0"
+    include "net.java.dev.jna:jna:5.17.0"
 
     include("net.raphimc:thingl:0.0.1-20250207.205058-20") {
         exclude group: "org.slf4j", module: "slf4j-api"
