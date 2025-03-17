@@ -28,7 +28,7 @@ repositories {
 }
 
 dependencies {
-    include "net.raphimc:NoteBlockLib:3.0.0-SNAPSHOT"
+    include "net.raphimc:NoteBlockLib:3.0.0"
     include "net.raphimc:audio-mixer:2.1.0-SNAPSHOT"
     include "org.jcraft:jorbis:0.0.17"
     include "com.formdev:flatlaf:3.5.4"
