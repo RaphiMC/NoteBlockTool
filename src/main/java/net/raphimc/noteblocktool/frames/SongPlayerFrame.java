@@ -83,6 +83,7 @@ public class SongPlayerFrame extends JFrame {
     private final JLabel statusLine = new JLabel(" ");
     private final JLabel progressLabel = new JLabel("Current Position: 00:00:00");
     private SoundSystem soundSystem;
+    private VisualizerWindow visualizerWindow;
 
     private SongPlayerFrame(final Song song) {
         this.song = song;
@@ -220,16 +221,21 @@ public class SongPlayerFrame extends JFrame {
             });
             buttonPanel.add(this.openVisualizerButton);
             this.openVisualizerButton.addActionListener(e -> {
-                if (VisualizerWindow.getInstance().isVisible()) {
+                if (this.visualizerWindow != null) {
                     this.openVisualizerButton.setText("Open Visualizer");
-                    VisualizerWindow.getInstance().hide();
+                    this.visualizerWindow.close();
+                    this.visualizerWindow = null;
                 } else {
-                    VisualizerWindow.getInstance().open(this.songPlayer, this::toFront, () -> SwingUtilities.invokeLater(() -> this.openVisualizerButton.setText("Open Visualizer")));
-                    if (VisualizerWindow.getInstance().isRenderThreadAlive()) {
+                    this.visualizerWindow = new VisualizerWindow(this.songPlayer, this::toFront, () -> SwingUtilities.invokeLater(() -> {
+                        this.openVisualizerButton.setText("Open Visualizer");
+                        this.visualizerWindow = null;
+                    }));
+                    if (this.visualizerWindow.isRenderThreadAlive()) {
                         this.openVisualizerButton.setText("Close Visualizer");
                     } else {
                         JOptionPane.showMessageDialog(this, VISUALIZER_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
                         this.openVisualizerButton.setEnabled(false);
+                        this.visualizerWindow = null;
                     }
                 }
             });
@@ -303,8 +309,9 @@ public class SongPlayerFrame extends JFrame {
             public void windowClosed(WindowEvent e) {
                 SongPlayerFrame.this.songPlayer.stop();
                 SongPlayerFrame.this.updateTimer.stop();
-                if (VisualizerWindow.hasInstance()) {
-                    VisualizerWindow.getInstance().hide();
+                if (SongPlayerFrame.this.visualizerWindow != null) {
+                    SongPlayerFrame.this.visualizerWindow.close();
+                    SongPlayerFrame.this.visualizerWindow = null;
                 }
                 if (SongPlayerFrame.this.soundSystem != null) SongPlayerFrame.this.soundSystem.close();
             }

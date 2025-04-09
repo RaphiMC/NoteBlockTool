@@ -18,19 +18,19 @@
 package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.lenni0451.commons.color.Color;
-import net.raphimc.thingl.drawbuilder.BuiltinDrawBatches;
 import net.raphimc.thingl.drawbuilder.databuilder.holder.VertexDataHolder;
-import net.raphimc.thingl.drawbuilder.drawbatchdataholder.MultiDrawBatchDataHolder;
+import net.raphimc.thingl.renderer.impl.Renderer2D;
 import org.joml.Matrix4f;
 
-public class RenderUtil {
+public class ExtendedRenderer2D extends Renderer2D {
 
-    public static void gradientColorizedTexture(final Matrix4f positionMatrix, final MultiDrawBatchDataHolder multiDrawBatchDataHolder, final int id, final float x, final float y, final float width, final float height, final Color color1, final Color color2) {
-        final VertexDataHolder vertexDataHolder = multiDrawBatchDataHolder.getVertexDataHolder(BuiltinDrawBatches.COLORIZED_TEXTURE.apply(id));
+    public void gradientColorizedTexture(final Matrix4f positionMatrix, final int id, final float x, final float y, final float width, final float height, final Color color1, final Color color2) {
+        final VertexDataHolder vertexDataHolder = this.targetMultiDrawBatchDataHolder.getVertexDataHolder(this.colorizedTexturedQuad.apply(id));
         vertexDataHolder.position(positionMatrix, x, y + height, 0F).color(color2).texture(0F, 1F).endVertex();
         vertexDataHolder.position(positionMatrix, x + width, y + height, 0F).color(color2).texture(1F, 1F).endVertex();
         vertexDataHolder.position(positionMatrix, x + width, y, 0F).color(color1).texture(1F, 0F).endVertex();
         vertexDataHolder.position(positionMatrix, x, y, 0F).color(color1).texture(0F, 0F).endVertex();
+        this.drawIfNotBuffering();
     }
 
 }

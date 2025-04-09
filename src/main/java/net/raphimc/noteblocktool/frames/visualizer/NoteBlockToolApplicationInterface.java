@@ -18,13 +18,15 @@
 package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.raphimc.thingl.ThinGL;
-import net.raphimc.thingl.implementation.StandaloneThinGLImplementation;
+import net.raphimc.thingl.implementation.StandaloneApplicationInterface;
 import org.lwjgl.opengl.GL11C;
 
-public class NoteBlockToolThinGLImplementation extends StandaloneThinGLImplementation {
+public class NoteBlockToolApplicationInterface extends StandaloneApplicationInterface {
 
-    public NoteBlockToolThinGLImplementation() {
-        ThinGL.registerWindowFramebufferResizeCallback(this::createProjectionMatrix);
+    public NoteBlockToolApplicationInterface(final ThinGL thinGL) {
+        super(thinGL);
+        thinGL.getWindowInterface().addFramebufferResizeCallback(this::createProjectionMatrix);
+        this.createProjectionMatrix(thinGL.getWindowInterface().getFramebufferWidth(), thinGL.getWindowInterface().getFramebufferHeight());
     }
 
     private void createProjectionMatrix(final int width, final int height) {

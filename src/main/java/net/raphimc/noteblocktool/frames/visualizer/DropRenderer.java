@@ -30,11 +30,9 @@ import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
 import net.raphimc.thingl.ThinGL;
-import net.raphimc.thingl.renderer.impl.Renderer2D;
 import net.raphimc.thingl.renderer.text.SDFTextRenderer;
 import net.raphimc.thingl.resource.texture.AbstractTexture;
 import net.raphimc.thingl.resource.texture.Texture2D;
-import net.raphimc.thingl.util.GlobalObjects;
 import net.raphimc.thingl.util.font.Font;
 import org.joml.Matrix4fStack;
 import org.lwjgl.opengl.GL11C;
@@ -133,37 +131,37 @@ public class DropRenderer {
         this.lastFpsUpdateTime = System.nanoTime();
     }
 
-    public void delete() {
+    public void free() {
         if (this.robotoFont != null) {
-            this.robotoFont.delete();
+            this.robotoFont.free();
         }
         if (this.textRenderer != null) {
-            this.textRenderer.delete();
+            this.textRenderer.free();
         }
         if (this.noteBlockTexture != null) {
-            this.noteBlockTexture.delete();
+            this.noteBlockTexture.free();
         }
     }
 
     public void render(final Matrix4fStack positionMatrix) {
-        final int height = ThinGL.getWindowFramebufferHeight();
+        final int height = ThinGL.windowInterface().getFramebufferHeight();
         this.renderedNotes = 0;
         this.updatePianoKeyPositions();
 
         this.drawNotes(positionMatrix);
-        GlobalObjects.GLOBAL_BATCH.draw();
+        ThinGL.globalDrawBatch().draw();
 
         positionMatrix.pushMatrix();
         positionMatrix.translate(0, height - (int) (height / PIANO_HEIGHT_DIVIDER), 0);
         this.drawPiano(positionMatrix);
         positionMatrix.popMatrix();
         this.drawDebugText(positionMatrix);
-        GlobalObjects.GLOBAL_BATCH.draw();
+        ThinGL.globalDrawBatch().draw();
     }
 
     private void drawNotes(final Matrix4fStack positionMatrix) {
-        final int width = ThinGL.getWindowFramebufferWidth();
-        final int height = ThinGL.getWindowFramebufferHeight() - (int) (ThinGL.getWindowFramebufferHeight() / PIANO_HEIGHT_DIVIDER);
+        final int width = ThinGL.windowInterface().getFramebufferWidth();
+        final int height = ThinGL.windowInterface().getFramebufferHeight() - (int) (ThinGL.windowInterface().getFramebufferHeight() / PIANO_HEIGHT_DIVIDER);
         final float whiteKeyWidth = (float) width / WHITE_PIANO_KEY_COUNT;
         final float blackKeyWidth = whiteKeyWidth * BLACK_KEY_WIDTH_RATIO;
         final float noteSize = 16 * Math.max(1, width / 960);
@@ -178,7 +176,7 @@ public class DropRenderer {
         final long timeSinceLastTick = System.nanoTime() - lastTickTime;
         final float tickProgress = !paused ? MathUtils.clamp(timeSinceLastTick / (1_000_000_000F / ticksPerSecond), 0F, 1F) : 0F;
 
-        Renderer2D.INSTANCE.beginGlobalBuffering();
+        ThinGL.renderer2D().beginGlobalBuffering();
         for (int tick = endTick; tick >= currentTick - 1; tick--) {
             final float y = height - (tick - currentTick + 1 - tickProgress) * noteSize;
             for (Note note : song.getNotes().getOrEmpty(tick)) {
@@ -198,15 +196,15 @@ public class DropRenderer {
                 if (note.getInstrument() instanceof MinecraftInstrument instrument) {
                     final Color color = this.instrumentColors.getOrDefault(instrument, Color.WHITE);
                     this.pianoKeyLastColors[nbsKey] = color;
-                    Renderer2D.INSTANCE.colorizedTexture(positionMatrix, this.noteBlockTexture.getGlId(), x, y, noteSize, noteSize, color.withAlphaF(alpha));
+                    ThinGL.renderer2D().colorizedTexture(positionMatrix, this.noteBlockTexture.getGlId(), x, y, noteSize, noteSize, color.withAlphaF(alpha));
                 } else if (note.getInstrument() instanceof NbsCustomInstrument instrument) {
                     final Pair<Color, Color> colors = this.customInstrumentColors.get(instrument);
                     final Color color1 = colors.left();
                     final Color color2 = colors.right();
                     this.pianoKeyLastColors[nbsKey] = Color.interpolate(0.5F, color1, color2);
-                    RenderUtil.gradientColorizedTexture(positionMatrix, GlobalObjects.GLOBAL_BATCH, this.noteBlockTexture.getGlId(), x, y, noteSize, noteSize, color1.withAlphaF(alpha), color2.withAlphaF(alpha));
+                    ExtendedThinGL.renderer2D().gradientColorizedTexture(positionMatrix, this.noteBlockTexture.getGlId(), x, y, noteSize, noteSize, color1.withAlphaF(alpha), color2.withAlphaF(alpha));
                 } else {
-                    Renderer2D.INSTANCE.filledRectangle(positionMatrix, x, y, x + noteSize, y + noteSize, Color.WHITE.withAlphaF(alpha));
+                    ThinGL.renderer2D().filledRectangle(positionMatrix, x, y, x + noteSize, y + noteSize, Color.WHITE.withAlphaF(alpha));
                 }
                 if (tick == currentTick) {
                     final long currentTime = System.nanoTime();
@@ -223,24 +221,24 @@ public class DropRenderer {
                 final float tps = song.getTempoEvents().get(tick);
                 final String tempoString = "Tempo: " + String.format("%.2f", tps) + " t/s";
 
-                this.textRenderer.setGlobalScale(ThinGL.getWindowFramebufferWidth() / 2000F);
+                this.textRenderer.setGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 2000F);
                 final float textHeight = this.textRenderer.calculateHeight(tempoString);
-                this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, tempoString, 10, bottomY - textHeight - 2, 0, Color.WHITE);
+                this.textRenderer.renderString(positionMatrix, ThinGL.globalDrawBatch(), tempoString, 10, bottomY - textHeight - 2, 0, Color.WHITE);
                 this.textRenderer.setGlobalScale(1F);
 
-                Renderer2D.INSTANCE.filledRectangle(positionMatrix, 0, bottomY, width, bottomY + 1, Color.WHITE.withAlpha(100));
+                ThinGL.renderer2D().filledRectangle(positionMatrix, 0, bottomY, width, bottomY + 1, Color.WHITE.withAlpha(100));
             }
         }
-        Renderer2D.INSTANCE.endBuffering();
+        ThinGL.renderer2D().endBuffering();
     }
 
     private void drawPiano(final Matrix4fStack positionMatrix) {
-        final int width = ThinGL.getWindowFramebufferWidth();
-        final int height = (int) (ThinGL.getWindowFramebufferHeight() / PIANO_HEIGHT_DIVIDER);
+        final int width = ThinGL.windowInterface().getFramebufferWidth();
+        final int height = (int) (ThinGL.windowInterface().getFramebufferHeight() / PIANO_HEIGHT_DIVIDER);
         final float whiteKeyWidth = (float) width / WHITE_PIANO_KEY_COUNT;
         final float blackKeyWidth = whiteKeyWidth * BLACK_KEY_WIDTH_RATIO;
 
-        Renderer2D.INSTANCE.beginGlobalBuffering();
+        ThinGL.renderer2D().beginGlobalBuffering();
 
         final float whiteKeyLineOffset = height / WHITE_KEY_LINE_OFFSET_RATIO;
         final float blackKeyLineOffset = height / BLACK_KEY_LINE_OFFSET_RATIO;
@@ -251,38 +249,38 @@ public class DropRenderer {
             final float pressOffset = height / KEY_PRESS_DEPTH_RATIO - height / KEY_PRESS_DEPTH_RATIO * (progress < 0.5F ? 1F - progress : progress);
             final String noteName = this.getNoteName(nbsKey);
             if (!this.isBlackKey(nbsKey)) {
-                Renderer2D.INSTANCE.filledRectangle(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, Color.WHITE);
+                ThinGL.renderer2D().filledRectangle(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, Color.WHITE);
                 if (this.pianoKeyLastColors[nbsKey] != null) {
-                    Renderer2D.INSTANCE.filledRectangle(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
+                    ThinGL.renderer2D().filledRectangle(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
                 }
-                Renderer2D.INSTANCE.filledRectangle(positionMatrix, x, height - whiteKeyLineOffset + pressOffset, x + whiteKeyWidth, height - whiteKeyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
-                Renderer2D.INSTANCE.filledRectangle(positionMatrix, x, pressOffset, x + 1, height, Color.BLACK);
-                Renderer2D.INSTANCE.filledRectangle(positionMatrix, x + whiteKeyWidth - 1, pressOffset, x + whiteKeyWidth, height, Color.BLACK);
+                ThinGL.renderer2D().filledRectangle(positionMatrix, x, height - whiteKeyLineOffset + pressOffset, x + whiteKeyWidth, height - whiteKeyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
+                ThinGL.renderer2D().filledRectangle(positionMatrix, x, pressOffset, x + 1, height, Color.BLACK);
+                ThinGL.renderer2D().filledRectangle(positionMatrix, x + whiteKeyWidth - 1, pressOffset, x + whiteKeyWidth, height, Color.BLACK);
 
-                this.textRenderer.setGlobalScale(ThinGL.getWindowFramebufferWidth() / 2745F); // 0,7
+                this.textRenderer.setGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 2745F); // 0,7
                 final float nameWidth = this.textRenderer.calculateWidth(noteName);
-                this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, this.getNoteName(nbsKey), x + whiteKeyWidth / 2 - nameWidth / 2, height - whiteKeyLineOffset - KEY_LINE_HEIGHT + pressOffset - this.textRenderer.getPaddedHeight(), 0, Color.BLACK);
+                this.textRenderer.renderString(positionMatrix, ThinGL.globalDrawBatch(), this.getNoteName(nbsKey), x + whiteKeyWidth / 2 - nameWidth / 2, height - whiteKeyLineOffset - KEY_LINE_HEIGHT + pressOffset - this.textRenderer.getPaddedHeight(), 0, Color.BLACK);
                 this.textRenderer.setGlobalScale(1F);
             } else {
                 positionMatrix.pushMatrix();
                 positionMatrix.translate(0, 0, 1);
 
-                Renderer2D.INSTANCE.filledRectangle(positionMatrix, x, pressOffset - height / KEY_PRESS_DEPTH_RATIO / 2, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, Color.BLACK);
+                ThinGL.renderer2D().filledRectangle(positionMatrix, x, pressOffset - height / KEY_PRESS_DEPTH_RATIO / 2, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, Color.BLACK);
                 if (this.pianoKeyLastColors[nbsKey] != null) {
-                    Renderer2D.INSTANCE.filledRectangle(positionMatrix, x, pressOffset - height / KEY_PRESS_DEPTH_RATIO / 2, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
+                    ThinGL.renderer2D().filledRectangle(positionMatrix, x, pressOffset - height / KEY_PRESS_DEPTH_RATIO / 2, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
                 }
-                Renderer2D.INSTANCE.filledRectangle(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
+                ThinGL.renderer2D().filledRectangle(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
 
-                this.textRenderer.setGlobalScale(ThinGL.getWindowFramebufferWidth() / 4000F); // 0,48
+                this.textRenderer.setGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 4000F); // 0,48
                 final float nameWidth = this.textRenderer.calculateWidth(noteName);
-                this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, this.getNoteName(nbsKey), x + blackKeyWidth / 2 - nameWidth / 2, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset - KEY_LINE_HEIGHT + pressOffset - this.textRenderer.getPaddedHeight(), 0, Color.WHITE);
+                this.textRenderer.renderString(positionMatrix, ThinGL.globalDrawBatch(), this.getNoteName(nbsKey), x + blackKeyWidth / 2 - nameWidth / 2, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset - KEY_LINE_HEIGHT + pressOffset - this.textRenderer.getPaddedHeight(), 0, Color.WHITE);
                 this.textRenderer.setGlobalScale(1F);
 
                 positionMatrix.popMatrix();
             }
         }
 
-        Renderer2D.INSTANCE.endBuffering();
+        ThinGL.renderer2D().endBuffering();
     }
 
     private void drawDebugText(final Matrix4fStack positionMatrix) {
@@ -294,29 +292,29 @@ public class DropRenderer {
             this.frameCounter = 0;
         }
 
-        this.textRenderer.setGlobalScale(ThinGL.getWindowFramebufferWidth() / 1920F);
+        this.textRenderer.setGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 1920F);
 
         float textY = 5;
-        this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "FPS: " + this.fps, 5, textY, 0, Color.WHITE);
+        this.textRenderer.renderString(positionMatrix, ThinGL.globalDrawBatch(), "FPS: " + this.fps, 5, textY, 0, Color.WHITE);
         textY += this.textRenderer.getPaddedHeight();
 
         final int seconds = (int) Math.ceil(this.songPlayer.getMillisecondPosition() / 1000F);
         final String currentPosition = String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60);
-        this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "Position: " + currentPosition + " / " + this.songPlayer.getSong().getHumanReadableLength(), 5, textY, 0, Color.WHITE);
+        this.textRenderer.renderString(positionMatrix, ThinGL.globalDrawBatch(), "Position: " + currentPosition + " / " + this.songPlayer.getSong().getHumanReadableLength(), 5, textY, 0, Color.WHITE);
         textY += this.textRenderer.getPaddedHeight();
 
-        this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "Tempo: " + String.format("%.2f", this.songPlayer.getCurrentTicksPerSecond())+ " t/s", 5, textY, 0, Color.WHITE);
+        this.textRenderer.renderString(positionMatrix, ThinGL.globalDrawBatch(), "Tempo: " + String.format("%.2f", this.songPlayer.getCurrentTicksPerSecond()) + " t/s", 5, textY, 0, Color.WHITE);
         textY += this.textRenderer.getPaddedHeight();
 
         if (this.songPlayer.getSoundSystem() != null) {
-            this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, this.songPlayer.getSoundSystem().getStatusLine(), 5, textY, 0, Color.WHITE);
+            this.textRenderer.renderString(positionMatrix, ThinGL.globalDrawBatch(), this.songPlayer.getSoundSystem().getStatusLine(), 5, textY, 0, Color.WHITE);
             textY += this.textRenderer.getPaddedHeight();
         }
 
-        this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "Song Player CPU Load: " + (int) (this.songPlayer.getCpuLoad() * 100) + "%", 5, textY, 0, Color.WHITE);
+        this.textRenderer.renderString(positionMatrix, ThinGL.globalDrawBatch(), "Song Player CPU Load: " + (int) (this.songPlayer.getCpuLoad() * 100) + "%", 5, textY, 0, Color.WHITE);
         textY += this.textRenderer.getPaddedHeight();
 
-        this.textRenderer.renderString(positionMatrix, GlobalObjects.GLOBAL_BATCH, "Rendered Notes: " + this.renderedNotes, 5, textY, 0, Color.WHITE);
+        this.textRenderer.renderString(positionMatrix, ThinGL.globalDrawBatch(), "Rendered Notes: " + this.renderedNotes, 5, textY, 0, Color.WHITE);
 
         this.textRenderer.setGlobalScale(1F);
     }
@@ -349,7 +347,7 @@ public class DropRenderer {
 
     private void updatePianoKeyPositions() {
         Arrays.fill(this.pianoKeyPositions, 0F);
-        final int width = ThinGL.getWindowFramebufferWidth();
+        final int width = ThinGL.windowInterface().getFramebufferWidth();
         final float whiteKeyWidth = (float) width / WHITE_PIANO_KEY_COUNT;
         final float blackKeyWidth = whiteKeyWidth * BLACK_KEY_WIDTH_RATIO;
         float whiteX = 0;
