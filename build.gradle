@@ -31,7 +31,7 @@ dependencies {
     include "net.raphimc:NoteBlockLib:3.0.1-SNAPSHOT"
     include "net.raphimc:audio-mixer:2.1.0-SNAPSHOT"
     include "org.jcraft:jorbis:0.0.17"
-    include "com.formdev:flatlaf:3.5.4"
+    include "com.formdev:flatlaf:3.6"
     include "net.lenni0451.commons:swing:1.7.0"
     include "org.lwjgl:lwjgl:3.3.6"
     include "org.lwjgl:lwjgl-openal:3.3.6"
