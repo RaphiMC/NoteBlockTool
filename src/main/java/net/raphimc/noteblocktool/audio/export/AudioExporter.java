@@ -38,6 +38,7 @@ public abstract class AudioExporter extends SongPlayer {
     protected GrowableArray samples;
     private final int noteCount;
     private int processedNotes;
+    private boolean isRunning;
 
     public AudioExporter(final Song song, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
         super(song);
@@ -47,6 +48,7 @@ public abstract class AudioExporter extends SongPlayer {
 
         this.noteCount = song.getNotes().getNoteCount();
         this.samples = new GrowableArray((song.getLengthInSeconds() + 5) * format.getChannels());
+        this.setCustomScheduler(null);
     }
 
     public void render() throws InterruptedException {
@@ -90,6 +92,23 @@ public abstract class AudioExporter extends SongPlayer {
 
     @Override
     protected void createTickTask(final long initialDelay) {
+    }
+
+    @Override
+    public void start(final int delay, final int tick) {
+        super.start(delay, tick);
+        this.isRunning = true;
+    }
+
+    @Override
+    public void stop() {
+        this.isRunning = false;
+        super.stop();
+    }
+
+    @Override
+    public boolean isRunning() {
+        return this.isRunning;
     }
 
     protected abstract void processSound(final String sound, final float pitch, final float volume, final float panning);
