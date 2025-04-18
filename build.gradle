@@ -43,7 +43,7 @@ dependencies {
     }
     include "net.java.dev.jna:jna:5.17.0"
 
-    include("net.raphimc:thingl:0.0.2-20250409.113433-1") {
+    include("net.raphimc:thingl:0.0.3-20250418.101850-1") {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
     include "org.lwjgl:lwjgl-glfw:3.3.6"
