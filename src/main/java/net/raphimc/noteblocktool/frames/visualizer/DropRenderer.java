@@ -69,10 +69,6 @@ public class DropRenderer {
     private long[] pianoKeyLastPlayed;
     private Color[] pianoKeyLastColors;
     private int renderedNotes;
-    private long lastFpsUpdateTime;
-    private int fps;
-    private int frameCounter;
-
 
     public DropRenderer(final SoundSystemSongPlayer songPlayer) {
         this.songPlayer = songPlayer;
@@ -127,7 +123,6 @@ public class DropRenderer {
         this.pianoKeyPositions = new float[PIANO_KEY_COUNT];
         this.pianoKeyLastPlayed = new long[PIANO_KEY_COUNT];
         this.pianoKeyLastColors = new Color[PIANO_KEY_COUNT];
-        this.lastFpsUpdateTime = System.nanoTime();
     }
 
     public void free() {
@@ -285,19 +280,11 @@ public class DropRenderer {
     }
 
     private void drawDebugText(final Matrix4fStack positionMatrix) {
-        this.frameCounter++;
-        final long time = System.nanoTime();
-        if (time - this.lastFpsUpdateTime > 1_000_000_000) {
-            this.lastFpsUpdateTime = time;
-            this.fps = this.frameCounter;
-            this.frameCounter = 0;
-        }
-
         ThinGL.rendererText().beginGlobalBuffering();
         ThinGL.rendererText().pushGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 1920F);
 
         float textY = 5;
-        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "FPS: " + this.fps), 5, textY);
+        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "FPS: " + ThinGL.get().getFPS()), 5, textY);
         textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
 
         final int seconds = (int) Math.ceil(this.songPlayer.getMillisecondPosition() / 1000F);

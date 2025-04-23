@@ -22,6 +22,7 @@ import net.raphimc.thingl.implementation.ApplicationInterface;
 import net.raphimc.thingl.implementation.WindowInterface;
 
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class ExtendedThinGL extends ThinGL {
 
@@ -35,7 +36,7 @@ public class ExtendedThinGL extends ThinGL {
 
     private final ExtendedRenderer2D extendedRenderer2D;
 
-    public ExtendedThinGL(final Function<ThinGL, ApplicationInterface> applicationInterface, final Function<ThinGL, WindowInterface> windowInterface) {
+    public ExtendedThinGL(final Function<ThinGL, ApplicationInterface> applicationInterface, final Supplier<WindowInterface> windowInterface) {
         super(applicationInterface, windowInterface);
         this.extendedRenderer2D = new ExtendedRenderer2D();
     }

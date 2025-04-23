@@ -83,6 +83,7 @@ public class VisualizerWindow {
             final Matrix4fStack positionMatrix = new Matrix4fStack(8);
 
             while (!GLFW.glfwWindowShouldClose(this.window)) {
+                ThinGL.get().onStartFrame();
                 mainFramebuffer.bind(true);
                 mainFramebuffer.clear();
 
@@ -92,9 +93,10 @@ public class VisualizerWindow {
 
                 mainFramebuffer.unbind();
                 mainFramebuffer.blitTo(WindowFramebuffer.INSTANCE, true, false, false);
-                ThinGL.get().onEndFrame();
+                ThinGL.get().onFinishFrame();
                 GLFW.glfwSwapBuffers(this.window);
                 GLFW.glfwPollEvents();
+                ThinGL.get().onEndFrame();
             }
 
             this.dropRenderer.free();
