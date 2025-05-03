@@ -1,26 +1,10 @@
 plugins {
     id "java"
-    id "application"
-}
-
-base {
-    java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-    compileJava.options.encoding = compileTestJava.options.encoding = javadoc.options.encoding = "UTF-8"
-
-    group = project.maven_group ?: rootProject.maven_group
-    archivesName = project.maven_name ?: rootProject.maven_name
-    version = project.maven_version ?: rootProject.maven_version
-}
-
-configurations {
-    include
-
-    implementation.extendsFrom include
-    api.extendsFrom include
+    id "base.base-conventions"
+    id "base.application-conventions"
 }
 
 repositories {
-    mavenCentral()
     maven {
         name = "Lenni0451"
         url = "https://maven.lenni0451.net/snapshots"
@@ -58,27 +42,4 @@ dependencies {
 
 application {
     mainClass = "net.raphimc.noteblocktool.Main"
-}
-
-java {
-    withSourcesJar()
-}
-
-jar {
-    dependsOn configurations.include
-    from {
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        configurations.include.collect {
-            zipTree(it)
-        }
-    } {
-        exclude "META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA"
-    }
-
-    manifest {
-        attributes(
-                "Main-Class": application.mainClass,
-                "Multi-Release": "true"
-        )
-    }
 }
