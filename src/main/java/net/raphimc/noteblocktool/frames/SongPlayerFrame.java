@@ -74,7 +74,7 @@ public class SongPlayerFrame extends JFrame {
     private final SoundSystemSongPlayer songPlayer;
     private final Timer updateTimer;
     private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"AudioMixer", "OpenAL", "Un4seen BASS", "AudioMixer multithreaded (experimental)", "XAudio2 (Windows 10+ only)"});
-    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(lastMaxSounds, 64, 40960, 64));
+    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(lastMaxSounds, 64, 65535, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, lastVolume);
     private final JButton playStopButton = new JButton("Play");
     private final JButton pauseResumeButton = new JButton("Pause");
