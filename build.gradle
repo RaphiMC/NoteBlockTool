@@ -12,31 +12,31 @@ repositories {
 }
 
 dependencies {
-    include "net.raphimc:NoteBlockLib:3.0.1-SNAPSHOT"
-    include "net.raphimc:audio-mixer:2.1.0-SNAPSHOT"
-    include "org.jcraft:jorbis:0.0.17"
-    include "com.formdev:flatlaf:3.6"
-    include "net.lenni0451.commons:swing:1.7.0"
-    include "org.lwjgl:lwjgl:3.3.6"
-    include "org.lwjgl:lwjgl-openal:3.3.6"
-    include "org.lwjgl:lwjgl-stb:3.3.6"
+    includeInJar "net.raphimc:NoteBlockLib:3.0.1-SNAPSHOT"
+    includeInJar "net.raphimc:audio-mixer:2.1.0-SNAPSHOT"
+    includeInJar "org.jcraft:jorbis:0.0.17"
+    includeInJar "com.formdev:flatlaf:3.6"
+    includeInJar "net.lenni0451.commons:swing:1.7.0"
+    includeInJar "org.lwjgl:lwjgl:3.3.6"
+    includeInJar "org.lwjgl:lwjgl-openal:3.3.6"
+    includeInJar "org.lwjgl:lwjgl-stb:3.3.6"
     ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64", "natives-macos", "natives-macos-arm64"].each {
-        include "org.lwjgl:lwjgl:3.3.6:$it"
-        include "org.lwjgl:lwjgl-openal:3.3.6:$it"
-        include "org.lwjgl:lwjgl-stb:3.3.6:$it"
+        includeInJar "org.lwjgl:lwjgl:3.3.6:$it"
+        includeInJar "org.lwjgl:lwjgl-openal:3.3.6:$it"
+        includeInJar "org.lwjgl:lwjgl-stb:3.3.6:$it"
     }
-    include "net.java.dev.jna:jna:5.17.0"
+    includeInJar "net.java.dev.jna:jna:5.17.0"
 
-    include("net.raphimc:thingl:0.0.5-20250423.174051-1") {
+    includeInJar("net.raphimc:thingl:0.0.5-20250423.174051-1") {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
-    include "org.lwjgl:lwjgl-glfw:3.3.6"
-    include "org.lwjgl:lwjgl-opengl:3.3.6"
-    include "org.lwjgl:lwjgl-freetype:3.3.6"
+    includeInJar "org.lwjgl:lwjgl-glfw:3.3.6"
+    includeInJar "org.lwjgl:lwjgl-opengl:3.3.6"
+    includeInJar "org.lwjgl:lwjgl-freetype:3.3.6"
     ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64"].each {
-        include "org.lwjgl:lwjgl-glfw:3.3.6:$it"
-        include "org.lwjgl:lwjgl-opengl:3.3.6:$it"
-        include "org.lwjgl:lwjgl-freetype:3.3.6:$it"
+        includeInJar "org.lwjgl:lwjgl-glfw:3.3.6:$it"
+        includeInJar "org.lwjgl:lwjgl-opengl:3.3.6:$it"
+        includeInJar "org.lwjgl:lwjgl-freetype:3.3.6:$it"
     }
 }
 
