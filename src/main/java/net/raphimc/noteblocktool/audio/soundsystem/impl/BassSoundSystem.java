@@ -117,7 +117,7 @@ public class BassSoundSystem extends SoundSystem {
         if (this.captureAudioFormat != null) {
             this.captureChannel = BassMixLibrary.INSTANCE.BASS_Mixer_StreamCreate((int) this.captureAudioFormat.getSampleRate(), this.captureAudioFormat.getChannels(), BassLibrary.BASS_STREAM_DECODE | BassLibrary.BASS_SAMPLE_FLOAT);
             this.checkError("Failed to create mixer stream");
-            if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(this.captureChannel, BassMixLibrary.BASS_ATTRIB_MIXER_THREADS, Runtime.getRuntime().availableProcessors())) {
+            if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(this.captureChannel, BassMixLibrary.BASS_ATTRIB_MIXER_THREADS, Math.min(Runtime.getRuntime().availableProcessors(), 16))) {
                 this.checkError("Failed to set mixer threads");
             }
             this.captureMemory = new Memory((long) this.captureAudioFormat.getSampleRate() * this.captureAudioFormat.getChannels() * 4 * 30);
@@ -177,11 +177,11 @@ public class BassSoundSystem extends SoundSystem {
             this.checkError("Failed to get audio data");
         }
 
-        final int[] sampleData = this.captureMemory.getIntArray(0, samplesLength);
-        final int maxValue = (int) Math.pow(2, this.captureAudioFormat.getSampleSizeInBits() - 1) - 1;
+        final float[] sampleData = this.captureMemory.getFloatArray(0, samplesLength);
+        /*final int maxValue = (int) Math.pow(2, this.captureAudioFormat.getSampleSizeInBits() - 1) - 1;
         for (int i = 0; i < sampleData.length; i++) {
             sampleData[i] = (int) (Float.intBitsToFloat(sampleData[i]) * maxValue);
-        }
+        }*/
         this.captureNormalizer.modify(this.captureAudioFormat, sampleData);
         samples.add(sampleData);
     }

@@ -18,9 +18,9 @@
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import net.raphimc.audiomixer.SourceDataLineAudioMixer;
-import net.raphimc.audiomixer.pcmsource.impl.MonoIntPcmSource;
+import net.raphimc.audiomixer.pcmsource.impl.MonoStaticPcmSource;
 import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
-import net.raphimc.audiomixer.util.AudioFormats;
+import net.raphimc.audiomixer.util.AudioFormatModifier;
 import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.SoundFileUtil;
@@ -36,7 +36,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
 
     private static final AudioFormat FORMAT = new AudioFormat(48000, 16, 2, true, false);
 
-    protected final Map<String, int[]> sounds;
+    protected final Map<String, float[]> sounds;
     protected final SourceDataLineAudioMixer audioMixer;
     private final int sampleCountFor50ms;
 
@@ -46,7 +46,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
         try {
             this.sounds = new HashMap<>();
             for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
-                this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), AudioFormats.withChannels(FORMAT, 1)));
+                this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), AudioFormatModifier.ofSampleRateAndChannels(FORMAT.getSampleRate(), 1)));
             }
             this.audioMixer = new SourceDataLineAudioMixer(AudioSystem.getSourceDataLine(FORMAT), 100, 1000);
             this.audioMixer.getMasterMixSound().setMaxSounds(maxSounds);
@@ -61,7 +61,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
     public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        this.audioMixer.playSound(new OptimizedMonoSound(new MonoIntPcmSource(this.sounds.get(sound)), pitch, volume, panning));
+        this.audioMixer.playSound(new OptimizedMonoSound(new MonoStaticPcmSource(this.sounds.get(sound)), pitch, volume, panning));
     }
 
     public synchronized void mixSlice() {

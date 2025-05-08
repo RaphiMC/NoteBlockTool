@@ -18,10 +18,10 @@
 package net.raphimc.noteblocktool.audio.export.impl;
 
 import net.raphimc.audiomixer.AudioMixer;
-import net.raphimc.audiomixer.pcmsource.impl.MonoIntPcmSource;
+import net.raphimc.audiomixer.pcmsource.impl.MonoStaticPcmSource;
 import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
 import net.raphimc.audiomixer.soundmodifier.impl.NormalizationModifier;
-import net.raphimc.audiomixer.util.AudioFormats;
+import net.raphimc.audiomixer.util.AudioFormatModifier;
 import net.raphimc.audiomixer.util.SoundSampleUtil;
 import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocklib.model.Song;
@@ -38,7 +38,7 @@ import java.util.function.Consumer;
 public class AudioMixerAudioExporter extends AudioExporter {
 
     private final boolean globalNormalization;
-    protected final Map<String, int[]> sounds;
+    protected final Map<String, float[]> sounds;
     protected final AudioMixer audioMixer;
 
     public AudioMixerAudioExporter(final Song song, final AudioFormat format, final float masterVolume, final boolean globalNormalization, final Consumer<Float> progressConsumer) {
@@ -48,7 +48,7 @@ public class AudioMixerAudioExporter extends AudioExporter {
         try {
             this.sounds = new HashMap<>();
             for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(song).entrySet()) {
-                this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), AudioFormats.withChannels(format, 1)));
+                this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), AudioFormatModifier.ofSampleRateAndChannels(format.getSampleRate(), 1)));
             }
             this.audioMixer = new AudioMixer(format);
             this.audioMixer.getMasterMixSound().setMaxSounds(8192);
@@ -72,7 +72,7 @@ public class AudioMixerAudioExporter extends AudioExporter {
     protected void processSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        this.audioMixer.playSound(new OptimizedMonoSound(new MonoIntPcmSource(this.sounds.get(sound)), pitch, volume, panning));
+        this.audioMixer.playSound(new OptimizedMonoSound(new MonoStaticPcmSource(this.sounds.get(sound)), pitch, volume, panning));
     }
 
     @Override

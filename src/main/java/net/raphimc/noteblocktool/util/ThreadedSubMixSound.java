@@ -32,7 +32,7 @@ public class ThreadedSubMixSound extends SubMixSound implements Closeable {
     private final ThreadPoolExecutor threadPool;
     private final CyclicBarrier startBarrier;
     private final CyclicBarrier stopBarrier;
-    private final int[][] threadSamples;
+    private final float[][] threadSamples;
     private final SubMixSound[] subMixSounds;
     private int currentSubMixSound = 0;
     private AudioFormat currentAudioFormat;
@@ -47,7 +47,7 @@ public class ThreadedSubMixSound extends SubMixSound implements Closeable {
         this.threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadCount);
         this.startBarrier = new CyclicBarrier(this.threadPool.getCorePoolSize() + 1);
         this.stopBarrier = new CyclicBarrier(this.threadPool.getCorePoolSize() + 1);
-        this.threadSamples = new int[this.threadPool.getCorePoolSize()][];
+        this.threadSamples = new float[this.threadPool.getCorePoolSize()][];
         this.subMixSounds = new SubMixSound[this.threadPool.getCorePoolSize()];
         for (int i = 0; i < this.subMixSounds.length; i++) {
             this.subMixSounds[i] = new SubMixSound();
@@ -60,7 +60,7 @@ public class ThreadedSubMixSound extends SubMixSound implements Closeable {
                 try {
                     while (!Thread.currentThread().isInterrupted()) {
                         this.startBarrier.await();
-                        this.threadSamples[mixerIndex] = new int[this.currentRenderSampleCount];
+                        this.threadSamples[mixerIndex] = new float[this.currentRenderSampleCount];
                         this.subMixSounds[mixerIndex].render(this.currentAudioFormat, this.threadSamples[mixerIndex]);
                         this.stopBarrier.await();
                     }
@@ -71,7 +71,7 @@ public class ThreadedSubMixSound extends SubMixSound implements Closeable {
     }
 
     @Override
-    public void render(final AudioFormat audioFormat, final int[] finalMixBuffer) {
+    public void render(final AudioFormat audioFormat, final float[] finalMixBuffer) {
         final long start = System.nanoTime();
         this.currentAudioFormat = audioFormat;
         this.currentRenderSampleCount = finalMixBuffer.length;
@@ -82,7 +82,7 @@ public class ThreadedSubMixSound extends SubMixSound implements Closeable {
         } catch (InterruptedException | BrokenBarrierException e) {
             throw new RuntimeException(e);
         }
-        for (int[] threadSamples : this.threadSamples) {
+        for (float[] threadSamples : this.threadSamples) {
             for (int i = 0; i < finalMixBuffer.length; i++) {
                 finalMixBuffer[i] += threadSamples[i];
             }

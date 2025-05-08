@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
-import net.raphimc.audiomixer.pcmsource.impl.MonoIntPcmSource;
+import net.raphimc.audiomixer.pcmsource.impl.MonoStaticPcmSource;
 import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
 import net.raphimc.noteblocktool.util.ThreadedSubMixSound;
 
@@ -37,7 +37,7 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
     public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        this.threadedSubMixSound.playSound(new OptimizedMonoSound(new MonoIntPcmSource(this.sounds.get(sound)), pitch, volume, panning));
+        this.threadedSubMixSound.playSound(new OptimizedMonoSound(new MonoStaticPcmSource(this.sounds.get(sound)), pitch, volume, panning));
     }
 
     @Override

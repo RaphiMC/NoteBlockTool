@@ -64,7 +64,7 @@ public abstract class AudioExporter extends SongPlayer {
         }
     }
 
-    public int[] getSamples() {
+    public float[] getSamples() {
         return this.samples.getArray();
     }
 
