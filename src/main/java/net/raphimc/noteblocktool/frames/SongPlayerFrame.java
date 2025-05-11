@@ -73,7 +73,7 @@ public class SongPlayerFrame extends JFrame {
     private final Song song;
     private final SoundSystemSongPlayer songPlayer;
     private final Timer updateTimer;
-    private final JComboBox<String> soundSystemComboBox = new JComboBox<>(new String[]{"AudioMixer", "OpenAL", "Un4seen BASS", "AudioMixer multithreaded (experimental)", "XAudio2 (Windows 10+ only)"});
+    private final JComboBox<SoundSystemType> soundSystemComboBox = new JComboBox<>(SoundSystemType.values());
     private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(lastMaxSounds, 64, 65535, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, lastVolume);
     private final JButton playStopButton = new JButton("Play");
@@ -83,6 +83,7 @@ public class SongPlayerFrame extends JFrame {
     private final JLabel statusLine = new JLabel(" ");
     private final JLabel progressLabel = new JLabel("Current Position: 00:00:00");
     private SoundSystem soundSystem;
+    private SoundSystemType soundSystemType;
     private VisualizerWindow visualizerWindow;
 
     private SongPlayerFrame(final Song song) {
@@ -250,47 +251,26 @@ public class SongPlayerFrame extends JFrame {
     }
 
     private boolean initSoundSystem() {
-        final int currentIndex;
-        if (this.soundSystem instanceof MultithreadedAudioMixerSoundSystem) {
-            currentIndex = 3;
-        } else if (this.soundSystem instanceof AudioMixerSoundSystem) {
-            currentIndex = 0;
-        } else if (this.soundSystem instanceof OpenALSoundSystem) {
-            currentIndex = 1;
-        } else if (this.soundSystem instanceof BassSoundSystem) {
-            currentIndex = 2;
-        } else if (this.soundSystem instanceof XAudio2SoundSystem) {
-            currentIndex = 4;
-        } else if (this.soundSystem == null) {
-            currentIndex = -1;
-        } else {
-            throw new UnsupportedOperationException(SOUND_SYSTEM_UNAVAILABLE_MESSAGE);
-        }
-
         try {
-            if (this.soundSystem == null || this.soundSystemComboBox.getSelectedIndex() != currentIndex || this.soundSystem.getMaxSounds() != (int) this.maxSoundsSpinner.getValue()) {
+            if (this.soundSystem == null || this.soundSystemComboBox.getSelectedItem() != this.soundSystemType || this.soundSystem.getMaxSounds() != (int) this.maxSoundsSpinner.getValue()) {
                 if (this.soundSystem != null) this.soundSystem.close();
 
                 final Map<String, byte[]> soundData = SoundMap.loadSoundData(this.songPlayer.getSong());
                 final int maxSounds = ((Number) this.maxSoundsSpinner.getValue()).intValue();
 
-                if (this.soundSystemComboBox.getSelectedIndex() == 0) {
-                    this.soundSystem = new AudioMixerSoundSystem(soundData, maxSounds);
-                } else if (this.soundSystemComboBox.getSelectedIndex() == 1) {
-                    this.soundSystem = OpenALSoundSystem.createPlayback(soundData, maxSounds);
-                } else if (this.soundSystemComboBox.getSelectedIndex() == 2) {
-                    this.soundSystem = BassSoundSystem.createPlayback(soundData, maxSounds);
-                } else if (this.soundSystemComboBox.getSelectedIndex() == 3) {
-                    this.soundSystem = new MultithreadedAudioMixerSoundSystem(soundData, maxSounds);
-                } else if (this.soundSystemComboBox.getSelectedIndex() == 4) {
-                    this.soundSystem = new XAudio2SoundSystem(soundData, maxSounds);
-                } else {
-                    throw new UnsupportedOperationException(SOUND_SYSTEM_UNAVAILABLE_MESSAGE);
-                }
+                this.soundSystem = switch ((SoundSystemType) this.soundSystemComboBox.getSelectedItem()) {
+                    case AUDIO_MIXER -> new AudioMixerSoundSystem(soundData, maxSounds);
+                    case OPENAL -> OpenALSoundSystem.createPlayback(soundData, maxSounds);
+                    case BASS -> BassSoundSystem.createPlayback(soundData, maxSounds);
+                    case AUDIO_MIXER_MULTITHREADED -> new MultithreadedAudioMixerSoundSystem(soundData, maxSounds);
+                    case X_AUDIO_2 -> new XAudio2SoundSystem(soundData, maxSounds);
+                };
+                this.soundSystemType = (SoundSystemType) this.soundSystemComboBox.getSelectedItem();
             }
             return this.soundSystem != null;
         } catch (Throwable t) {
             this.soundSystem = null;
+            this.soundSystemType = null;
             t.printStackTrace();
             JOptionPane.showMessageDialog(this, SOUND_SYSTEM_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -343,6 +323,26 @@ public class SongPlayerFrame extends JFrame {
 
         final int seconds = (int) Math.ceil(this.songPlayer.getMillisecondPosition() / 1000F);
         this.progressLabel.setText("Current Position: " + String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60));
+    }
+
+
+    private enum SoundSystemType {
+        AUDIO_MIXER("AudioMixer"),
+        OPENAL("OpenAL"),
+        BASS("Un4seen BASS"),
+        AUDIO_MIXER_MULTITHREADED("AudioMixer multithreaded (experimental)"),
+        X_AUDIO_2("XAudio2 (Windows 10+ only)");
+
+        private final String name;
+
+        SoundSystemType(final String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
+        }
     }
 
 }

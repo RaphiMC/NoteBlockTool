@@ -59,15 +59,15 @@ public class ExportFrame extends JFrame {
 
     private final ListFrame parent;
     private final List<ListFrame.LoadedSong> loadedSongs;
-    private final JComboBox<String> format = new JComboBox<>(new String[]{"NBS", "MCSP2", "TXT", "MP3 (Using LAME encoder)", "WAV", "AIF"});
+    private final JComboBox<OutputFormat> format = new JComboBox<>(OutputFormat.values());
     private final JLabel soundSystemLabel = new JLabel("Sound System:");
-    private final JComboBox<String> soundSystem = new JComboBox<>(new String[]{"OpenAL (best sound quality, fastest)", "AudioMixer", "AudioMixer (global normalized)", "Un4seen BASS"});
+    private final JComboBox<AudioExporterType> soundSystem = new JComboBox<>(AudioExporterType.values());
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
     private final JLabel bitDepthLabel = new JLabel("PCM Bit Depth:");
-    private final JComboBox<String> bitDepth = new JComboBox<>(new String[]{"PCM 8", "PCM 16", "PCM 24", "PCM 32"});
+    private final JComboBox<BitDepth> bitDepth = new JComboBox<>(BitDepth.values());
     private final JLabel channelsLabel = new JLabel("Channels:");
-    private final JComboBox<String> channels = new JComboBox<>(new String[]{"Mono", "Stereo"});
+    private final JComboBox<Channels> channels = new JComboBox<>(Channels.values());
     private final JLabel volumeLabel = new JLabel("Volume:");
     private final JSlider volume = new JSlider(0, 100, 50);
     private JPanel progressPanel;
@@ -152,23 +152,22 @@ public class ExportFrame extends JFrame {
     }
 
     private void updateVisibility() {
-        final boolean isAudioFile = this.format.getSelectedIndex() >= 3;
-        final boolean isMp3 = this.format.getSelectedIndex() == 3;
+        final OutputFormat outputFormat = (OutputFormat) this.format.getSelectedItem();
 
-        this.soundSystemLabel.setVisible(isAudioFile);
-        this.soundSystem.setVisible(isAudioFile);
+        this.soundSystemLabel.setVisible(outputFormat.isAudioFile());
+        this.soundSystem.setVisible(outputFormat.isAudioFile());
 
-        this.sampleRateLabel.setVisible(isAudioFile);
-        this.sampleRate.setVisible(isAudioFile);
+        this.sampleRateLabel.setVisible(outputFormat.isAudioFile());
+        this.sampleRate.setVisible(outputFormat.isAudioFile());
 
-        this.bitDepthLabel.setVisible(isAudioFile && !isMp3);
-        this.bitDepth.setVisible(isAudioFile && !isMp3);
+        this.bitDepthLabel.setVisible(outputFormat.isAudioFile() && !outputFormat.equals(OutputFormat.MP3));
+        this.bitDepth.setVisible(outputFormat.isAudioFile() && !outputFormat.equals(OutputFormat.MP3));
 
-        this.channelsLabel.setVisible(isAudioFile);
-        this.channels.setVisible(isAudioFile);
+        this.channelsLabel.setVisible(outputFormat.isAudioFile());
+        this.channels.setVisible(outputFormat.isAudioFile());
 
-        this.volumeLabel.setVisible(isAudioFile);
-        this.volume.setVisible(isAudioFile);
+        this.volumeLabel.setVisible(outputFormat.isAudioFile());
+        this.volume.setVisible(outputFormat.isAudioFile());
     }
 
     private void initFrameHandler() {
@@ -230,7 +229,7 @@ public class ExportFrame extends JFrame {
     }
 
     private File openFileChooser() {
-        String extension = this.format.getSelectedItem().toString().split(" ")[0].toLowerCase();
+        String extension = ((OutputFormat) this.format.getSelectedItem()).getExtension();
         VerticalFileChooser fileChooser = new VerticalFileChooser();
         if (this.loadedSongs.size() == 1) {
             fileChooser.setDialogTitle("Export Song");
@@ -258,8 +257,8 @@ public class ExportFrame extends JFrame {
     }
 
     private void doExport(final File outFile) {
-        final boolean forceSingleThreaded = this.format.getSelectedIndex() <= 2 || this.soundSystem.getSelectedIndex() == 3;
-        final boolean isMp3 = this.format.getSelectedIndex() == 3;
+        final boolean forceSingleThreaded = !((OutputFormat) this.format.getSelectedItem()).isAudioFile() || this.soundSystem.getSelectedItem().equals(AudioExporterType.BASS);
+        final boolean isMp3 = this.format.getSelectedItem().equals(OutputFormat.MP3);
 
         try {
             if (isMp3 && !LameLibrary.isLoaded()) {
@@ -318,7 +317,7 @@ public class ExportFrame extends JFrame {
                 ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadCount);
                 Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
 
-                String extension = this.format.getSelectedItem().toString().split(" ")[0].toLowerCase();
+                String extension = ((OutputFormat) this.format.getSelectedItem()).getExtension();
                 for (ListFrame.LoadedSong song : this.loadedSongs) {
                     threadPool.submit(() -> {
                         JPanel songPanel = songPanels.get(song);
@@ -386,45 +385,35 @@ public class ExportFrame extends JFrame {
     }
 
     private void exportSong(final ListFrame.LoadedSong song, final File file, final Consumer<Float> progressConsumer) throws InterruptedException, IOException {
-        if (this.format.getSelectedIndex() == 0) {
-            this.writeSong(song, file, SongFormat.NBS);
-        } else if (this.format.getSelectedIndex() == 1) {
-            this.writeSong(song, file, SongFormat.MCSP2);
-        } else if (this.format.getSelectedIndex() == 2) {
-            this.writeSong(song, file, SongFormat.TXT);
-        } else {
+        OutputFormat outputFormat = (OutputFormat) this.format.getSelectedItem();
+        if (outputFormat.isSongFile()) {
+            this.writeSong(song, file, outputFormat.getSongFormat());
+        } else if (outputFormat.isAudioFile()) {
             final AudioFormat audioFormat = new AudioFormat(
                     ((Number) this.sampleRate.getValue()).floatValue(),
-                    Integer.parseInt(this.bitDepth.getSelectedItem().toString().substring(4)),
-                    this.channels.getSelectedIndex() + 1,
+                    ((BitDepth) this.bitDepth.getSelectedItem()).getBitDepth(),
+                    ((Channels) this.channels.getSelectedItem()).getChannels(),
                     true,
                     false
             );
             final PcmFloatAudioFormat renderAudioFormat = new PcmFloatAudioFormat(audioFormat);
             final float volume = this.volume.getValue() / 100F;
 
-            final AudioExporter exporter;
-            if (this.soundSystem.getSelectedIndex() == 0) {
-                exporter = new OpenALAudioExporter(song.song(), renderAudioFormat, volume, progressConsumer);
-            } else if (this.soundSystem.getSelectedIndex() == 1) {
-                exporter = new AudioMixerAudioExporter(song.song(), renderAudioFormat, volume, false, progressConsumer);
-            } else if (this.soundSystem.getSelectedIndex() == 2) {
-                exporter = new AudioMixerAudioExporter(song.song(), renderAudioFormat, volume, true, progressConsumer);
-            } else if (this.soundSystem.getSelectedIndex() == 3) {
-                exporter = new BassAudioExporter(song.song(), renderAudioFormat, volume, progressConsumer);
-            } else {
-                throw new UnsupportedOperationException("Unsupported sound system: " + this.soundSystem.getSelectedIndex());
-            }
+            final AudioExporter exporter = switch ((AudioExporterType) this.soundSystem.getSelectedItem()) {
+                case OPENAL -> new OpenALAudioExporter(song.song(), renderAudioFormat, volume, progressConsumer);
+                case AUDIO_MIXER -> new AudioMixerAudioExporter(song.song(), renderAudioFormat, volume, false, progressConsumer);
+                case BASS -> new BassAudioExporter(song.song(), renderAudioFormat, volume, progressConsumer);
+            };
 
             exporter.render();
             final float[] samples = exporter.getSamples();
 
-            if (this.format.getSelectedIndex() == 4 || this.format.getSelectedIndex() == 5) {
+            if (outputFormat.equals(OutputFormat.WAV) || outputFormat.equals(OutputFormat.AIF)) {
                 final AudioInputStream audioInputStream = SoundIO.createAudioInputStream(samples, audioFormat);
                 progressConsumer.accept(10F);
-                AudioSystem.write(audioInputStream, this.format.getSelectedIndex() == 4 ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);
+                AudioSystem.write(audioInputStream, outputFormat.equals(OutputFormat.WAV) ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);
                 audioInputStream.close();
-            } else if (this.format.getSelectedIndex() == 3) {
+            } else if (outputFormat.equals(OutputFormat.MP3)) {
                 progressConsumer.accept(2F);
                 final FileOutputStream fos = new FileOutputStream(file);
                 final int numSamples = samples.length / audioFormat.getChannels();
@@ -461,6 +450,8 @@ public class ExportFrame extends JFrame {
             } else {
                 throw new UnsupportedOperationException("Unsupported output format: " + this.format.getSelectedIndex());
             }
+        } else {
+            throw new UnsupportedOperationException("Unsupported output format: " + this.format.getSelectedIndex());
         }
     }
 
@@ -471,6 +462,110 @@ public class ExportFrame extends JFrame {
         } catch (Throwable t) {
             t.printStackTrace();
             JOptionPane.showMessageDialog(this, "Failed to export song:\n" + song.file().getAbsolutePath() + "\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+
+    private enum OutputFormat {
+        NBS("NBS", "nbs", SongFormat.NBS),
+        MCSP2("MCSP2", "mcsp2", SongFormat.MCSP2),
+        TXT("TXT", "txt", SongFormat.TXT),
+        MP3("MP3 (Using LAME encoder)", "mp3", null),
+        WAV("WAV", "wav", null),
+        AIF("AIF", "aif", null);
+
+        private final String name;
+        private final String extension;
+        private final SongFormat songFormat;
+
+        OutputFormat(final String name, final String extension, final SongFormat songFormat) {
+            this.name = name;
+            this.extension = extension;
+            this.songFormat = songFormat;
+        }
+
+        public String getExtension() {
+            return this.extension;
+        }
+
+        public SongFormat getSongFormat() {
+            return this.songFormat;
+        }
+
+        public boolean isSongFile() {
+            return this.songFormat != null;
+        }
+
+        public boolean isAudioFile() {
+            return this.songFormat == null;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
+        }
+    }
+
+    private enum AudioExporterType {
+        OPENAL("OpenAL (best sound quality, fastest)"),
+        AUDIO_MIXER("AudioMixer"),
+        BASS("Un4seen BASS");
+
+        private final String name;
+
+        AudioExporterType(final String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
+        }
+    }
+
+    private enum BitDepth {
+        PCM8("PCM 8", 8),
+        PCM16("PCM 16", 16),
+        PCM24("PCM 24", 24),
+        PCM32("PCM 32", 32);
+
+        private final String name;
+        private final int bitDepth;
+
+        BitDepth(final String name, final int bitDepth) {
+            this.name = name;
+            this.bitDepth = bitDepth;
+        }
+
+        public int getBitDepth() {
+            return this.bitDepth;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
+        }
+    }
+
+    private enum Channels {
+        MONO("Mono", 1),
+        STEREO("Stereo", 2);
+
+        private final String name;
+        private final int channels;
+
+        Channels(final String name, final int channels) {
+            this.name = name;
+            this.channels = channels;
+        }
+
+        public int getChannels() {
+            return this.channels;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
         }
     }
 
