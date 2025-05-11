@@ -62,7 +62,8 @@ public class ExportFrame extends JFrame {
     private final JComboBox<OutputFormat> format = new JComboBox<>(OutputFormat.values());
     private final JLabel soundSystemLabel = new JLabel("Sound System:");
     private final JComboBox<AudioExporterType> soundSystem = new JComboBox<>(AudioExporterType.values());
-    private final JCheckBox globalNormalization = new JCheckBox("Global Normalization");
+    private final JCheckBox audioMixerGlobalNormalization = new JCheckBox("Global Normalization");
+    private final JCheckBox audioMixerThreaded = new JCheckBox("Multithreaded Rendering");
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
     private final JLabel bitDepthLabel = new JLabel("PCM Bit Depth:");
@@ -110,7 +111,8 @@ public class ExportFrame extends JFrame {
             this.soundSystem.addActionListener(e -> this.updateVisibility());
         });
 
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.globalNormalization);
+        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.audioMixerGlobalNormalization);
+        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.audioMixerThreaded);
 
         GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.sampleRateLabel);
         GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.sampleRate);
@@ -161,7 +163,8 @@ public class ExportFrame extends JFrame {
         this.soundSystemLabel.setVisible(outputFormat.isAudioFile());
         this.soundSystem.setVisible(outputFormat.isAudioFile());
 
-        this.globalNormalization.setVisible(outputFormat.isAudioFile() && audioExporterType.equals(AudioExporterType.AUDIO_MIXER));
+        this.audioMixerGlobalNormalization.setVisible(outputFormat.isAudioFile() && audioExporterType.equals(AudioExporterType.AUDIO_MIXER));
+        this.audioMixerThreaded.setVisible(outputFormat.isAudioFile() && audioExporterType.equals(AudioExporterType.AUDIO_MIXER));
 
         this.sampleRateLabel.setVisible(outputFormat.isAudioFile());
         this.sampleRate.setVisible(outputFormat.isAudioFile());
@@ -205,6 +208,8 @@ public class ExportFrame extends JFrame {
 
             this.format.setEnabled(true);
             this.soundSystem.setEnabled(true);
+            this.audioMixerGlobalNormalization.setEnabled(true);
+            this.audioMixerThreaded.setEnabled(true);
             this.sampleRate.setEnabled(true);
             this.bitDepth.setEnabled(true);
             this.channels.setEnabled(true);
@@ -220,6 +225,8 @@ public class ExportFrame extends JFrame {
 
         this.format.setEnabled(false);
         this.soundSystem.setEnabled(false);
+        this.audioMixerGlobalNormalization.setEnabled(false);
+        this.audioMixerThreaded.setEnabled(false);
         this.sampleRate.setEnabled(false);
         this.bitDepth.setEnabled(false);
         this.channels.setEnabled(false);
@@ -263,7 +270,8 @@ public class ExportFrame extends JFrame {
     }
 
     private void doExport(final File outFile) {
-        final boolean forceSingleThreaded = !((OutputFormat) this.format.getSelectedItem()).isAudioFile() || this.soundSystem.getSelectedItem().equals(AudioExporterType.BASS);
+        final boolean audioMixerThreaded = this.soundSystem.getSelectedItem().equals(AudioExporterType.AUDIO_MIXER) && this.audioMixerThreaded.isSelected();
+        final boolean forceSingleThreaded = !((OutputFormat) this.format.getSelectedItem()).isAudioFile() || this.soundSystem.getSelectedItem().equals(AudioExporterType.BASS) || audioMixerThreaded;
         final boolean isMp3 = this.format.getSelectedItem().equals(OutputFormat.MP3);
 
         try {
@@ -378,6 +386,8 @@ public class ExportFrame extends JFrame {
             SwingUtilities.invokeLater(() -> {
                 this.format.setEnabled(true);
                 this.soundSystem.setEnabled(true);
+                this.audioMixerGlobalNormalization.setEnabled(true);
+                this.audioMixerThreaded.setEnabled(true);
                 this.sampleRate.setEnabled(true);
                 this.bitDepth.setEnabled(true);
                 this.channels.setEnabled(true);
@@ -407,7 +417,7 @@ public class ExportFrame extends JFrame {
 
             final AudioExporter exporter = switch ((AudioExporterType) this.soundSystem.getSelectedItem()) {
                 case OPENAL -> new OpenALAudioExporter(song.song(), renderAudioFormat, volume, progressConsumer);
-                case AUDIO_MIXER -> new AudioMixerAudioExporter(song.song(), renderAudioFormat, volume, this.globalNormalization.isSelected(), progressConsumer);
+                case AUDIO_MIXER -> new AudioMixerAudioExporter(song.song(), renderAudioFormat, volume, this.audioMixerGlobalNormalization.isSelected(), this.audioMixerThreaded.isSelected(), progressConsumer);
                 case BASS -> new BassAudioExporter(song.song(), renderAudioFormat, volume, progressConsumer);
             };
 

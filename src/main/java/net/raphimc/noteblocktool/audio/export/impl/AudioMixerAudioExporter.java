@@ -19,6 +19,7 @@ package net.raphimc.noteblocktool.audio.export.impl;
 
 import net.raphimc.audiomixer.AudioMixer;
 import net.raphimc.audiomixer.pcmsource.impl.MonoStaticPcmSource;
+import net.raphimc.audiomixer.sound.impl.SubMixSound;
 import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
 import net.raphimc.audiomixer.soundmodifier.impl.NormalizationModifier;
 import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
@@ -28,6 +29,7 @@ import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.util.SoundFileUtil;
+import net.raphimc.noteblocktool.util.ThreadedSubMixSound;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
@@ -36,13 +38,12 @@ import java.util.function.Consumer;
 
 public class AudioMixerAudioExporter extends AudioExporter {
 
-    private final boolean globalNormalization;
-    protected final Map<String, float[]> sounds;
-    protected final AudioMixer audioMixer;
+    private final Map<String, float[]> sounds;
+    private final AudioMixer audioMixer;
+    private final SubMixSound masterMixSound;
 
-    public AudioMixerAudioExporter(final Song song, final PcmFloatAudioFormat audioFormat, final float masterVolume, final boolean globalNormalization, final Consumer<Float> progressConsumer) {
+    public AudioMixerAudioExporter(final Song song, final PcmFloatAudioFormat audioFormat, final float masterVolume, final boolean globalNormalization, final boolean threaded, final Consumer<Float> progressConsumer) {
         super(song, audioFormat, masterVolume, progressConsumer);
-        this.globalNormalization = globalNormalization;
 
         try {
             this.sounds = new HashMap<>();
@@ -50,9 +51,16 @@ public class AudioMixerAudioExporter extends AudioExporter {
                 this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), new PcmFloatAudioFormat(audioFormat.getSampleRate(), 1)));
             }
             this.audioMixer = new AudioMixer(audioFormat);
-            this.audioMixer.getMasterMixSound().setMaxSounds(8192);
-            if (!this.globalNormalization) {
-                this.audioMixer.getMasterMixSound().getSoundModifiers().append(new NormalizationModifier());
+
+            if (!threaded) {
+                this.masterMixSound = this.audioMixer.getMasterMixSound();
+                this.masterMixSound.setMaxSounds(8192);
+            } else {
+                this.masterMixSound = new ThreadedSubMixSound(Runtime.getRuntime().availableProcessors(), 8192);
+                this.audioMixer.playSound(this.masterMixSound);
+            }
+            if (!globalNormalization) {
+                this.masterMixSound.getSoundModifiers().append(new NormalizationModifier());
             }
         } catch (Throwable e) {
             throw new RuntimeException("Failed to initialize AudioMixer audio exporter", e);
@@ -62,8 +70,11 @@ public class AudioMixerAudioExporter extends AudioExporter {
     @Override
     public void render() throws InterruptedException {
         super.render();
-        if (this.globalNormalization) {
+        if (this.masterMixSound.getSoundModifiers().getFirst(NormalizationModifier.class) == null) {
             SoundSampleUtil.normalize(this.samples.getArrayDirect());
+        }
+        if (this.masterMixSound instanceof ThreadedSubMixSound threadedSubMixSound) {
+            threadedSubMixSound.close();
         }
     }
 
@@ -71,7 +82,7 @@ public class AudioMixerAudioExporter extends AudioExporter {
     protected void processSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        this.audioMixer.playSound(new OptimizedMonoSound(new MonoStaticPcmSource(this.sounds.get(sound)), pitch, volume, panning));
+        this.masterMixSound.playSound(new OptimizedMonoSound(new MonoStaticPcmSource(this.sounds.get(sound)), pitch, volume, panning));
     }
 
     @Override
