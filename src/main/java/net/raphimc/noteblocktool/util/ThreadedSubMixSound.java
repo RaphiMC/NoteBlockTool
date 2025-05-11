@@ -19,8 +19,8 @@ package net.raphimc.noteblocktool.util;
 
 import net.raphimc.audiomixer.sound.Sound;
 import net.raphimc.audiomixer.sound.impl.SubMixSound;
+import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
 
-import javax.sound.sampled.AudioFormat;
 import java.io.Closeable;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -35,7 +35,7 @@ public class ThreadedSubMixSound extends SubMixSound implements Closeable {
     private final float[][] threadSamples;
     private final SubMixSound[] subMixSounds;
     private int currentSubMixSound = 0;
-    private AudioFormat currentAudioFormat;
+    private PcmFloatAudioFormat currentAudioFormat;
     private int currentRenderSampleCount;
     private long mixRenderTime;
 
@@ -71,7 +71,7 @@ public class ThreadedSubMixSound extends SubMixSound implements Closeable {
     }
 
     @Override
-    public void render(final AudioFormat audioFormat, final float[] finalMixBuffer) {
+    public void render(final PcmFloatAudioFormat audioFormat, final float[] finalMixBuffer) {
         final long start = System.nanoTime();
         this.currentAudioFormat = audioFormat;
         this.currentRenderSampleCount = finalMixBuffer.length;

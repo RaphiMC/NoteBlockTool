@@ -18,6 +18,7 @@
 package net.raphimc.noteblocktool.audio.export;
 
 import net.raphimc.audiomixer.util.GrowableArray;
+import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
 import net.raphimc.noteblocklib.data.MinecraftInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.model.Note;
@@ -25,14 +26,13 @@ import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.player.SongPlayer;
 import net.raphimc.noteblocktool.audio.SoundMap;
 
-import javax.sound.sampled.AudioFormat;
 import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 
 public abstract class AudioExporter extends SongPlayer {
 
-    protected final AudioFormat format;
+    protected final PcmFloatAudioFormat audioFormat;
     private final float masterVolume;
     private final Consumer<Float> progressConsumer;
     protected GrowableArray samples;
@@ -40,14 +40,14 @@ public abstract class AudioExporter extends SongPlayer {
     private int processedNotes;
     private boolean isRunning;
 
-    public AudioExporter(final Song song, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
+    public AudioExporter(final Song song, final PcmFloatAudioFormat audioFormat, final float masterVolume, final Consumer<Float> progressConsumer) {
         super(song);
-        this.format = format;
+        this.audioFormat = audioFormat;
         this.progressConsumer = progressConsumer;
         this.masterVolume = masterVolume;
 
         this.noteCount = song.getNotes().getNoteCount();
-        this.samples = new GrowableArray((song.getLengthInSeconds() + 5) * format.getChannels());
+        this.samples = new GrowableArray((song.getLengthInSeconds() + 5) * audioFormat.getChannels());
         this.setCustomScheduler(null);
     }
 
@@ -86,7 +86,7 @@ public abstract class AudioExporter extends SongPlayer {
 
     @Override
     protected void postTick() {
-        final int samplesPerTick = (int) Math.ceil(this.format.getSampleRate() / this.getCurrentTicksPerSecond());
+        final int samplesPerTick = (int) Math.ceil(this.audioFormat.getSampleRate() / this.getCurrentTicksPerSecond());
         this.mix(samplesPerTick);
     }
 

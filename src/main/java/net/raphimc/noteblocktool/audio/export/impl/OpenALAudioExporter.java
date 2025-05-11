@@ -17,21 +17,21 @@
  */
 package net.raphimc.noteblocktool.audio.export.impl;
 
+import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
 import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.audio.soundsystem.impl.OpenALSoundSystem;
 
-import javax.sound.sampled.AudioFormat;
 import java.util.function.Consumer;
 
 public class OpenALAudioExporter extends AudioExporter {
 
     private final OpenALSoundSystem soundSystem;
 
-    public OpenALAudioExporter(final Song song, final AudioFormat format, final float masterVolume, final Consumer<Float> progressConsumer) {
-        super(song, format, masterVolume, progressConsumer);
-        this.soundSystem = OpenALSoundSystem.createCapture(SoundMap.loadSoundData(song), 8192, format);
+    public OpenALAudioExporter(final Song song, final PcmFloatAudioFormat audioFormat, final float masterVolume, final Consumer<Float> progressConsumer) {
+        super(song, audioFormat, masterVolume, progressConsumer);
+        this.soundSystem = OpenALSoundSystem.createCapture(SoundMap.loadSoundData(song), 8192, audioFormat);
     }
 
     @Override
@@ -56,7 +56,7 @@ public class OpenALAudioExporter extends AudioExporter {
 
     @Override
     protected void mix(final int samplesPerTick) {
-        this.soundSystem.renderSamples(this.samples, samplesPerTick);
+        this.samples.add(this.soundSystem.renderSamples(samplesPerTick));
     }
 
 }

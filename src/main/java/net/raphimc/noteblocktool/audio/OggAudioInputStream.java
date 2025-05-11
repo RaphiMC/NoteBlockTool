@@ -75,10 +75,10 @@ public class OggAudioInputStream extends InputStream {
 
         oggAudioInputStream.dspState.synthesis_init(oggAudioInputStream.info);
         oggAudioInputStream.block.init(oggAudioInputStream.dspState);
-        oggAudioInputStream.samplesBuffer = new CircularBuffer(BUFFER_SIZE * 2 * oggAudioInputStream.info.channels * 10);
+        oggAudioInputStream.samplesBuffer = new CircularBuffer(BUFFER_SIZE * Short.BYTES * oggAudioInputStream.info.channels * 10);
 
-        final AudioFormat format = new AudioFormat(oggAudioInputStream.info.rate, 16, oggAudioInputStream.info.channels, true, false);
-        return new AudioInputStream(oggAudioInputStream, format, AudioSystem.NOT_SPECIFIED);
+        final AudioFormat audioFormat = new AudioFormat(oggAudioInputStream.info.rate, Short.SIZE, oggAudioInputStream.info.channels, true, false);
+        return new AudioInputStream(oggAudioInputStream, audioFormat, AudioSystem.NOT_SPECIFIED);
     }
 
     private OggAudioInputStream(final InputStream oggStream) {

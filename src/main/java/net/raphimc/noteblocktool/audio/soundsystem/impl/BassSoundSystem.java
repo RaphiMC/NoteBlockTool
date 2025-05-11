@@ -20,7 +20,7 @@ package net.raphimc.noteblocktool.audio.soundsystem.impl;
 import com.sun.jna.Memory;
 import com.sun.jna.ptr.FloatByReference;
 import net.raphimc.audiomixer.soundmodifier.impl.NormalizationModifier;
-import net.raphimc.audiomixer.util.GrowableArray;
+import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
 import net.raphimc.noteblocktool.audio.soundsystem.BassLibrary;
 import net.raphimc.noteblocktool.audio.soundsystem.BassMixLibrary;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
@@ -51,7 +51,7 @@ public class BassSoundSystem extends SoundSystem {
         return instance;
     }
 
-    public static BassSoundSystem createCapture(final Map<String, byte[]> soundData, final int maxSounds, final AudioFormat captureAudioFormat) {
+    public static BassSoundSystem createCapture(final Map<String, byte[]> soundData, final int maxSounds, final PcmFloatAudioFormat captureAudioFormat) {
         if (instance != null) {
             throw new IllegalStateException("BASS sound system already initialized");
         }
@@ -65,7 +65,7 @@ public class BassSoundSystem extends SoundSystem {
 
     private final Map<String, Integer> soundSamples = new HashMap<>();
     private final List<Integer> playingChannels = new ArrayList<>();
-    private final AudioFormat captureAudioFormat;
+    private final PcmFloatAudioFormat captureAudioFormat;
     private Thread shutdownHook;
     private int captureChannel;
     private Memory captureMemory;
@@ -82,7 +82,7 @@ public class BassSoundSystem extends SoundSystem {
         this(soundData, maxSounds, null);
     }
 
-    private BassSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final AudioFormat captureAudioFormat) {
+    private BassSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final PcmFloatAudioFormat captureAudioFormat) {
         super(maxSounds);
 
         this.captureAudioFormat = captureAudioFormat;
@@ -120,7 +120,7 @@ public class BassSoundSystem extends SoundSystem {
             if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(this.captureChannel, BassMixLibrary.BASS_ATTRIB_MIXER_THREADS, Math.min(Runtime.getRuntime().availableProcessors(), 16))) {
                 this.checkError("Failed to set mixer threads");
             }
-            this.captureMemory = new Memory((long) this.captureAudioFormat.getSampleRate() * this.captureAudioFormat.getChannels() * 4 * 30);
+            this.captureMemory = new Memory((long) this.captureAudioFormat.getSampleRate() * this.captureAudioFormat.getFrameSize() * 15);
             this.captureNormalizer = new NormalizationModifier();
         }
 
@@ -171,19 +171,19 @@ public class BassSoundSystem extends SoundSystem {
         this.playingChannels.add(channel);
     }
 
-    public synchronized void renderSamples(final GrowableArray samples, final int sampleCount) {
+    public synchronized float[] renderSamples(final int sampleCount) {
         final int samplesLength = sampleCount * this.captureAudioFormat.getChannels();
-        if (BassLibrary.INSTANCE.BASS_ChannelGetData(this.captureChannel, this.captureMemory, samplesLength * 4 | BassLibrary.BASS_DATA_FLOAT) < 0) {
+        if ((long) samplesLength * Float.BYTES > this.captureMemory.size()) {
+            throw new IllegalStateException("Capture memory is too small");
+        }
+
+        if (BassLibrary.INSTANCE.BASS_ChannelGetData(this.captureChannel, this.captureMemory, samplesLength * Float.BYTES | BassLibrary.BASS_DATA_FLOAT) < 0) {
             this.checkError("Failed to get audio data");
         }
 
-        final float[] sampleData = this.captureMemory.getFloatArray(0, samplesLength);
-        /*final int maxValue = (int) Math.pow(2, this.captureAudioFormat.getSampleSizeInBits() - 1) - 1;
-        for (int i = 0; i < sampleData.length; i++) {
-            sampleData[i] = (int) (Float.intBitsToFloat(sampleData[i]) * maxValue);
-        }*/
-        this.captureNormalizer.modify(this.captureAudioFormat, sampleData);
-        samples.add(sampleData);
+        final float[] samples = this.captureMemory.getFloatArray(0, samplesLength);
+        this.captureNormalizer.modify(this.captureAudioFormat, samples);
+        return samples;
     }
 
     @Override

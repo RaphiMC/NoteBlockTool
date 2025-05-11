@@ -28,7 +28,7 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
     private final ThreadedSubMixSound threadedSubMixSound;
 
     public MultithreadedAudioMixerSoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
-        super(soundData, 1);
+        super(soundData, maxSounds);
         this.threadedSubMixSound = new ThreadedSubMixSound(Math.max(2, Runtime.getRuntime().availableProcessors() - 4), maxSounds);
         this.audioMixer.playSound(this.threadedSubMixSound);
     }
@@ -51,11 +51,6 @@ public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
     public synchronized void close() {
         super.close();
         this.threadedSubMixSound.close();
-    }
-
-    @Override
-    public int getMaxSounds() {
-        return this.threadedSubMixSound.getMaxSounds();
     }
 
     @Override

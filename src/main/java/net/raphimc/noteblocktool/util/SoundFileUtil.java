@@ -60,14 +60,14 @@ public class SoundFileUtil {
                         throw new RuntimeException("Failed to decode ogg file");
                     }
 
-                    final ByteBuffer samplesBuffer = samples.getByteBuffer(samplesCount * 2);
-                    final byte[] samplesArray = new byte[samplesCount * 2];
+                    final ByteBuffer samplesBuffer = samples.getByteBuffer(samplesCount * Short.BYTES);
+                    final byte[] samplesArray = new byte[samplesCount * Short.BYTES];
                     samplesBuffer.get(samplesArray);
 
                     MemoryUtil.memFree(dataBuffer);
                     MemoryUtil.memFree(samplesBuffer);
 
-                    final AudioFormat audioFormat = new AudioFormat(sampleRate.get(), 16, channels.get(), true, false);
+                    final AudioFormat audioFormat = new AudioFormat(sampleRate.get(), Short.SIZE, channels.get(), true, false);
                     return new AudioInputStream(new ByteArrayInputStream(samplesArray), audioFormat, samplesArray.length);
                 }
             } catch (Throwable e) { // Fallback if natives aren't available or if STB Vorbis fails to parse the file

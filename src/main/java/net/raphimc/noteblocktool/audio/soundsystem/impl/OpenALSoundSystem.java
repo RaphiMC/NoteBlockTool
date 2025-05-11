@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
-import net.raphimc.audiomixer.util.GrowableArray;
+import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.IOUtil;
 import net.raphimc.noteblocktool.util.SoundFileUtil;
@@ -46,7 +46,7 @@ public class OpenALSoundSystem extends SoundSystem {
         return instance;
     }
 
-    public static OpenALSoundSystem createCapture(final Map<String, byte[]> soundData, final int maxSounds, final AudioFormat captureAudioFormat) {
+    public static OpenALSoundSystem createCapture(final Map<String, byte[]> soundData, final int maxSounds, final PcmFloatAudioFormat captureAudioFormat) {
         if (tlsInstance.get() != null) {
             throw new IllegalStateException("OpenAL sound system already initialized");
         }
@@ -57,17 +57,16 @@ public class OpenALSoundSystem extends SoundSystem {
 
     private final Map<String, Integer> soundBuffers = new HashMap<>();
     private final List<Integer> playingSources = new ArrayList<>();
-    private final AudioFormat captureAudioFormat;
+    private final PcmFloatAudioFormat captureAudioFormat;
     private long device;
     private long context;
     private Thread shutdownHook;
-    private ByteBuffer captureBuffer;
 
     private OpenALSoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
         this(soundData, maxSounds, null);
     }
 
-    private OpenALSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final AudioFormat captureAudioFormat) {
+    private OpenALSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final PcmFloatAudioFormat captureAudioFormat) {
         super(maxSounds);
 
         this.captureAudioFormat = captureAudioFormat;
@@ -86,7 +85,7 @@ public class OpenALSoundSystem extends SoundSystem {
                     SOFTOutputLimiter.ALC_OUTPUT_LIMITER_SOFT, ALC10.ALC_TRUE,
                     ALC10.ALC_FREQUENCY, (int) this.captureAudioFormat.getSampleRate(),
                     SOFTLoopback.ALC_FORMAT_CHANNELS_SOFT, this.getAlSoftChannelFormat(this.captureAudioFormat),
-                    SOFTLoopback.ALC_FORMAT_TYPE_SOFT, this.getAlSoftFormatType(this.captureAudioFormat),
+                    SOFTLoopback.ALC_FORMAT_TYPE_SOFT, SOFTLoopback.ALC_FLOAT_SOFT,
                     0
             };
         }
@@ -142,10 +141,6 @@ public class OpenALSoundSystem extends SoundSystem {
             this.close();
         }));
 
-        if (captureAudioFormat != null) {
-            this.captureBuffer = MemoryUtil.memAlloc((int) this.captureAudioFormat.getSampleRate() * this.captureAudioFormat.getFrameSize() * 30);
-        }
-
         System.out.println("Initialized OpenAL " + AL10.alGetString(AL10.AL_VERSION) + " on " + ALC10.alcGetString(this.device, ALC11.ALC_ALL_DEVICES_SPECIFIER));
     }
 
@@ -187,26 +182,12 @@ public class OpenALSoundSystem extends SoundSystem {
         });
     }
 
-    public synchronized void renderSamples(final GrowableArray samples, final int sampleCount) {
+    public synchronized float[] renderSamples(final int sampleCount) {
         final int samplesLength = sampleCount * this.captureAudioFormat.getChannels();
-        if (samplesLength * this.captureAudioFormat.getSampleSizeInBits() / 8 > this.captureBuffer.capacity()) {
-            throw new IllegalArgumentException("Sample count too high");
-        }
-        SOFTLoopback.alcRenderSamplesSOFT(this.device, this.captureBuffer, sampleCount);
+        final float[] samples = new float[samplesLength];
+        SOFTLoopback.alcRenderSamplesSOFT(this.device, samples, sampleCount);
         this.checkALError("Failed to render samples");
-        if (this.captureAudioFormat.getSampleSizeInBits() == 8) {
-            for (int i = 0; i < samplesLength; i++) {
-                samples.add(this.captureBuffer.get(i));
-            }
-        } else if (this.captureAudioFormat.getSampleSizeInBits() == 16) {
-            for (int i = 0; i < samplesLength; i++) {
-                samples.add(this.captureBuffer.getShort(i * 2));
-            }
-        } else if (this.captureAudioFormat.getSampleSizeInBits() == 32) {
-            for (int i = 0; i < samplesLength; i++) {
-                samples.add(this.captureBuffer.getInt(i * 4));
-            }
-        }
+        return samples;
     }
 
     @Override
@@ -238,10 +219,6 @@ public class OpenALSoundSystem extends SoundSystem {
         if (this.device != 0L) {
             ALC10.alcCloseDevice(this.device);
             this.device = 0L;
-        }
-        if (this.captureBuffer != null) {
-            MemoryUtil.memFree(this.captureBuffer);
-            this.captureBuffer = null;
         }
         if (this.captureAudioFormat != null) {
             tlsInstance.remove();
@@ -303,26 +280,10 @@ public class OpenALSoundSystem extends SoundSystem {
     }
 
     private int getAlSoftChannelFormat(final AudioFormat audioFormat) {
-        if (audioFormat.getEncoding() == AudioFormat.Encoding.PCM_SIGNED || audioFormat.getEncoding() == AudioFormat.Encoding.PCM_UNSIGNED) {
-            if (audioFormat.getChannels() == 1) {
-                return SOFTLoopback.ALC_MONO_SOFT;
-            } else if (audioFormat.getChannels() == 2) {
-                return SOFTLoopback.ALC_STEREO_SOFT;
-            }
-        }
-
-        throw new IllegalArgumentException("Unsupported audio format: " + audioFormat);
-    }
-
-    private int getAlSoftFormatType(final AudioFormat audioFormat) {
-        if (audioFormat.getEncoding() == AudioFormat.Encoding.PCM_SIGNED || audioFormat.getEncoding() == AudioFormat.Encoding.PCM_UNSIGNED) {
-            if (audioFormat.getSampleSizeInBits() == 8) {
-                return SOFTLoopback.ALC_BYTE_SOFT;
-            } else if (audioFormat.getSampleSizeInBits() == 16) {
-                return SOFTLoopback.ALC_SHORT_SOFT;
-            } else if (audioFormat.getSampleSizeInBits() == 32) {
-                return SOFTLoopback.ALC_INT_SOFT;
-            }
+        if (audioFormat.getChannels() == 1) {
+            return SOFTLoopback.ALC_MONO_SOFT;
+        } else if (audioFormat.getChannels() == 2) {
+            return SOFTLoopback.ALC_STEREO_SOFT;
         }
 
         throw new IllegalArgumentException("Unsupported audio format: " + audioFormat);

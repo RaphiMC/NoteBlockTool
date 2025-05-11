@@ -52,7 +52,7 @@ public interface LameLibrary extends Library {
 
     int lame_init_params(final Pointer lame);
 
-    int lame_encode_buffer_interleaved(final Pointer lame, final byte[] pcm, final int num_samples, final byte[] mp3buf, final int mp3buf_size);
+    int lame_encode_buffer_interleaved_ieee_float(final Pointer lame, final float[] pcm, final int num_samples, final byte[] mp3buf, final int mp3buf_size);
 
     int lame_encode_flush(final Pointer lame, final byte[] mp3buf, final int mp3buf_size);
 
