@@ -24,12 +24,12 @@ import net.raphimc.thingl.framebuffer.impl.TextureFramebuffer;
 import net.raphimc.thingl.framebuffer.impl.WindowFramebuffer;
 import net.raphimc.thingl.implementation.DebugMessageCallback;
 import net.raphimc.thingl.implementation.GLFWWindowInterface;
+import net.raphimc.thingl.wrapper.Blending;
 import org.joml.Matrix4fStack;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11C;
-import org.lwjgl.opengl.GL14C;
 
 public class VisualizerWindow {
 
@@ -74,10 +74,10 @@ public class VisualizerWindow {
 
             this.dropRenderer.init();
 
-            GL11C.glEnable(GL11C.GL_BLEND);
-            GL14C.glBlendFuncSeparate(GL11C.GL_SRC_ALPHA, GL11C.GL_ONE_MINUS_SRC_ALPHA, GL11C.GL_ONE, GL11C.GL_ZERO);
-            GL11C.glEnable(GL11C.GL_DEPTH_TEST);
-            GL11C.glDepthFunc(GL11C.GL_LEQUAL);
+            ThinGL.glStateManager().enable(GL11C.GL_BLEND);
+            Blending.standardBlending();
+            ThinGL.glStateManager().enable(GL11C.GL_DEPTH_TEST);
+            ThinGL.glStateManager().setDepthFunc(GL11C.GL_LEQUAL);
             final TextureFramebuffer mainFramebuffer = new TextureFramebuffer();
             mainFramebuffer.setClearColor(0.5F, 0.5F, 0.5F, 0.5F);
             final Matrix4fStack positionMatrix = new Matrix4fStack(8);
