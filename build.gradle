@@ -27,9 +27,7 @@ dependencies {
     }
     includeInJar "net.java.dev.jna:jna:5.17.0"
 
-    includeInJar("net.raphimc:thingl:0.0.6-20250602.204901-1") {
-        exclude group: "org.slf4j", module: "slf4j-api"
-    }
+    includeInJar "net.raphimc:thingl:0.0.7-20250611.224829-3"
     includeInJar "org.lwjgl:lwjgl-glfw:3.3.6"
     includeInJar "org.lwjgl:lwjgl-opengl:3.3.6"
     includeInJar "org.lwjgl:lwjgl-freetype:3.3.6"

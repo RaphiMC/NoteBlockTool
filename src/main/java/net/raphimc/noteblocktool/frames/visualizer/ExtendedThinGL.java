@@ -18,8 +18,8 @@
 package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.raphimc.thingl.ThinGL;
-import net.raphimc.thingl.implementation.ApplicationInterface;
-import net.raphimc.thingl.implementation.WindowInterface;
+import net.raphimc.thingl.implementation.application.ApplicationInterface;
+import net.raphimc.thingl.implementation.window.WindowInterface;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
