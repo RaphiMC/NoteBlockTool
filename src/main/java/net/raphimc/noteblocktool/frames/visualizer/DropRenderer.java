@@ -30,8 +30,7 @@ import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
 import net.raphimc.thingl.ThinGL;
-import net.raphimc.thingl.resource.texture.AbstractTexture;
-import net.raphimc.thingl.resource.texture.Texture2D;
+import net.raphimc.thingl.resource.image.texture.Texture2D;
 import net.raphimc.thingl.text.TextRun;
 import net.raphimc.thingl.text.font.Font;
 import net.raphimc.thingl.text.shaper.ShapedTextRun;
@@ -86,7 +85,7 @@ public class DropRenderer {
                 if (stream == null) {
                     throw new IllegalStateException("Failed to find note block texture");
                 }
-                this.noteBlockTexture = new Texture2D(AbstractTexture.InternalFormat.RGBA8, stream.readAllBytes());
+                this.noteBlockTexture = Texture2D.fromImage(stream.readAllBytes());
                 this.noteBlockTexture.setFilter(GL11C.GL_NEAREST);
             }
         } catch (Throwable e) {

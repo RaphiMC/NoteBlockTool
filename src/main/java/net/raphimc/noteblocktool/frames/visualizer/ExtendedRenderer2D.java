@@ -26,10 +26,10 @@ public class ExtendedRenderer2D extends Renderer2D {
 
     public void gradientColorizedTexture(final Matrix4f positionMatrix, final int id, final float x, final float y, final float width, final float height, final Color color1, final Color color2) {
         final VertexDataHolder vertexDataHolder = this.targetMultiDrawBatchDataHolder.getVertexDataHolder(this.colorizedTexturedQuad.apply(id));
-        vertexDataHolder.putVector3f(positionMatrix, x, y + height, 0F).putColor(color2).putTextureCoords(0F, 1F).endVertex();
-        vertexDataHolder.putVector3f(positionMatrix, x + width, y + height, 0F).putColor(color2).putTextureCoords(1F, 1F).endVertex();
-        vertexDataHolder.putVector3f(positionMatrix, x + width, y, 0F).putColor(color1).putTextureCoords(1F, 0F).endVertex();
-        vertexDataHolder.putVector3f(positionMatrix, x, y, 0F).putColor(color1).putTextureCoords(0F, 0F).endVertex();
+        vertexDataHolder.putVector3f(positionMatrix, x, y + height, 0F).putColor(color2).putTextureCoord(0F, 1F).endVertex();
+        vertexDataHolder.putVector3f(positionMatrix, x + width, y + height, 0F).putColor(color2).putTextureCoord(1F, 1F).endVertex();
+        vertexDataHolder.putVector3f(positionMatrix, x + width, y, 0F).putColor(color1).putTextureCoord(1F, 0F).endVertex();
+        vertexDataHolder.putVector3f(positionMatrix, x, y, 0F).putColor(color1).putTextureCoord(0F, 0F).endVertex();
         this.drawIfNotBuffering();
     }
 

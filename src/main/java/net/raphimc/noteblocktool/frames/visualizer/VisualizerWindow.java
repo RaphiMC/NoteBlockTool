@@ -17,6 +17,7 @@
  */
 package net.raphimc.noteblocktool.frames.visualizer;
 
+import net.lenni0451.commons.color.Color;
 import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
 import net.raphimc.thingl.ThinGL;
 import net.raphimc.thingl.implementation.application.StandaloneApplicationInterface;
@@ -34,9 +35,7 @@ public class VisualizerWindow extends StandaloneApplicationRunner {
 
     public VisualizerWindow(final SoundSystemSongPlayer songPlayer, final Runnable openCallback, final Runnable closeCallback) {
         super(new Configuration()
-                .setWindowTitle("NoteBlockTool Song Visualizer - " + songPlayer.getSong().getTitleOrFileNameOr("No Title"))
-                .setDebugMode(true)
-                .setExtendedDebugMode(false));
+                .setWindowTitle("NoteBlockTool Song Visualizer - " + songPlayer.getSong().getTitleOrFileNameOr("No Title")));
 
         this.dropRenderer = new DropRenderer(songPlayer);
         this.openCallback = openCallback;
@@ -94,7 +93,7 @@ public class VisualizerWindow extends StandaloneApplicationRunner {
     protected void init() {
         super.init();
         this.dropRenderer.init();
-        this.mainFramebuffer.setClearColor(0.5F, 0.5F, 0.5F, 0.5F);
+        this.mainFramebuffer.setClearColor(Color.GRAY);
     }
 
     @Override
