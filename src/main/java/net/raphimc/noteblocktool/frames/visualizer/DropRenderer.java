@@ -246,13 +246,13 @@ public class DropRenderer {
                 if (this.pianoKeyLastColors[nbsKey] != null) {
                     ThinGL.renderer2D().filledRectangle(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
                 }
-                ThinGL.renderer2D().filledRectangle(positionMatrix, x, height - whiteKeyLineOffset + pressOffset, x + whiteKeyWidth, height - whiteKeyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
+                ThinGL.renderer2D().filledRectangle(positionMatrix, x, height - whiteKeyLineOffset + pressOffset - KEY_LINE_HEIGHT, x + whiteKeyWidth, height - whiteKeyLineOffset + pressOffset, Color.GRAY);
                 ThinGL.renderer2D().filledRectangle(positionMatrix, x, pressOffset, x + 1, height, Color.BLACK);
                 ThinGL.renderer2D().filledRectangle(positionMatrix, x + whiteKeyWidth - 1, pressOffset, x + whiteKeyWidth, height, Color.BLACK);
 
                 ThinGL.rendererText().pushGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 2745F); // 0,7
                 final float nameWidth = ThinGL.rendererText().getWidth(noteName);
-                ThinGL.rendererText().textRun(positionMatrix, noteName, x + whiteKeyWidth / 2 - nameWidth / 2, height - whiteKeyLineOffset - KEY_LINE_HEIGHT + pressOffset - this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale());
+                ThinGL.rendererText().textRun(positionMatrix, noteName, x + whiteKeyWidth / 2 - nameWidth / 2, height - whiteKeyLineOffset + pressOffset - KEY_LINE_HEIGHT - this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale());
                 ThinGL.rendererText().popGlobalScale();
             } else {
                 positionMatrix.pushMatrix();
@@ -263,11 +263,11 @@ public class DropRenderer {
                 if (this.pianoKeyLastColors[nbsKey] != null) {
                     ThinGL.renderer2D().filledRectangle(positionMatrix, x, pressOffset - height / KEY_PRESS_DEPTH_RATIO / 2, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
                 }
-                ThinGL.renderer2D().filledRectangle(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset - KEY_LINE_HEIGHT + pressOffset, Color.GRAY);
+                ThinGL.renderer2D().filledRectangle(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset - KEY_LINE_HEIGHT, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset, Color.GRAY);
 
                 ThinGL.rendererText().pushGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 4000F); // 0,48
                 final float nameWidth = ThinGL.rendererText().getWidth(noteName);
-                ThinGL.rendererText().textRun(positionMatrix, noteName, x + blackKeyWidth / 2 - nameWidth / 2, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset - KEY_LINE_HEIGHT + pressOffset - this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale());
+                ThinGL.rendererText().textRun(positionMatrix, noteName, x + blackKeyWidth / 2 - nameWidth / 2, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset - KEY_LINE_HEIGHT - this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale());
                 ThinGL.rendererText().popGlobalScale();
 
                 positionMatrix.popMatrix();
