@@ -27,7 +27,7 @@ dependencies {
     }
     includeInJar "net.java.dev.jna:jna:5.17.0"
 
-    includeInJar "net.raphimc:thingl:0.0.8-20250723.184527-5"
+    includeInJar "net.raphimc:thingl:0.0.9-20250813.203406-1"
     includeInJar "org.lwjgl:lwjgl-glfw:3.3.6"
     includeInJar "org.lwjgl:lwjgl-opengl:3.3.6"
     includeInJar "org.lwjgl:lwjgl-freetype:3.3.6"

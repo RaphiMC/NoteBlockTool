@@ -20,7 +20,6 @@ package net.raphimc.noteblocktool.frames.visualizer;
 import net.lenni0451.commons.color.Color;
 import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
 import net.raphimc.thingl.ThinGL;
-import net.raphimc.thingl.implementation.application.StandaloneApplicationInterface;
 import net.raphimc.thingl.implementation.application.StandaloneApplicationRunner;
 import net.raphimc.thingl.implementation.window.GLFWWindowInterface;
 import org.joml.Matrix4fStack;
@@ -86,7 +85,7 @@ public class VisualizerWindow extends StandaloneApplicationRunner {
 
     @Override
     protected ThinGL createThinGL() {
-        return new ExtendedThinGL(StandaloneApplicationInterface::new, GLFWWindowInterface::new);
+        return new ExtendedThinGL(new GLFWWindowInterface());
     }
 
     @Override

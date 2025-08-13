@@ -187,13 +187,13 @@ public class DropRenderer {
                 if (note.getInstrument() instanceof MinecraftInstrument instrument) {
                     final Color color = this.instrumentColors.getOrDefault(instrument, Color.WHITE);
                     this.pianoKeyLastColors[nbsKey] = color;
-                    ThinGL.renderer2D().colorizedTexture(positionMatrix, this.noteBlockTexture.getGlId(), x, y, noteSize, noteSize, color.withAlphaF(alpha));
+                    ThinGL.renderer2D().colorizedTexture(positionMatrix, this.noteBlockTexture, x, y, noteSize, noteSize, color.withAlphaF(alpha));
                 } else if (note.getInstrument() instanceof NbsCustomInstrument instrument) {
                     final Pair<Color, Color> colors = this.customInstrumentColors.get(instrument);
                     final Color color1 = colors.left();
                     final Color color2 = colors.right();
                     this.pianoKeyLastColors[nbsKey] = Color.interpolate(0.5F, color1, color2);
-                    ExtendedThinGL.renderer2D().gradientColorizedTexture(positionMatrix, this.noteBlockTexture.getGlId(), x, y, noteSize, noteSize, color1.withAlphaF(alpha), color2.withAlphaF(alpha));
+                    ExtendedThinGL.renderer2D().gradientColorizedTexture(positionMatrix, this.noteBlockTexture, x, y, noteSize, noteSize, color1.withAlphaF(alpha), color2.withAlphaF(alpha));
                 } else {
                     ThinGL.renderer2D().filledRectangle(positionMatrix, x, y, x + noteSize, y + noteSize, Color.WHITE.withAlphaF(alpha));
                 }

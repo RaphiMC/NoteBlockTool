@@ -18,10 +18,8 @@
 package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.raphimc.thingl.ThinGL;
-import net.raphimc.thingl.implementation.application.ApplicationInterface;
 import net.raphimc.thingl.implementation.window.WindowInterface;
-
-import java.util.function.Supplier;
+import net.raphimc.thingl.renderer.impl.Renderer2D;
 
 public class ExtendedThinGL extends ThinGL {
 
@@ -33,25 +31,18 @@ public class ExtendedThinGL extends ThinGL {
         return get().getRenderer2D();
     }
 
-    private final ExtendedRenderer2D extendedRenderer2D;
-
-    public ExtendedThinGL(final Supplier<ApplicationInterface> applicationInterface, final Supplier<WindowInterface> windowInterface) {
-        super(applicationInterface, windowInterface);
-        this.extendedRenderer2D = new ExtendedRenderer2D();
-    }
-
-    @Override
-    public void free() {
-        super.free();
-        if (this.extendedRenderer2D.isBuffering()) {
-            this.extendedRenderer2D.endBuffering();
-        }
-        this.extendedRenderer2D.getTargetMultiDrawBatchDataHolder().free();
+    public ExtendedThinGL(final WindowInterface windowInterface) {
+        super(windowInterface);
     }
 
     @Override
     public ExtendedRenderer2D getRenderer2D() {
-        return this.extendedRenderer2D;
+        return (ExtendedRenderer2D) super.getRenderer2D();
+    }
+
+    @Override
+    protected Renderer2D createRenderer2D() {
+        return new ExtendedRenderer2D();
     }
 
 }
