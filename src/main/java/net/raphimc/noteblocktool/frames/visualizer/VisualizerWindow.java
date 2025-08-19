@@ -19,61 +19,43 @@ package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.lenni0451.commons.color.Color;
 import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
-import net.raphimc.thingl.ThinGL;
-import net.raphimc.thingl.implementation.application.StandaloneApplicationRunner;
-import net.raphimc.thingl.implementation.window.GLFWWindowInterface;
+import net.raphimc.thingl.implementation.application.GLFWApplicationRunner;
 import org.joml.Matrix4fStack;
 import org.lwjgl.glfw.GLFW;
 
-public class VisualizerWindow extends StandaloneApplicationRunner {
+import java.util.concurrent.CancellationException;
+
+public class VisualizerWindow extends GLFWApplicationRunner {
 
     private final DropRenderer dropRenderer;
     private final Runnable openCallback;
     private final Runnable closeCallback;
-    private final Thread renderThread;
 
     public VisualizerWindow(final SoundSystemSongPlayer songPlayer, final Runnable openCallback, final Runnable closeCallback) {
         super(new Configuration()
-                .setWindowTitle("NoteBlockTool Song Visualizer - " + songPlayer.getSong().getTitleOrFileNameOr("No Title")));
+                .setUseSeparateThreads(true)
+                .setWindowTitle("NoteBlockTool Song Visualizer - " + songPlayer.getSong().getTitleOrFileNameOr("No Title"))
+        );
 
         this.dropRenderer = new DropRenderer(songPlayer);
         this.openCallback = openCallback;
         this.closeCallback = closeCallback;
-        this.renderThread = new Thread(this::launch, "Visualizer Render Thread");
-        this.renderThread.setDaemon(true);
-        this.renderThread.start();
 
-        while (!ThinGL.isInitialized() && this.renderThread.isAlive()) {
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                break;
-            }
-        }
-    }
-
-    public boolean isRenderThreadAlive() {
-        return this.renderThread.isAlive() && !this.renderThread.isInterrupted();
+        this.launch();
+        this.launchFuture.join();
     }
 
     public void close() {
-        if (!this.isRenderThreadAlive()) {
-            return;
-        }
-
-        ThinGL.get().runOnRenderThread(() -> GLFW.glfwSetWindowShouldClose(this.window, true));
+        this.windowInterface.runOnWindowThread(() -> GLFW.glfwSetWindowShouldClose(this.window, true));
         try {
-            this.renderThread.join(1000);
-        } catch (InterruptedException ignored) {
-        }
-        if (this.renderThread.isAlive()) {
-            this.renderThread.interrupt();
+            this.freeFuture.join();
+        } catch (CancellationException ignored) {
         }
     }
 
     @Override
-    protected void setWindowFlags() {
-        super.setWindowFlags();
+    protected void setWindowHints() {
+        super.setWindowHints();
         GLFW.glfwWindowHint(GLFW.GLFW_FOCUS_ON_SHOW, GLFW.GLFW_FALSE);
     }
 
@@ -84,8 +66,8 @@ public class VisualizerWindow extends StandaloneApplicationRunner {
     }
 
     @Override
-    protected ThinGL createThinGL() {
-        return new ExtendedThinGL(new GLFWWindowInterface());
+    protected void initThinGL() {
+        this.thinGL = new ExtendedThinGL(this.windowInterface);
     }
 
     @Override
@@ -101,9 +83,14 @@ public class VisualizerWindow extends StandaloneApplicationRunner {
     }
 
     @Override
-    protected void free() {
+    protected void freeGL() {
         this.dropRenderer.free();
-        super.free();
+        super.freeGL();
+    }
+
+    @Override
+    protected void freeWindowSystem() {
+        super.freeWindowSystem();
         if (this.closeCallback != null) {
             this.closeCallback.run();
         }

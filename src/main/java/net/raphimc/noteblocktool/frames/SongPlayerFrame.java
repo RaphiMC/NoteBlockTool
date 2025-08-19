@@ -227,13 +227,13 @@ public class SongPlayerFrame extends JFrame {
                     this.visualizerWindow.close();
                     this.visualizerWindow = null;
                 } else {
-                    this.visualizerWindow = new VisualizerWindow(this.songPlayer, this::toFront, () -> SwingUtilities.invokeLater(() -> {
-                        this.openVisualizerButton.setText("Open Visualizer");
-                        this.visualizerWindow = null;
-                    }));
-                    if (this.visualizerWindow.isRenderThreadAlive()) {
+                    try {
+                        this.visualizerWindow = new VisualizerWindow(this.songPlayer, () -> SwingUtilities.invokeLater(this::toFront), () -> SwingUtilities.invokeLater(() -> {
+                            this.openVisualizerButton.setText("Open Visualizer");
+                            this.visualizerWindow = null;
+                        }));
                         this.openVisualizerButton.setText("Close Visualizer");
-                    } else {
+                    } catch (Throwable t) {
                         JOptionPane.showMessageDialog(this, VISUALIZER_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
                         this.openVisualizerButton.setEnabled(false);
                         this.visualizerWindow = null;
