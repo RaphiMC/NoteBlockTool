@@ -135,11 +135,11 @@ public class OggAudioInputStream extends InputStream {
             while ((sampleCount = this.dspState.synthesis_pcmout(allSamples, offsets)) > 0) {
                 final int actualSampleCount = (int) Math.min(sampleCount, this.totalSamples - this.writtenSamples);
 
-                for (int channel = 0; channel < this.info.channels; channel++) {
-                    final int offset = offsets[channel];
-                    final float[] samples = allSamples[0][channel];
-                    for (int i = offset; i < offset + actualSampleCount; i++) {
-                        final float floatSample = samples[i];
+                for (int i = 0; i < actualSampleCount; i++) {
+                    for (int channel = 0; channel < this.info.channels; channel++) {
+                        final int offset = offsets[channel];
+                        final float[] samples = allSamples[0][channel];
+                        final float floatSample = samples[offset + i];
                         final short sample = (short) (floatSample > 0 ? (floatSample * Short.MAX_VALUE) : (floatSample * (-Short.MIN_VALUE)));
                         this.samplesBuffer.add((byte) (sample & 0xFF));
                         this.samplesBuffer.add((byte) ((sample >> 8) & 0xFF));
