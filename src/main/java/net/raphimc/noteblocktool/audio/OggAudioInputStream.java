@@ -37,6 +37,12 @@ import java.io.InputStream;
 public class OggAudioInputStream extends InputStream {
 
     private static final int BUFFER_SIZE = 8192; // Don't change. This is hardcoded in jorbis.
+    private static final int PAGEOUT_RECAPTURE = -1;
+    private static final int PAGEOUT_NEED_MORE_DATA = 0;
+    private static final int PAGEOUT_SUCCESS = 1;
+    private static final int PACKETOUT_ERROR = -1;
+    private static final int PACKETOUT_NEED_MORE_DATA = 0;
+    private static final int PACKETOUT_SUCCESS = 1;
 
     private final SyncState syncState = new SyncState();
     private final Page page = new Page();
@@ -172,8 +178,8 @@ public class OggAudioInputStream extends InputStream {
         while (true) {
             final int result = this.syncState.pageout(this.page);
             switch (result) {
-                case -1 -> throw new IllegalStateException("Corrupt or missing data in ogg stream");
-                case 0 -> {
+                case PAGEOUT_RECAPTURE -> throw new IllegalStateException("Corrupt or missing data in ogg stream");
+                case PAGEOUT_NEED_MORE_DATA -> {
                     final int offset = this.syncState.buffer(BUFFER_SIZE);
                     final int size = this.oggStream.read(this.syncState.data, offset, BUFFER_SIZE);
                     if (size == -1) {
@@ -182,7 +188,7 @@ public class OggAudioInputStream extends InputStream {
                         this.syncState.wrote(size);
                     }
                 }
-                case 1 -> {
+                case PAGEOUT_SUCCESS -> {
                     if (this.page.eos() != 0) {
                         this.totalSamples = this.page.granulepos();
                     }
@@ -198,8 +204,8 @@ public class OggAudioInputStream extends InputStream {
         while (true) {
             final int result = this.streamState.packetout(this.packet);
             switch (result) {
-                case -1 -> throw new IOException("Failed to parse packet");
-                case 0 -> {
+                case PACKETOUT_ERROR -> throw new IOException("Failed to parse packet");
+                case PACKETOUT_NEED_MORE_DATA -> {
                     final Page page = this.readPage();
                     if (page == null) {
                         return null;
@@ -207,7 +213,7 @@ public class OggAudioInputStream extends InputStream {
                         throw new IOException("Failed to parse page");
                     }
                 }
-                case 1 -> {
+                case PACKETOUT_SUCCESS -> {
                     return this.packet;
                 }
                 default -> throw new IllegalStateException("Unknown packet decode result: " + result);
