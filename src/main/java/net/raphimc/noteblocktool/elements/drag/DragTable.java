@@ -44,7 +44,6 @@ public class DragTable extends JTable {
         for (int i = 0; i < 6; i++) sortKeys.add(new RowSorter.SortKey(i, SortOrder.UNSORTED));
         sorter.setSortKeys(sortKeys);
         sorter.setComparator(4, Comparator.comparingInt(o -> (int) o));
-        sorter.setComparator(5, Comparator.comparingDouble(o -> (float) o));
         this.setRowSorter(sorter);
     }
 
