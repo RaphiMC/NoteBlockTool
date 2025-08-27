@@ -18,10 +18,10 @@
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import net.raphimc.audiomixer.SourceDataLineAudioMixer;
+import net.raphimc.audiomixer.io.AudioIO;
 import net.raphimc.audiomixer.pcmsource.impl.MonoStaticPcmSource;
 import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
 import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
-import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
 import net.raphimc.noteblocktool.util.SoundFileUtil;
 
@@ -46,7 +46,7 @@ public class AudioMixerSoundSystem extends SoundSystem {
         try {
             this.sounds = new HashMap<>();
             for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
-                this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), new PcmFloatAudioFormat(FORMAT.getSampleRate(), 1)));
+                this.sounds.put(entry.getKey(), AudioIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), new PcmFloatAudioFormat(FORMAT.getSampleRate(), 1)));
             }
             this.audioMixer = new SourceDataLineAudioMixer(AudioSystem.getSourceDataLine(FORMAT), 100, 1000);
             this.audioMixer.getMasterMixSound().setMaxSounds(maxSounds);

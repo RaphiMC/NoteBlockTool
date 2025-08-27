@@ -18,13 +18,13 @@
 package net.raphimc.noteblocktool.audio.export.impl;
 
 import net.raphimc.audiomixer.AudioMixer;
+import net.raphimc.audiomixer.io.AudioIO;
 import net.raphimc.audiomixer.pcmsource.impl.MonoStaticPcmSource;
 import net.raphimc.audiomixer.sound.impl.SubMixSound;
 import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
 import net.raphimc.audiomixer.soundmodifier.impl.NormalizationModifier;
 import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
 import net.raphimc.audiomixer.util.SoundSampleUtil;
-import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
@@ -48,7 +48,7 @@ public class AudioMixerAudioExporter extends AudioExporter {
         try {
             this.sounds = new HashMap<>();
             for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(song).entrySet()) {
-                this.sounds.put(entry.getKey(), SoundIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), new PcmFloatAudioFormat(audioFormat.getSampleRate(), 1)));
+                this.sounds.put(entry.getKey(), AudioIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), new PcmFloatAudioFormat(audioFormat.getSampleRate(), 1)));
             }
             this.audioMixer = new AudioMixer(audioFormat);
 

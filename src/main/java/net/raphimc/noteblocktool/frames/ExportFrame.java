@@ -21,8 +21,8 @@ import com.sun.jna.Pointer;
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
+import net.raphimc.audiomixer.io.AudioIO;
 import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
-import net.raphimc.audiomixer.util.io.SoundIO;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.model.Song;
@@ -425,7 +425,7 @@ public class ExportFrame extends JFrame {
             final float[] samples = exporter.getSamples();
 
             if (outputFormat.equals(OutputFormat.WAV) || outputFormat.equals(OutputFormat.AIF)) {
-                final AudioInputStream audioInputStream = SoundIO.createAudioInputStream(samples, audioFormat);
+                final AudioInputStream audioInputStream = AudioIO.createAudioInputStream(samples, audioFormat);
                 progressConsumer.accept(10F);
                 AudioSystem.write(audioInputStream, outputFormat.equals(OutputFormat.WAV) ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);
                 audioInputStream.close();

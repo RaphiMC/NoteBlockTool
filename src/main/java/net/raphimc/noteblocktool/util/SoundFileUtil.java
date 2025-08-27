@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.util;
 
-import net.raphimc.noteblocktool.audio.OggAudioInputStream;
+import net.raphimc.audiomixer.io.ogg.OggVorbisInputStream;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.stb.STBVorbis;
 import org.lwjgl.system.MemoryStack;
@@ -73,7 +73,7 @@ public class SoundFileUtil {
             } catch (Throwable e) { // Fallback if natives aren't available or if STB Vorbis fails to parse the file
                 System.err.println("Failed to decode ogg file using STB Vorbis, falling back to JOrbis");
                 e.printStackTrace();
-                return OggAudioInputStream.create(new ByteArrayInputStream(data));
+                return OggVorbisInputStream.createAudioInputStream(new ByteArrayInputStream(data));
             }
         } else {
             return AudioSystem.getAudioInputStream(bis);
