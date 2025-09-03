@@ -34,7 +34,7 @@ import net.raphimc.thingl.renderer.impl.RendererText;
 import net.raphimc.thingl.resource.image.texture.Texture2D;
 import net.raphimc.thingl.text.TextRun;
 import net.raphimc.thingl.text.font.Font;
-import net.raphimc.thingl.text.shaper.ShapedTextRun;
+import net.raphimc.thingl.text.shaping.ShapedTextRun;
 import org.joml.Matrix4fStack;
 import org.lwjgl.opengl.GL11C;
 
@@ -214,7 +214,7 @@ public class DropRenderer {
                 final ShapedTextRun tempoText = TextRun.fromString(this.robotoFont, "Tempo: " + String.format("%.2f", tps) + " t/s").shape();
 
                 ThinGL.rendererText().pushGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 2000F);
-                ThinGL.rendererText().textRun(positionMatrix, tempoText, 10, bottomY, RendererText.VerticalOrigin.BOTTOM, RendererText.HorizontalOrigin.EXACT_LEFT);
+                ThinGL.rendererText().textRun(positionMatrix, tempoText, 10, bottomY, RendererText.VerticalOrigin.LOGICAL_BOTTOM, RendererText.HorizontalOrigin.VISUAL_LEFT);
                 ThinGL.rendererText().popGlobalScale();
 
                 ThinGL.renderer2D().filledRectangle(positionMatrix, 0, bottomY, width, bottomY + 1, Color.WHITE.withAlpha(100));
@@ -251,7 +251,7 @@ public class DropRenderer {
                 ThinGL.renderer2D().filledRectangle(positionMatrix, x + whiteKeyWidth - 1, pressOffset, x + whiteKeyWidth, height, Color.BLACK);
 
                 ThinGL.rendererText().pushGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 2745F); // 0,7
-                ThinGL.rendererText().textRun(positionMatrix, noteName, x + whiteKeyWidth / 2, height - whiteKeyLineOffset + pressOffset - KEY_LINE_HEIGHT - this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale(), RendererText.VerticalOrigin.EXACT_TOP, RendererText.HorizontalOrigin.EXACT_CENTER);
+                ThinGL.rendererText().textRun(positionMatrix, noteName, x + whiteKeyWidth / 2, height - whiteKeyLineOffset + pressOffset - KEY_LINE_HEIGHT - this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale(), RendererText.VerticalOrigin.VISUAL_TOP, RendererText.HorizontalOrigin.VISUAL_CENTER);
                 ThinGL.rendererText().popGlobalScale();
             } else {
                 positionMatrix.pushMatrix();
@@ -265,7 +265,7 @@ public class DropRenderer {
                 ThinGL.renderer2D().filledRectangle(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset - KEY_LINE_HEIGHT, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset, Color.GRAY);
 
                 ThinGL.rendererText().pushGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 4000F); // 0,48
-                ThinGL.rendererText().textRun(positionMatrix, noteName, x + blackKeyWidth / 2, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset - KEY_LINE_HEIGHT - this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale(), RendererText.VerticalOrigin.EXACT_TOP, RendererText.HorizontalOrigin.EXACT_CENTER);
+                ThinGL.rendererText().textRun(positionMatrix, noteName, x + blackKeyWidth / 2, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset - KEY_LINE_HEIGHT - this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale(), RendererText.VerticalOrigin.VISUAL_TOP, RendererText.HorizontalOrigin.VISUAL_CENTER);
                 ThinGL.rendererText().popGlobalScale();
 
                 positionMatrix.popMatrix();

@@ -13,7 +13,7 @@ repositories {
 
 dependencies {
     includeInJar "net.raphimc:NoteBlockLib:3.1.0"
-    includeInJar "net.raphimc:audio-mixer:2.3.0-SNAPSHOT"
+    includeInJar "net.raphimc:audio-mixer:2.3.0-20250903.190241-3"
     includeInJar "org.jcraft:jorbis:0.0.17"
     includeInJar "com.formdev:flatlaf:3.6.1"
     includeInJar "net.lenni0451.commons:swing:1.8.0"
@@ -27,7 +27,7 @@ dependencies {
     }
     includeInJar "net.java.dev.jna:jna:5.17.0"
 
-    includeInJar "net.raphimc:thingl:0.0.10-20250822.192650-5"
+    includeInJar "net.raphimc:thingl:0.0.11-20250903.190713-2"
     includeInJar "org.lwjgl:lwjgl-glfw:3.3.6"
     includeInJar "org.lwjgl:lwjgl-opengl:3.3.6"
     includeInJar "org.lwjgl:lwjgl-freetype:3.3.6"

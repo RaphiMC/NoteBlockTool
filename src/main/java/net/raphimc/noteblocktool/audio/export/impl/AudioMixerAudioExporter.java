@@ -20,7 +20,8 @@ package net.raphimc.noteblocktool.audio.export.impl;
 import net.raphimc.audiomixer.AudioMixer;
 import net.raphimc.audiomixer.io.AudioIO;
 import net.raphimc.audiomixer.pcmsource.impl.MonoStaticPcmSource;
-import net.raphimc.audiomixer.sound.impl.SubMixSound;
+import net.raphimc.audiomixer.sound.impl.mix.MixSound;
+import net.raphimc.audiomixer.sound.impl.mix.ThreadedChannelMixSound;
 import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
 import net.raphimc.audiomixer.soundmodifier.impl.NormalizationModifier;
 import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
@@ -29,7 +30,6 @@ import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.audio.export.AudioExporter;
 import net.raphimc.noteblocktool.util.SoundFileUtil;
-import net.raphimc.noteblocktool.util.ThreadedSubMixSound;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
@@ -40,7 +40,7 @@ public class AudioMixerAudioExporter extends AudioExporter {
 
     private final Map<String, float[]> sounds;
     private final AudioMixer audioMixer;
-    private final SubMixSound masterMixSound;
+    private final MixSound masterMixSound;
 
     public AudioMixerAudioExporter(final Song song, final PcmFloatAudioFormat audioFormat, final float masterVolume, final boolean globalNormalization, final boolean threaded, final Consumer<Float> progressConsumer) {
         super(song, audioFormat, masterVolume, progressConsumer);
@@ -56,7 +56,7 @@ public class AudioMixerAudioExporter extends AudioExporter {
                 this.masterMixSound = this.audioMixer.getMasterMixSound();
                 this.masterMixSound.setMaxSounds(8192);
             } else {
-                this.masterMixSound = new ThreadedSubMixSound(Runtime.getRuntime().availableProcessors(), 8192);
+                this.masterMixSound = new ThreadedChannelMixSound(Runtime.getRuntime().availableProcessors(), 8192);
                 this.audioMixer.playSound(this.masterMixSound);
             }
             if (!globalNormalization) {
@@ -73,8 +73,8 @@ public class AudioMixerAudioExporter extends AudioExporter {
         if (this.masterMixSound.getSoundModifiers().getFirst(NormalizationModifier.class) == null) {
             SoundSampleUtil.normalize(this.samples.getArrayDirect());
         }
-        if (this.masterMixSound instanceof ThreadedSubMixSound threadedSubMixSound) {
-            threadedSubMixSound.close();
+        if (this.masterMixSound instanceof ThreadedChannelMixSound threadedMixSound) {
+            threadedMixSound.close();
         }
     }
 

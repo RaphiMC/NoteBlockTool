@@ -18,44 +18,44 @@
 package net.raphimc.noteblocktool.audio.soundsystem.impl;
 
 import net.raphimc.audiomixer.pcmsource.impl.MonoStaticPcmSource;
+import net.raphimc.audiomixer.sound.impl.mix.ThreadedChannelMixSound;
 import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
-import net.raphimc.noteblocktool.util.ThreadedSubMixSound;
 
 import java.util.Map;
 
 public class MultithreadedAudioMixerSoundSystem extends AudioMixerSoundSystem {
 
-    private final ThreadedSubMixSound threadedSubMixSound;
+    private final ThreadedChannelMixSound threadedMixSound;
 
     public MultithreadedAudioMixerSoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
         super(soundData, maxSounds);
-        this.threadedSubMixSound = new ThreadedSubMixSound(Math.max(2, Runtime.getRuntime().availableProcessors() - 4), maxSounds);
-        this.audioMixer.playSound(this.threadedSubMixSound);
+        this.threadedMixSound = new ThreadedChannelMixSound(Math.max(2, Runtime.getRuntime().availableProcessors() - 4), maxSounds);
+        this.audioMixer.playSound(this.threadedMixSound);
     }
 
     @Override
     public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.sounds.containsKey(sound)) return;
 
-        this.threadedSubMixSound.playSound(new OptimizedMonoSound(new MonoStaticPcmSource(this.sounds.get(sound)), pitch, volume, panning));
+        this.threadedMixSound.playSound(new OptimizedMonoSound(new MonoStaticPcmSource(this.sounds.get(sound)), pitch, volume, panning));
     }
 
     @Override
     public synchronized void stopSounds() {
         super.stopSounds();
-        this.threadedSubMixSound.stopAllSounds();
-        this.audioMixer.playSound(this.threadedSubMixSound);
+        this.threadedMixSound.stopAllSounds();
+        this.audioMixer.playSound(this.threadedMixSound);
     }
 
     @Override
     public synchronized void close() {
         super.close();
-        this.threadedSubMixSound.close();
+        this.threadedMixSound.close();
     }
 
     @Override
     public String getStatusLine() {
-        return "Sounds: " + this.threadedSubMixSound.getMixedSounds() + " / " + this.threadedSubMixSound.getMaxSounds() + ", " + this.threadedSubMixSound.getThreadCount() + " threads";
+        return "Sounds: " + this.threadedMixSound.getMixedSounds() + " / " + this.threadedMixSound.getMaxSounds() + ", " + this.threadedMixSound.getChannelCount() + " threads";
     }
 
 }
