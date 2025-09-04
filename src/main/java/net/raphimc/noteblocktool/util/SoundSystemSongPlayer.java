@@ -90,7 +90,7 @@ public class SoundSystemSongPlayer extends SongPlayer {
     protected boolean preTick() {
         this.soundSystem.preTick();
         if (this.soundSystem instanceof AudioMixerSoundSystem audioMixerSoundSystem) {
-            return audioMixerSoundSystem.isWithinLatencyTarget();
+            return !audioMixerSoundSystem.shouldSkipTick();
         }
         return true;
     }
@@ -98,7 +98,7 @@ public class SoundSystemSongPlayer extends SongPlayer {
     @Override
     protected void postTick() {
         if (this.soundSystem instanceof AudioMixerSoundSystem audioMixerSoundSystem) {
-            audioMixerSoundSystem.mixSlice();
+            audioMixerSoundSystem.tick();
         }
     }
 

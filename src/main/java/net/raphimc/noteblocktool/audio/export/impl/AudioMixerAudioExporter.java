@@ -86,8 +86,8 @@ public class AudioMixerAudioExporter extends AudioExporter {
     }
 
     @Override
-    protected void mix(final int samplesPerTick) {
-        this.samples.add(this.audioMixer.mix(samplesPerTick * this.audioFormat.getChannels()));
+    protected void mix(final int framesPerTick) {
+        this.samples.add(this.audioMixer.mix(framesPerTick * this.audioFormat.getChannels()));
     }
 
 }

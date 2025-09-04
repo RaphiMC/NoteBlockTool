@@ -171,8 +171,8 @@ public class BassSoundSystem extends SoundSystem {
         this.playingChannels.add(channel);
     }
 
-    public synchronized float[] renderSamples(final int sampleCount) {
-        final int samplesLength = sampleCount * this.captureAudioFormat.getChannels();
+    public synchronized float[] renderSamples(final int frameCount) {
+        final int samplesLength = frameCount * this.captureAudioFormat.getChannels();
         if ((long) samplesLength * Float.BYTES > this.captureMemory.size()) {
             throw new IllegalStateException("Capture memory is too small");
         }

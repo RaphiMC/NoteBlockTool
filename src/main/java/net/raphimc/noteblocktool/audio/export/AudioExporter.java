@@ -86,8 +86,8 @@ public abstract class AudioExporter extends SongPlayer {
 
     @Override
     protected void postTick() {
-        final int samplesPerTick = (int) Math.ceil(this.audioFormat.getSampleRate() / this.getCurrentTicksPerSecond());
-        this.mix(samplesPerTick);
+        final int framesPerTick = (int) Math.ceil(this.audioFormat.getSampleRate() / this.getCurrentTicksPerSecond());
+        this.mix(framesPerTick);
     }
 
     @Override
@@ -113,6 +113,6 @@ public abstract class AudioExporter extends SongPlayer {
 
     protected abstract void processSound(final String sound, final float pitch, final float volume, final float panning);
 
-    protected abstract void mix(final int samplesPerTick);
+    protected abstract void mix(final int framesPerTick);
 
 }

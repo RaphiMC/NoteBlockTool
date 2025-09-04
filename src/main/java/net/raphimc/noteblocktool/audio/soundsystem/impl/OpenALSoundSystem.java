@@ -182,10 +182,10 @@ public class OpenALSoundSystem extends SoundSystem {
         });
     }
 
-    public synchronized float[] renderSamples(final int sampleCount) {
-        final int samplesLength = sampleCount * this.captureAudioFormat.getChannels();
+    public synchronized float[] renderSamples(final int frameCount) {
+        final int samplesLength = frameCount * this.captureAudioFormat.getChannels();
         final float[] samples = new float[samplesLength];
-        SOFTLoopback.alcRenderSamplesSOFT(this.device, samples, sampleCount);
+        SOFTLoopback.alcRenderSamplesSOFT(this.device, samples, frameCount);
         this.checkALError("Failed to render samples");
         return samples;
     }

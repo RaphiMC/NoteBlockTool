@@ -55,8 +55,8 @@ public class OpenALAudioExporter extends AudioExporter {
     }
 
     @Override
-    protected void mix(final int samplesPerTick) {
-        this.samples.add(this.soundSystem.renderSamples(samplesPerTick));
+    protected void mix(final int framesPerTick) {
+        this.samples.add(this.soundSystem.renderSamples(framesPerTick));
     }
 
 }
