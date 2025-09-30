@@ -30,7 +30,7 @@ dependencies {
         includeInJar "org.lwjgl:lwjgl-openal:3.3.6:$it"
         includeInJar "org.lwjgl:lwjgl-stb:3.3.6:$it"
     }
-    includeInJar "net.java.dev.jna:jna:5.18.0"
+    includeInJar "net.java.dev.jna:jna:5.18.1"
 
     includeInJar "net.raphimc:thingl:0.0.11-20250903.190713-2"
     includeInJar "org.lwjgl:lwjgl-glfw:3.3.6"
