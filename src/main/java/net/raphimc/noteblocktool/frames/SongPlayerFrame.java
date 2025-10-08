@@ -19,37 +19,41 @@ package net.raphimc.noteblocktool.frames;
 
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
+import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
 import net.raphimc.noteblocklib.model.Song;
-import net.raphimc.noteblocktool.audio.SoundMap;
-import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
-import net.raphimc.noteblocktool.audio.soundsystem.impl.*;
+import net.raphimc.noteblocktool.audio.player.AudioSystemSongPlayer;
+import net.raphimc.noteblocktool.audio.player.impl.RealtimeSongPlayer;
+import net.raphimc.noteblocktool.audio.player.impl.RealtimeSongRenderer;
+import net.raphimc.noteblocktool.audio.system.impl.AudioMixerAudioSystem;
+import net.raphimc.noteblocktool.audio.system.impl.BassAudioSystem;
+import net.raphimc.noteblocktool.audio.system.impl.OpenALAudioSystem;
+import net.raphimc.noteblocktool.audio.system.impl.XAudio2AudioSystem;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
 import net.raphimc.noteblocktool.frames.visualizer.VisualizerWindow;
-import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.text.DecimalFormat;
-import java.util.Map;
 
 public class SongPlayerFrame extends JFrame {
 
-    private static final String SOUND_SYSTEM_UNAVAILABLE_MESSAGE = "An error occurred while initializing the sound system.\nPlease make sure that your system supports the selected sound system.";
+    private static final String AUDIO_SYSTEM_UNAVAILABLE_MESSAGE = "An error occurred while initializing the audio system.\nPlease make sure that your system supports the selected audio system.";
     private static final String VISUALIZER_UNAVAILABLE_MESSAGE = "An error occurred while initializing the visualizer window.\nPlease make sure that your system supports at least OpenGL 4.5.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
+    private static final PcmFloatAudioFormat PLAYBACK_AUDIO_FORMAT = new PcmFloatAudioFormat(48000, 2);
     private static SongPlayerFrame instance;
     private static Point lastPosition;
-    private static int lastSoundSystem;
+    private static int lastAudioSystem;
     private static int lastMaxSounds = 1024;
     private static int lastVolume = 50;
 
     public static void open(final Song song) {
         if (instance != null && instance.isVisible()) {
             lastPosition = instance.getLocation();
-            lastSoundSystem = instance.soundSystemComboBox.getSelectedIndex();
+            lastAudioSystem = instance.audioSystemComboBox.getSelectedIndex();
             lastMaxSounds = (int) instance.maxSoundsSpinner.getValue();
             lastVolume = instance.volumeSlider.getValue();
             instance.dispose();
@@ -57,7 +61,7 @@ public class SongPlayerFrame extends JFrame {
         SwingUtilities.invokeLater(() -> {
             instance = new SongPlayerFrame(song);
             if (lastPosition != null) instance.setLocation(lastPosition);
-            instance.soundSystemComboBox.setSelectedIndex(lastSoundSystem);
+            instance.audioSystemComboBox.setSelectedIndex(lastAudioSystem);
             instance.maxSoundsSpinner.setValue(lastMaxSounds);
             instance.volumeSlider.setValue(lastVolume);
             instance.playStopButton.doClick(0);
@@ -71,9 +75,8 @@ public class SongPlayerFrame extends JFrame {
 
 
     private final Song song;
-    private final SoundSystemSongPlayer songPlayer;
     private final Timer updateTimer;
-    private final JComboBox<SoundSystemType> soundSystemComboBox = new JComboBox<>(SoundSystemType.values());
+    private final JComboBox<AudioSystemType> audioSystemComboBox = new JComboBox<>(AudioSystemType.values());
     private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(lastMaxSounds, 64, 65535, 64));
     private final JSlider volumeSlider = new JSlider(0, 100, lastVolume);
     private final JButton playStopButton = new JButton("Play");
@@ -82,13 +85,12 @@ public class SongPlayerFrame extends JFrame {
     private final JSlider progressSlider = new JSlider(0, 100, 0);
     private final JLabel statusLine = new JLabel(" ");
     private final JLabel progressLabel = new JLabel("Current Position: 00:00:00");
-    private SoundSystem soundSystem;
-    private SoundSystemType soundSystemType;
+    private AudioSystemSongPlayer songPlayer;
+    private AudioSystemType audioSystemType;
     private VisualizerWindow visualizerWindow;
 
     private SongPlayerFrame(final Song song) {
         this.song = song;
-        this.songPlayer = new SoundSystemSongPlayer(song);
         this.updateTimer = new Timer(50, e -> this.tick());
         this.updateTimer.start();
 
@@ -115,9 +117,9 @@ public class SongPlayerFrame extends JFrame {
             root.add(northPanel, BorderLayout.NORTH);
 
             int gridy = 0;
-            GBC.create(northPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Sound System:"));
-            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.soundSystemComboBox, () -> {
-                this.soundSystemComboBox.addActionListener(e -> lastSoundSystem = this.soundSystemComboBox.getSelectedIndex());
+            GBC.create(northPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Audio System:"));
+            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.audioSystemComboBox, () -> {
+                this.audioSystemComboBox.addActionListener(e -> lastAudioSystem = this.audioSystemComboBox.getSelectedIndex());
             });
 
             GBC.create(northPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
@@ -132,7 +134,9 @@ public class SongPlayerFrame extends JFrame {
                 this.volumeSlider.setMajorTickSpacing(10);
                 this.volumeSlider.setMinorTickSpacing(5);
                 this.volumeSlider.addChangeListener(e -> {
-                    if (this.soundSystem != null) this.soundSystem.setMasterVolume(this.volumeSlider.getValue() / 100F);
+                    if (this.songPlayer != null) {
+                        this.songPlayer.getAudioSystem().setMasterVolume(this.volumeSlider.getValue() / 100F);
+                    }
                     lastVolume = this.volumeSlider.getValue();
                 });
             });
@@ -184,16 +188,16 @@ public class SongPlayerFrame extends JFrame {
 
             GBC.create(southPanel).grid(0, gridy++).insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.progressSlider, () -> {
                 this.progressSlider.addChangeListener(e -> {
-                    //Skip updates if the value is set directly
-                    if (!this.progressSlider.getValueIsAdjusting()) return;
-                    if (!this.songPlayer.isRunning()) {
-                        if (this.initSoundSystem()) {
-                            this.soundSystem.setMasterVolume(this.volumeSlider.getValue() / 100F);
-                            this.songPlayer.start(this.soundSystem);
+                    if (!this.progressSlider.getValueIsAdjusting()) { // Skip updates if the value is set directly
+                        return;
+                    }
+                    if (this.songPlayer != null) {
+                        if (!this.songPlayer.isRunning()) {
+                            this.songPlayer.start();
                             this.songPlayer.setPaused(true);
                         }
+                        this.songPlayer.setTick(this.progressSlider.getValue());
                     }
-                    this.songPlayer.setTick(this.progressSlider.getValue());
                 });
             });
 
@@ -201,23 +205,20 @@ public class SongPlayerFrame extends JFrame {
             buttonPanel.setLayout(new GridLayout(1, 3, 5, 0));
             buttonPanel.add(this.playStopButton);
             this.playStopButton.addActionListener(e -> {
-                if (this.songPlayer.isRunning()) {
-                    this.songPlayer.stop();
-                    this.songPlayer.setTick(0);
-                } else {
-                    if (this.initSoundSystem()) {
-                        this.soundSystem.setMasterVolume(this.volumeSlider.getValue() / 100F);
-                        this.songPlayer.start(this.soundSystem);
+                this.initSongPlayer();
+                if (this.songPlayer != null) {
+                    if (this.songPlayer.isRunning()) {
+                        this.songPlayer.stop();
+                        this.songPlayer.setTick(0);
+                    } else {
+                        this.songPlayer.start();
                     }
                 }
             });
             buttonPanel.add(this.pauseResumeButton);
             this.pauseResumeButton.addActionListener(e -> {
-                if (this.songPlayer.isPaused()) {
-                    this.songPlayer.setPaused(false);
-                } else {
-                    this.songPlayer.setPaused(true);
-                    this.soundSystem.stopSounds();
+                if (this.songPlayer != null) {
+                    this.songPlayer.setPaused(!this.songPlayer.isPaused());
                 }
             });
             buttonPanel.add(this.openVisualizerButton);
@@ -234,9 +235,8 @@ public class SongPlayerFrame extends JFrame {
                         }));
                         this.openVisualizerButton.setText("Close Visualizer");
                     } catch (Throwable t) {
-                        JOptionPane.showMessageDialog(this, VISUALIZER_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
-                        this.openVisualizerButton.setEnabled(false);
                         this.visualizerWindow = null;
+                        JOptionPane.showMessageDialog(this, VISUALIZER_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             });
@@ -250,31 +250,27 @@ public class SongPlayerFrame extends JFrame {
         }
     }
 
-    private boolean initSoundSystem() {
+    private void initSongPlayer() {
         try {
-            if (this.soundSystem == null || this.soundSystemComboBox.getSelectedItem() != this.soundSystemType || this.soundSystem.getMaxSounds() != (int) this.maxSoundsSpinner.getValue()) {
-                if (this.soundSystem != null) this.soundSystem.close();
-
-                final Map<String, byte[]> soundData = SoundMap.loadSoundData(this.songPlayer.getSong());
-                final int maxSounds = ((Number) this.maxSoundsSpinner.getValue()).intValue();
-
-                this.soundSystem = switch ((SoundSystemType) this.soundSystemComboBox.getSelectedItem()) {
-                    case AUDIO_MIXER -> new AudioMixerSoundSystem(soundData, maxSounds);
-                    case OPENAL -> OpenALSoundSystem.createPlayback(soundData, maxSounds);
-                    case BASS -> BassSoundSystem.createPlayback(soundData, maxSounds);
-                    case AUDIO_MIXER_MULTITHREADED -> new MultithreadedAudioMixerSoundSystem(soundData, maxSounds);
-                    case X_AUDIO_2 -> new XAudio2SoundSystem(soundData, maxSounds);
+            final int maxSounds = (int) this.maxSoundsSpinner.getValue();
+            if (this.songPlayer == null || this.audioSystemComboBox.getSelectedItem() != this.audioSystemType || this.songPlayer.getAudioSystem().getMaxSounds() != maxSounds) {
+                this.closeSongPlayerAndVisualizer();
+                this.audioSystemType = (AudioSystemType) this.audioSystemComboBox.getSelectedItem();
+                this.songPlayer = switch (this.audioSystemType) {
+                    case AUDIO_MIXER -> new RealtimeSongRenderer(this.song, soundData -> new AudioMixerAudioSystem(soundData, maxSounds, true, false, PLAYBACK_AUDIO_FORMAT));
+                    case OPENAL -> new RealtimeSongPlayer(this.song, soundData -> new OpenALAudioSystem(soundData, maxSounds));
+                    case BASS -> new RealtimeSongPlayer(this.song, soundData -> new BassAudioSystem(soundData, maxSounds));
+                    case AUDIO_MIXER_MULTITHREADED -> new RealtimeSongRenderer(this.song, soundData -> new AudioMixerAudioSystem(soundData, maxSounds, true, true, PLAYBACK_AUDIO_FORMAT));
+                    case X_AUDIO_2 -> new RealtimeSongPlayer(this.song, soundData -> new XAudio2AudioSystem(soundData, maxSounds));
                 };
-                this.soundSystemType = (SoundSystemType) this.soundSystemComboBox.getSelectedItem();
+                this.songPlayer.getAudioSystem().setMasterVolume(this.volumeSlider.getValue() / 100F);
             }
-            return this.soundSystem != null;
         } catch (Throwable t) {
-            this.soundSystem = null;
-            this.soundSystemType = null;
+            this.audioSystemType = null;
+            this.songPlayer = null;
             t.printStackTrace();
-            JOptionPane.showMessageDialog(this, SOUND_SYSTEM_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, AUDIO_SYSTEM_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
         }
-        return false;
     }
 
     private void initFrameHandler() {
@@ -287,46 +283,57 @@ public class SongPlayerFrame extends JFrame {
 
             @Override
             public void windowClosed(WindowEvent e) {
-                SongPlayerFrame.this.songPlayer.stop();
                 SongPlayerFrame.this.updateTimer.stop();
-                if (SongPlayerFrame.this.visualizerWindow != null) {
-                    SongPlayerFrame.this.visualizerWindow.close();
-                    SongPlayerFrame.this.visualizerWindow = null;
-                }
-                if (SongPlayerFrame.this.soundSystem != null) SongPlayerFrame.this.soundSystem.close();
+                SongPlayerFrame.this.closeSongPlayerAndVisualizer();
             }
         });
     }
 
     private void tick() {
-        if (this.songPlayer.isRunning()) {
-            this.soundSystemComboBox.setEnabled(false);
+        this.openVisualizerButton.setEnabled(this.songPlayer != null);
+        if (this.songPlayer != null && this.songPlayer.isRunning()) {
+            this.audioSystemComboBox.setEnabled(false);
             this.maxSoundsSpinner.setEnabled(false);
-            this.playStopButton.setText("Stop");
             this.pauseResumeButton.setEnabled(true);
-            if (this.songPlayer.isPaused()) this.pauseResumeButton.setText("Resume");
-            else this.pauseResumeButton.setText("Pause");
+            this.progressSlider.setEnabled(true);
+            this.playStopButton.setText("Stop");
+            this.pauseResumeButton.setText(this.songPlayer.isPaused() ? "Resume" : "Pause");
 
-            int tickCount = this.songPlayer.getSong().getNotes().getLengthInTicks();
-            if (this.progressSlider.getMaximum() != tickCount) this.progressSlider.setMaximum(tickCount);
+            final int tickCount = this.songPlayer.getSong().getNotes().getLengthInTicks();
+            if (this.progressSlider.getMaximum() != tickCount) {
+                this.progressSlider.setMaximum(tickCount);
+            }
             this.progressSlider.setValue(this.songPlayer.getTick());
-            this.statusLine.setText(this.soundSystem.getStatusLine() + ", Song Player CPU Load: " + (int) (this.songPlayer.getCpuLoad() * 100) + "%");
+
+            final int seconds = (int) Math.ceil(this.songPlayer.getMillisecondPosition() / 1000F);
+            this.progressLabel.setText("Current Position: " + String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60));
+            this.statusLine.setText(String.join(", ", this.songPlayer.getStatusLines()));
         } else {
-            this.soundSystemComboBox.setEnabled(true);
+            this.audioSystemComboBox.setEnabled(true);
             this.maxSoundsSpinner.setEnabled(true);
+            this.pauseResumeButton.setEnabled(false);
+            this.progressSlider.setEnabled(false);
             this.playStopButton.setText("Play");
             this.pauseResumeButton.setText("Pause");
-            this.pauseResumeButton.setEnabled(false);
             this.progressSlider.setValue(0);
+            this.progressLabel.setText(" ");
             this.statusLine.setText(" ");
         }
+    }
 
-        final int seconds = (int) Math.ceil(this.songPlayer.getMillisecondPosition() / 1000F);
-        this.progressLabel.setText("Current Position: " + String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60));
+    private void closeSongPlayerAndVisualizer() {
+        if (this.visualizerWindow != null) {
+            this.visualizerWindow.close();
+            this.visualizerWindow = null;
+        }
+        if (this.songPlayer != null) {
+            this.songPlayer.close();
+            this.songPlayer = null;
+        }
     }
 
 
-    private enum SoundSystemType {
+    private enum AudioSystemType {
         AUDIO_MIXER("AudioMixer"),
         OPENAL("OpenAL"),
         BASS("Un4seen BASS"),
@@ -335,7 +342,7 @@ public class SongPlayerFrame extends JFrame {
 
         private final String name;
 
-        SoundSystemType(final String name) {
+        AudioSystemType(final String name) {
             this.name = name;
         }
 

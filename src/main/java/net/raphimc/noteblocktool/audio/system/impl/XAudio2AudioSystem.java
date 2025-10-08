@@ -15,13 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.audio.soundsystem.impl;
+package net.raphimc.noteblocktool.audio.system.impl;
 
 import com.sun.jna.Memory;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
-import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
-import net.raphimc.noteblocktool.audio.soundsystem.XAudio2Library;
+import net.raphimc.noteblocktool.audio.library.XAudio2Library;
+import net.raphimc.noteblocktool.audio.system.AudioSystem;
 import net.raphimc.noteblocktool.util.IOUtil;
 import net.raphimc.noteblocktool.util.SoundFileUtil;
 import net.raphimc.noteblocktool.util.jna.Ole32;
@@ -34,7 +34,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class XAudio2SoundSystem extends SoundSystem {
+public class XAudio2AudioSystem extends AudioSystem {
+
+    static {
+        if (!XAudio2Library.isLoaded()) {
+            throw new IllegalStateException("XAudio2 library is not available");
+        }
+    }
 
     private final Map<String, SoundBuffer> soundBuffers = new HashMap<>();
     private final List<XAudio2Library.XAudio2SourceVoice> playingVoices = new ArrayList<>();
@@ -42,13 +48,9 @@ public class XAudio2SoundSystem extends SoundSystem {
     private XAudio2Library.XAudio2MasteringVoice masteringVoice;
     private int masteringVoiceChannelMask;
     private int masteringVoiceChannels;
-    private Thread shutdownHook;
 
-    public XAudio2SoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
-        super(maxSounds);
-        if (!XAudio2Library.isLoaded()) {
-            throw new IllegalStateException("XAudio2 library is not available");
-        }
+    public XAudio2AudioSystem(final Map<String, byte[]> soundData, final int maxSounds) {
+        super(soundData, maxSounds);
 
         this.checkError(Ole32.INSTANCE.CoInitializeEx(null, Ole32.COINIT_MULTITHREADED), "Failed to initialize COM");
 
@@ -66,41 +68,11 @@ public class XAudio2SoundSystem extends SoundSystem {
         this.masteringVoice.GetVoiceDetails(masteringVoiceDetails);
         this.masteringVoiceChannels = masteringVoiceDetails.InputChannels;
 
-        try {
-            for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
-                this.soundBuffers.put(entry.getKey(), this.loadAudioFile(entry.getValue()));
-            }
-        } catch (Throwable e) {
-            throw new RuntimeException("Failed to load sound samples", e);
+        for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
+            this.soundBuffers.put(entry.getKey(), this.loadAudioFile(entry.getValue()));
         }
-
-        Runtime.getRuntime().addShutdownHook(this.shutdownHook = new Thread(() -> {
-            this.shutdownHook = null;
-            this.close();
-        }));
 
         System.out.println("Initialized XAudio2 v2.9");
-    }
-
-    @Override
-    public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
-        if (!this.soundBuffers.containsKey(sound)) return;
-        final SoundBuffer buffer = this.soundBuffers.get(sound);
-
-        if (this.playingVoices.size() >= this.maxSounds) {
-            this.playingVoices.remove(0).DestroyVoice();
-        }
-
-        final PointerByReference ppSourceVoice = new PointerByReference();
-        this.checkError(this.xAudio2.CreateSourceVoice(ppSourceVoice, buffer.waveFormat, 0, 10F, null, null, null), "Failed to create source voice");
-        final XAudio2Library.XAudio2SourceVoice sourceVoice = new XAudio2Library.XAudio2SourceVoice(ppSourceVoice.getValue());
-
-        this.checkError(sourceVoice.SubmitSourceBuffer(buffer.buffer, null), "Failed to submit source buffer");
-        this.checkError(sourceVoice.SetFrequencyRatio(pitch, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to frequency ratio");
-        this.checkError(sourceVoice.SetVolume(volume, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to set volume");
-        this.checkError(sourceVoice.SetOutputMatrix(masteringVoice, 1, this.masteringVoiceChannels, this.createPanMatrix(panning), XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to set output matrix");
-        this.checkError(sourceVoice.Start(0, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to start source voice");
-        this.playingVoices.add(sourceVoice);
     }
 
     @Override
@@ -117,7 +89,28 @@ public class XAudio2SoundSystem extends SoundSystem {
     }
 
     @Override
-    public synchronized void stopSounds() {
+    public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
+        if (!this.soundBuffers.containsKey(sound)) return;
+        final SoundBuffer buffer = this.soundBuffers.get(sound);
+
+        if (this.playingVoices.size() >= this.getMaxSounds()) {
+            this.playingVoices.remove(0).DestroyVoice();
+        }
+
+        final PointerByReference ppSourceVoice = new PointerByReference();
+        this.checkError(this.xAudio2.CreateSourceVoice(ppSourceVoice, buffer.waveFormat, 0, 10F, null, null, null), "Failed to create source voice");
+        final XAudio2Library.XAudio2SourceVoice sourceVoice = new XAudio2Library.XAudio2SourceVoice(ppSourceVoice.getValue());
+
+        this.checkError(sourceVoice.SubmitSourceBuffer(buffer.buffer, null), "Failed to submit source buffer");
+        this.checkError(sourceVoice.SetFrequencyRatio(pitch, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to frequency ratio");
+        this.checkError(sourceVoice.SetVolume(volume, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to set volume");
+        this.checkError(sourceVoice.SetOutputMatrix(masteringVoice, 1, this.masteringVoiceChannels, this.createPanMatrix(panning), XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to set output matrix");
+        this.checkError(sourceVoice.Start(0, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to start source voice");
+        this.playingVoices.add(sourceVoice);
+    }
+
+    @Override
+    public synchronized void stopAllSounds() {
         for (XAudio2Library.XAudio2SourceVoice voice : this.playingVoices) {
             voice.DestroyVoice();
         }
@@ -125,11 +118,12 @@ public class XAudio2SoundSystem extends SoundSystem {
     }
 
     @Override
+    public float[] render(final int frameCount) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public synchronized void close() {
-        if (this.shutdownHook != null) {
-            Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
-            this.shutdownHook = null;
-        }
         if (this.xAudio2 != null) {
             this.xAudio2.Release(); // Release before deleting buffers
             this.xAudio2 = null;
@@ -143,13 +137,18 @@ public class XAudio2SoundSystem extends SoundSystem {
     }
 
     @Override
-    public synchronized String getStatusLine() {
-        return "Sounds: " + this.playingVoices.size() + " / " + this.maxSounds;
+    public void setMasterVolume(final float volume) {
+        this.checkError(this.masteringVoice.SetVolume(volume, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to set master volume");
     }
 
     @Override
-    public synchronized void setMasterVolume(final float volume) {
-        this.checkError(this.masteringVoice.SetVolume(volume, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to set master volume");
+    public synchronized Integer getPlayingSounds() {
+        return this.playingVoices.size();
+    }
+
+    @Override
+    public Float getCpuLoad() {
+        return null;
     }
 
     private SoundBuffer loadAudioFile(final byte[] data) {
@@ -228,16 +227,7 @@ public class XAudio2SoundSystem extends SoundSystem {
         }
     }
 
-    private static class SoundBuffer {
-
-        private final XAudio2Library.XAUDIO2_BUFFER.ByReference buffer;
-        private final XAudio2Library.WAVEFORMATEX.ByReference waveFormat;
-
-        public SoundBuffer(final XAudio2Library.XAUDIO2_BUFFER.ByReference buffer, final XAudio2Library.WAVEFORMATEX.ByReference waveFormat) {
-            this.buffer = buffer;
-            this.waveFormat = waveFormat;
-        }
-
+    private record SoundBuffer(XAudio2Library.XAUDIO2_BUFFER.ByReference buffer, XAudio2Library.WAVEFORMATEX.ByReference waveFormat) {
     }
 
 }

@@ -15,61 +15,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.audio.soundsystem.impl;
+package net.raphimc.noteblocktool.audio.system.impl;
 
 import com.sun.jna.Memory;
 import com.sun.jna.ptr.FloatByReference;
 import net.raphimc.audiomixer.soundmodifier.impl.NormalizationModifier;
+import net.raphimc.audiomixer.util.MathUtil;
 import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
-import net.raphimc.noteblocktool.audio.soundsystem.BassLibrary;
-import net.raphimc.noteblocktool.audio.soundsystem.BassMixLibrary;
-import net.raphimc.noteblocktool.audio.soundsystem.SoundSystem;
+import net.raphimc.noteblocktool.audio.library.BassLibrary;
+import net.raphimc.noteblocktool.audio.library.BassMixLibrary;
+import net.raphimc.noteblocktool.audio.system.AudioSystem;
 import net.raphimc.noteblocktool.util.IOUtil;
 import net.raphimc.noteblocktool.util.SoundFileUtil;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class BassSoundSystem extends SoundSystem {
+public class BassAudioSystem extends AudioSystem {
 
-    private static BassSoundSystem instance;
-
-    public static BassSoundSystem createPlayback(final Map<String, byte[]> soundData, final int maxSounds) {
-        if (instance != null) {
-            throw new IllegalStateException("BASS sound system already initialized");
-        }
+    static {
         if (!BassLibrary.isLoaded()) {
             throw new IllegalStateException("BASS library is not available");
         }
-        instance = new BassSoundSystem(soundData, maxSounds);
-        return instance;
-    }
-
-    public static BassSoundSystem createCapture(final Map<String, byte[]> soundData, final int maxSounds, final PcmFloatAudioFormat captureAudioFormat) {
-        if (instance != null) {
-            throw new IllegalStateException("BASS sound system already initialized");
+        if (!BassMixLibrary.isLoaded()) {
+            throw new IllegalStateException("BASS mix library is not available");
         }
-        if (!BassLibrary.isLoaded()) {
-            throw new IllegalStateException("BASS library is not available");
-        }
-        instance = new BassSoundSystem(soundData, maxSounds, captureAudioFormat);
-        return instance;
     }
-
 
     private final Map<String, Integer> soundSamples = new HashMap<>();
     private final List<Integer> playingChannels = new ArrayList<>();
-    private final PcmFloatAudioFormat captureAudioFormat;
-    private Thread shutdownHook;
-    private int captureChannel;
-    private Memory captureMemory;
-    private NormalizationModifier captureNormalizer;
+    private int loopbackChannel;
+    private Memory loopbackMemory;
+    private NormalizationModifier loopbackNormalizer;
 
     @SuppressWarnings("FieldCanBeLocal")
     private final BassLibrary.SYNCPROC channelFreeSync = (handle, channel, data, user) -> {
@@ -78,19 +60,14 @@ public class BassSoundSystem extends SoundSystem {
         }
     };
 
-    private BassSoundSystem(final Map<String, byte[]> soundData, final int maxSounds) {
-        this(soundData, maxSounds, null);
-    }
+    public BassAudioSystem(final Map<String, byte[]> soundData, final int maxSounds) {
+        super(soundData, maxSounds);
 
-    private BassSoundSystem(final Map<String, byte[]> soundData, final int maxSounds, final PcmFloatAudioFormat captureAudioFormat) {
-        super(maxSounds);
-
-        this.captureAudioFormat = captureAudioFormat;
         final int version = BassLibrary.INSTANCE.BASS_GetVersion();
         if (((version >> 16) & 0xFFFF) != BassLibrary.BASSVERSION) {
             throw new RuntimeException("BASS version is not correct");
         }
-        if (!BassLibrary.INSTANCE.BASS_Init(this.captureAudioFormat == null ? -1 : 0, 48000, 0, 0, null)) {
+        if (!BassLibrary.INSTANCE.BASS_Init(-1, 48000, 0, 0, null)) {
             this.checkError("Failed to open device");
         }
         final BassLibrary.BASS_DEVICEINFO.ByReference deviceInfo = new BassLibrary.BASS_DEVICEINFO.ByReference();
@@ -101,27 +78,42 @@ public class BassSoundSystem extends SoundSystem {
             this.checkError("Failed to set default sample rate conversion quality");
         }
 
-        try {
-            for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
-                this.soundSamples.put(entry.getKey(), this.loadAudioFile(entry.getValue()));
-            }
-        } catch (Throwable e) {
-            throw new RuntimeException("Failed to load sound samples", e);
+        for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
+            this.soundSamples.put(entry.getKey(), this.loadAudioFile(entry.getValue()));
         }
 
-        Runtime.getRuntime().addShutdownHook(this.shutdownHook = new Thread(() -> {
-            this.shutdownHook = null;
-            this.close();
-        }));
+        final String versionString = "v" + ((version >> 24) & 0xFF) + "." + ((version >> 16) & 0xFF) + "." + ((version >> 8) & 0xFF) + "." + (version & 0xFF);
+        System.out.println("Initialized BASS " + versionString + " on " + deviceInfo.name);
+    }
 
-        if (this.captureAudioFormat != null) {
-            this.captureChannel = BassMixLibrary.INSTANCE.BASS_Mixer_StreamCreate((int) this.captureAudioFormat.getSampleRate(), this.captureAudioFormat.getChannels(), BassLibrary.BASS_STREAM_DECODE | BassLibrary.BASS_SAMPLE_FLOAT);
-            this.checkError("Failed to create mixer stream");
-            if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(this.captureChannel, BassMixLibrary.BASS_ATTRIB_MIXER_THREADS, Math.min(Runtime.getRuntime().availableProcessors(), 16))) {
-                this.checkError("Failed to set mixer threads");
-            }
-            this.captureMemory = new Memory((long) this.captureAudioFormat.getSampleRate() * this.captureAudioFormat.getFrameSize() * 15);
-            this.captureNormalizer = new NormalizationModifier();
+    public BassAudioSystem(final Map<String, byte[]> soundData, final int maxSounds, final PcmFloatAudioFormat loopbackAudioFormat) {
+        super(soundData, maxSounds, loopbackAudioFormat);
+
+        final int version = BassLibrary.INSTANCE.BASS_GetVersion();
+        if (((version >> 16) & 0xFFFF) != BassLibrary.BASSVERSION) {
+            throw new RuntimeException("BASS version is not correct");
+        }
+        if (!BassLibrary.INSTANCE.BASS_Init(0, 48000, 0, 0, null)) {
+            this.checkError("Failed to open device");
+        }
+        final BassLibrary.BASS_DEVICEINFO.ByReference deviceInfo = new BassLibrary.BASS_DEVICEINFO.ByReference();
+        if (!BassLibrary.INSTANCE.BASS_GetDeviceInfo(BassLibrary.INSTANCE.BASS_GetDevice(), deviceInfo)) {
+            this.checkError("Failed to get device info");
+        }
+        if (!BassLibrary.INSTANCE.BASS_SetConfig(BassLibrary.BASS_CONFIG_SRC, 0)) { // linear interpolation
+            this.checkError("Failed to set default sample rate conversion quality");
+        }
+
+        this.loopbackChannel = BassMixLibrary.INSTANCE.BASS_Mixer_StreamCreate((int) loopbackAudioFormat.getSampleRate(), loopbackAudioFormat.getChannels(), BassLibrary.BASS_STREAM_DECODE | BassLibrary.BASS_SAMPLE_FLOAT);
+        this.checkError("Failed to create mixer stream");
+        if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(this.loopbackChannel, BassMixLibrary.BASS_ATTRIB_MIXER_THREADS, Math.min(Runtime.getRuntime().availableProcessors(), 16))) {
+            this.checkError("Failed to set mixer threads");
+        }
+        this.loopbackMemory = new Memory(MathUtil.millisToByteCount(loopbackAudioFormat, 5000));
+        this.loopbackNormalizer = new NormalizationModifier();
+
+        for (Map.Entry<String, byte[]> entry : soundData.entrySet()) {
+            this.soundSamples.put(entry.getKey(), this.loadAudioFile(entry.getValue()));
         }
 
         final String versionString = "v" + ((version >> 24) & 0xFF) + "." + ((version >> 16) & 0xFF) + "." + ((version >> 8) & 0xFF) + "." + (version & 0xFF);
@@ -132,13 +124,13 @@ public class BassSoundSystem extends SoundSystem {
     public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.soundSamples.containsKey(sound)) return;
 
-        if (this.playingChannels.size() >= this.maxSounds) {
+        if (this.playingChannels.size() >= this.getMaxSounds()) {
             if (!BassLibrary.INSTANCE.BASS_ChannelFree(this.playingChannels.remove(0))) {
                 this.checkError("Failed to free audio channel", BassLibrary.BASS_ERROR_HANDLE);
             }
         }
 
-        final int channel = BassLibrary.INSTANCE.BASS_SampleGetChannel(this.soundSamples.get(sound), BassLibrary.BASS_SAMCHAN_STREAM | (this.captureAudioFormat == null ? BassLibrary.BASS_STREAM_AUTOFREE : BassLibrary.BASS_STREAM_DECODE));
+        final int channel = BassLibrary.INSTANCE.BASS_SampleGetChannel(this.soundSamples.get(sound), BassLibrary.BASS_SAMCHAN_STREAM | (this.getLoopbackAudioFormat() == null ? BassLibrary.BASS_STREAM_AUTOFREE : BassLibrary.BASS_STREAM_DECODE));
         if (channel == 0) {
             this.checkError("Failed to get audio channel");
         }
@@ -159,80 +151,77 @@ public class BassSoundSystem extends SoundSystem {
         if (sync == 0) {
             this.checkError("Failed to set audio channel end sync");
         }
-        if (this.captureAudioFormat == null) {
+        if (this.getLoopbackAudioFormat() == null) {
             if (!BassLibrary.INSTANCE.BASS_ChannelStart(channel)) {
                 this.checkError("Failed to play audio channel");
             }
         } else {
-            if (!BassMixLibrary.INSTANCE.BASS_Mixer_StreamAddChannel(this.captureChannel, channel, BassLibrary.BASS_STREAM_AUTOFREE)) {
+            if (!BassMixLibrary.INSTANCE.BASS_Mixer_StreamAddChannel(this.loopbackChannel, channel, BassLibrary.BASS_STREAM_AUTOFREE)) {
                 this.checkError("Failed to add audio channel to mixer");
             }
         }
         this.playingChannels.add(channel);
     }
 
-    public synchronized float[] renderSamples(final int frameCount) {
-        final int samplesLength = frameCount * this.captureAudioFormat.getChannels();
-        if ((long) samplesLength * Float.BYTES > this.captureMemory.size()) {
-            throw new IllegalStateException("Capture memory is too small");
+    @Override
+    public synchronized void stopAllSounds() {
+        if (!BassLibrary.INSTANCE.BASS_Stop()) {
+            this.checkError("Failed to stop audio system");
         }
+        if (!BassLibrary.INSTANCE.BASS_Start()) {
+            this.checkError("Failed to start audio system");
+        }
+        this.playingChannels.clear();
+    }
 
-        if (BassLibrary.INSTANCE.BASS_ChannelGetData(this.captureChannel, this.captureMemory, samplesLength * Float.BYTES | BassLibrary.BASS_DATA_FLOAT) < 0) {
+    @Override
+    public synchronized float[] render(final int frameCount) {
+        final int samplesLength = frameCount * this.getLoopbackAudioFormat().getChannels();
+        if ((long) samplesLength * Float.BYTES > this.loopbackMemory.size()) {
+            throw new IllegalStateException("Loopback memory is too small");
+        }
+        if (BassLibrary.INSTANCE.BASS_ChannelGetData(this.loopbackChannel, this.loopbackMemory, samplesLength * Float.BYTES | BassLibrary.BASS_DATA_FLOAT) < 0) {
             this.checkError("Failed to get audio data");
         }
-
-        final float[] samples = this.captureMemory.getFloatArray(0, samplesLength);
-        this.captureNormalizer.modify(this.captureAudioFormat, samples);
+        final float[] samples = this.loopbackMemory.getFloatArray(0, samplesLength);
+        this.loopbackNormalizer.modify(this.getLoopbackAudioFormat(), samples);
         return samples;
     }
 
     @Override
-    public synchronized void stopSounds() {
-        if (!BassLibrary.INSTANCE.BASS_Stop()) {
-            this.checkError("Failed to stop sound system");
-        }
-        if (!BassLibrary.INSTANCE.BASS_Start()) {
-            this.checkError("Failed to start sound system");
-        }
-        this.playingChannels.clear();
-    }
-
-    @Override
     public synchronized void close() {
-        if (this.shutdownHook != null) {
-            Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
-            this.shutdownHook = null;
-        }
         this.soundSamples.clear();
         this.playingChannels.clear();
-        if (this.captureMemory != null) {
-            this.captureMemory.close();
-            this.captureMemory = null;
+        if (this.loopbackMemory != null) {
+            this.loopbackMemory.close();
+            this.loopbackMemory = null;
         }
-        if (instance != null) {
-            BassLibrary.INSTANCE.BASS_Free();
-            instance = null;
-        }
+        BassLibrary.INSTANCE.BASS_Free();
     }
 
     @Override
-    public synchronized String getStatusLine() {
-        return "Sounds: " + this.playingChannels.size() + " / " + this.maxSounds + ", BASS CPU Load: " + (int) BassLibrary.INSTANCE.BASS_GetCPU() + "%";
-    }
-
-    @Override
-    public synchronized void setMasterVolume(final float volume) {
+    public void setMasterVolume(final float volume) {
         if (!BassLibrary.INSTANCE.BASS_SetConfig(BassLibrary.BASS_CONFIG_GVOL_STREAM, (int) (volume * 10000))) {
             this.checkError("Failed to set master volume");
         }
+    }
+
+    @Override
+    public synchronized Integer getPlayingSounds() {
+        return this.playingChannels.size();
+    }
+
+    @Override
+    public Float getCpuLoad() {
+        return BassLibrary.INSTANCE.BASS_GetCPU();
     }
 
     private int loadAudioFile(final byte[] data) {
         try {
             AudioInputStream audioInputStream = SoundFileUtil.readAudioFile(new ByteArrayInputStream(data));
             final AudioFormat audioFormat = audioInputStream.getFormat();
-            final AudioFormat targetFormat = new AudioFormat(audioFormat.getSampleRate(), 16, audioFormat.getChannels(), true, false);
-            if (!audioFormat.matches(targetFormat)) audioInputStream = AudioSystem.getAudioInputStream(targetFormat, audioInputStream);
+            final AudioFormat targetFormat = new AudioFormat(audioFormat.getSampleRate(), Short.SIZE, audioFormat.getChannels(), true, false);
+            if (!audioFormat.matches(targetFormat)) audioInputStream = javax.sound.sampled.AudioSystem.getAudioInputStream(targetFormat, audioInputStream);
             final byte[] audioBytes = IOUtil.readFully(audioInputStream);
 
             final int sample = BassLibrary.INSTANCE.BASS_SampleCreate(audioBytes.length, (int) audioFormat.getSampleRate(), audioFormat.getChannels(), 1, 0);

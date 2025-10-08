@@ -28,7 +28,7 @@ import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.model.Note;
 import net.raphimc.noteblocklib.model.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
-import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
+import net.raphimc.noteblocktool.audio.player.AudioSystemSongPlayer;
 import net.raphimc.thingl.ThinGL;
 import net.raphimc.thingl.renderer.impl.RendererText;
 import net.raphimc.thingl.resource.image.texture.Texture2D;
@@ -60,7 +60,7 @@ public class DropRenderer {
     private static final int PRESSED_KEY_COLOR_ALPHA = 175;
     private static final long KEY_ANIMATION_DURATION = 250_000_000L;
 
-    private final SoundSystemSongPlayer songPlayer;
+    private final AudioSystemSongPlayer songPlayer;
     private Font robotoFont;
     private Texture2D noteBlockTexture;
     private Map<MinecraftInstrument, Color> instrumentColors;
@@ -70,7 +70,7 @@ public class DropRenderer {
     private Color[] pianoKeyLastColors;
     private int renderedNotes;
 
-    public DropRenderer(final SoundSystemSongPlayer songPlayer) {
+    public DropRenderer(final AudioSystemSongPlayer songPlayer) {
         this.songPlayer = songPlayer;
     }
 
@@ -292,13 +292,12 @@ public class DropRenderer {
         ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "Tempo: " + String.format("%.2f", this.songPlayer.getCurrentTicksPerSecond()) + " t/s"), 5, textY);
         textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
 
-        if (this.songPlayer.getSoundSystem() != null) {
-            ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, this.songPlayer.getSoundSystem().getStatusLine()), 5, textY);
-            textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
+        if (this.songPlayer.isRunning()) {
+            for (String statusLine : this.songPlayer.getStatusLines()) {
+                ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, statusLine), 5, textY);
+                textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
+            }
         }
-
-        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "Song Player CPU Load: " + (int) (this.songPlayer.getCpuLoad() * 100) + "%"), 5, textY);
-        textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
 
         ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "Rendered Notes: " + this.renderedNotes), 5, textY);
 

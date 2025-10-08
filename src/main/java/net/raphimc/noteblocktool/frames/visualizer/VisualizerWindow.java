@@ -18,7 +18,7 @@
 package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.lenni0451.commons.color.Color;
-import net.raphimc.noteblocktool.util.SoundSystemSongPlayer;
+import net.raphimc.noteblocktool.audio.player.AudioSystemSongPlayer;
 import net.raphimc.thingl.implementation.application.GLFWApplicationRunner;
 import org.joml.Matrix4fStack;
 import org.lwjgl.glfw.GLFW;
@@ -31,7 +31,7 @@ public class VisualizerWindow extends GLFWApplicationRunner {
     private final Runnable openCallback;
     private final Runnable closeCallback;
 
-    public VisualizerWindow(final SoundSystemSongPlayer songPlayer, final Runnable openCallback, final Runnable closeCallback) {
+    public VisualizerWindow(final AudioSystemSongPlayer songPlayer, final Runnable openCallback, final Runnable closeCallback) {
         super(new Configuration()
                 .setUseSeparateThreads(true)
                 .setWindowTitle("NoteBlockTool Song Visualizer - " + songPlayer.getSong().getTitleOrFileNameOr("No Title"))
