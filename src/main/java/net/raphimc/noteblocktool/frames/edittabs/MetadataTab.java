@@ -51,8 +51,8 @@ public class MetadataTab extends EditTab {
             this.addString(center, "Original author", () -> nbsSong.getOriginalAuthorOr(""), nbsSong::setOriginalAuthor);
             this.addString(center, "Description", () -> nbsSong.getDescriptionOr(""), nbsSong::setDescription);
             this.addBoolean(center, "Auto Save", nbsSong::isAutoSave, nbsSong::setAutoSave);
-            this.addNumber(center, "AutoSave Interval", nbsSong::getAutoSaveInterval, num -> nbsSong.setAutoSaveInterval(num.byteValue()));
-            this.addNumber(center, "Time Signature", nbsSong::getTimeSignature, num -> nbsSong.setTimeSignature(num.byteValue()));
+            this.addNumber(center, "AutoSave Interval", nbsSong::getAutoSaveInterval, num -> nbsSong.setAutoSaveInterval(num.intValue()));
+            this.addNumber(center, "Time Signature", nbsSong::getTimeSignature, num -> nbsSong.setTimeSignature(num.intValue()));
             this.addNumber(center, "Minutes Spent", nbsSong::getMinutesSpent, num -> nbsSong.setMinutesSpent(num.intValue()));
             this.addNumber(center, "Left Clicks", nbsSong::getLeftClicks, num -> nbsSong.setLeftClicks(num.intValue()));
             this.addNumber(center, "Right Clicks", nbsSong::getRightClicks, num -> nbsSong.setRightClicks(num.intValue()));
@@ -60,13 +60,13 @@ public class MetadataTab extends EditTab {
             this.addNumber(center, "Note Blocks Removed", nbsSong::getNoteBlocksRemoved, num -> nbsSong.setNoteBlocksRemoved(num.intValue()));
             this.addString(center, "Source File Name", () -> nbsSong.getSourceFileNameOr(""), nbsSong::setSourceFileName);
             this.addBoolean(center, "Loop", nbsSong::isLoop, nbsSong::setLoop);
-            this.addNumber(center, "Max Loop Count", nbsSong::getMaxLoopCount, num -> nbsSong.setMaxLoopCount(num.byteValue()));
+            this.addNumber(center, "Max Loop Count", nbsSong::getMaxLoopCount, num -> nbsSong.setMaxLoopCount(num.intValue()));
             this.addNumber(center, "Loop Start Tick", nbsSong::getLoopStartTick, num -> nbsSong.setLoopStartTick(num.shortValue()));
         } else if (song instanceof McSp2Song mcSp2Song) {
             this.addString(center, "Title", () -> mcSp2Song.getTitleOr(""), mcSp2Song::setTitle);
             this.addString(center, "Author", () -> mcSp2Song.getAuthorOr(""), mcSp2Song::setAuthor);
             this.addString(center, "Original author", () -> mcSp2Song.getOriginalAuthorOr(""), mcSp2Song::setOriginalAuthor);
-            this.addNumber(center, "AutoSave Interval", mcSp2Song::getAutoSaveInterval, num -> mcSp2Song.setAutoSaveInterval(num.byteValue()));
+            this.addNumber(center, "AutoSave Interval", mcSp2Song::getAutoSaveInterval, num -> mcSp2Song.setAutoSaveInterval(num.intValue()));
             this.addNumber(center, "Minutes Spent", mcSp2Song::getMinutesSpent, num -> mcSp2Song.setMinutesSpent(num.intValue()));
             this.addNumber(center, "Left Clicks", mcSp2Song::getLeftClicks, num -> mcSp2Song.setLeftClicks(num.intValue()));
             this.addNumber(center, "Right Clicks", mcSp2Song::getRightClicks, num -> mcSp2Song.setRightClicks(num.intValue()));
