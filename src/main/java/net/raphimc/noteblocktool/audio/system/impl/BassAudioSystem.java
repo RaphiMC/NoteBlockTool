@@ -42,9 +42,9 @@ public class BassAudioSystem extends AudioSystem {
         if (!BassLibrary.isLoaded()) {
             throw new IllegalStateException("BASS library is not available");
         }
-        if (!BassMixLibrary.isLoaded()) {
+        /*if (!BassMixLibrary.isLoaded()) { // Currently broken when exported as jar file because JNA renames the dll, but bassmix.dll depends on bass.dll
             throw new IllegalStateException("BASS mix library is not available");
-        }
+        }*/
     }
 
     private final Map<String, Integer> soundSamples = new HashMap<>();
