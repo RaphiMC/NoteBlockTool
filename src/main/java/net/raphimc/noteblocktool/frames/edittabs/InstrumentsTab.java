@@ -40,7 +40,7 @@ public class InstrumentsTab extends EditTab {
     protected void initComponents(JPanel center) {
         this.removeAll();
 
-        this.table = new InstrumentsTable(false);
+        this.table = new InstrumentsTable(true);
         this.add(new FastScrollPane(this.table));
         this.usedInstruments = this.songs.stream()
                 .map(song -> SongUtil.getUsedVanillaInstruments(song.song()))
@@ -64,6 +64,7 @@ public class InstrumentsTab extends EditTab {
             MinecraftInstrument replacement = replacements.get(note.getInstrument());
             if (replacement != null) note.setInstrument(replacement);
         });
+        song.getNotes().removeIf(note -> replacements.containsKey(note.getInstrument()) && replacements.get(note.getInstrument()) == null);
     }
 
 }
