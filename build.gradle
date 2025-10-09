@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    includeInJar "net.raphimc:NoteBlockLib:3.1.2-20251009.131745-2"
+    includeInJar "net.raphimc:NoteBlockLib:3.2.0-20251009.184248-1"
     includeInJar "net.raphimc:audio-mixer:2.3.0-20251008.181554-7"
     includeInJar "org.jcraft:jorbis:0.0.17"
     includeInJar "com.formdev:flatlaf:3.6.1"

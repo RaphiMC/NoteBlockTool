@@ -23,6 +23,7 @@ import net.lenni0451.commons.Sneaky;
 import net.lenni0451.commons.color.Color;
 import net.lenni0451.commons.math.MathUtils;
 import net.raphimc.noteblocklib.data.MinecraftInstrument;
+import net.raphimc.noteblocklib.format.midi.MidiDefinitions;
 import net.raphimc.noteblocklib.format.nbs.NbsDefinitions;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.model.Note;
@@ -306,12 +307,12 @@ public class DropRenderer {
     }
 
     private boolean isBlackKey(final int nbsKey) {
-        final int noteInOctave = (nbsKey + NbsDefinitions.NBS_LOWEST_MIDI_KEY) % 12;
+        final int noteInOctave = (nbsKey + NbsDefinitions.LOWEST_MIDI_KEY) % MidiDefinitions.KEYS_PER_OCTAVE;
         return noteInOctave == 1 || noteInOctave == 3 || noteInOctave == 6 || noteInOctave == 8 || noteInOctave == 10;
     }
 
     private String getNoteName(final int nbsKey) {
-        final int noteInOctave = nbsKey % 12;
+        final int noteInOctave = nbsKey % MidiDefinitions.KEYS_PER_OCTAVE;
         String noteName = switch (noteInOctave) {
             case 0 -> "A";
             case 1 -> "A#";
@@ -327,7 +328,7 @@ public class DropRenderer {
             case 11 -> "G#";
             default -> throw new IllegalStateException("Unexpected value: " + noteInOctave);
         };
-        noteName += (nbsKey + NbsDefinitions.NBS_LOWEST_MIDI_KEY) / 12 - 1;
+        noteName += (nbsKey + NbsDefinitions.LOWEST_MIDI_KEY) / MidiDefinitions.KEYS_PER_OCTAVE - 1;
         return noteName;
     }
 
