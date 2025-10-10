@@ -48,7 +48,7 @@ import java.util.Map;
 public class DropRenderer {
 
     private static final int TEXT_SIZE = 24;
-    private static final int PIANO_KEY_COUNT = 88;
+    private static final int PIANO_KEY_COUNT = NbsDefinitions.KEY_COUNT;
     private static final int BLACK_PIANO_KEY_COUNT = 36;
     private static final int WHITE_PIANO_KEY_COUNT = PIANO_KEY_COUNT - BLACK_PIANO_KEY_COUNT;
     private static final float BLACK_KEY_WIDTH_RATIO = 0.6F;
