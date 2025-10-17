@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.audio.player.impl;
 
-import net.raphimc.noteblocklib.model.Song;
+import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.player.AudioSystemSongPlayer;
 import net.raphimc.noteblocktool.audio.system.AudioSystem;
 

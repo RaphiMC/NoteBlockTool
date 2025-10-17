@@ -18,7 +18,7 @@
 package net.raphimc.noteblocktool.audio.player.impl;
 
 import net.raphimc.audiomixer.util.SourceDataLineWriter;
-import net.raphimc.noteblocklib.model.Song;
+import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.system.AudioSystem;
 
 import javax.sound.sampled.AudioFormat;

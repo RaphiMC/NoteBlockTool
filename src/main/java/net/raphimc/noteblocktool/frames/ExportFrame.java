@@ -27,7 +27,7 @@ import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
 import net.raphimc.audiomixer.util.SoundSampleUtil;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
-import net.raphimc.noteblocklib.model.Song;
+import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.library.LameLibrary;
 import net.raphimc.noteblocktool.audio.player.impl.ProgressSongRenderer;
 import net.raphimc.noteblocktool.audio.player.impl.SongRenderer;

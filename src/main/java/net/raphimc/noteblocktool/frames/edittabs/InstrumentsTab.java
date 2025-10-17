@@ -17,8 +17,8 @@
  */
 package net.raphimc.noteblocktool.frames.edittabs;
 
-import net.raphimc.noteblocklib.data.MinecraftInstrument;
-import net.raphimc.noteblocklib.model.Song;
+import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
+import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.instruments.InstrumentsTable;

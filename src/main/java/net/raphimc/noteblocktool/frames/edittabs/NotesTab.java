@@ -18,7 +18,7 @@
 package net.raphimc.noteblocktool.frames.edittabs;
 
 import net.lenni0451.commons.swing.GBC;
-import net.raphimc.noteblocklib.model.Song;
+import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.elements.formatter.IntFormatterFactory;
 import net.raphimc.noteblocktool.frames.ListFrame;
 import net.raphimc.noteblocktool.util.MinecraftOctaveClamp;

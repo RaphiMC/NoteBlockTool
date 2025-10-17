@@ -20,7 +20,7 @@ package net.raphimc.noteblocktool.frames;
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
-import net.raphimc.noteblocklib.model.Song;
+import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.player.AudioSystemSongPlayer;
 import net.raphimc.noteblocktool.audio.player.impl.RealtimeSongPlayer;
 import net.raphimc.noteblocktool.audio.player.impl.RealtimeSongRenderer;

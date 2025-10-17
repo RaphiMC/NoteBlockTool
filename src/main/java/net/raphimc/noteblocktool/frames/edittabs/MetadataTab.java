@@ -21,7 +21,7 @@ import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.InvisiblePanel;
 import net.raphimc.noteblocklib.format.mcsp2.model.McSp2Song;
 import net.raphimc.noteblocklib.format.nbs.model.NbsSong;
-import net.raphimc.noteblocklib.model.Song;
+import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
 import javax.swing.*;

@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.frames;
 
-import net.raphimc.noteblocklib.model.Song;
+import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.frames.edittabs.*;
 
