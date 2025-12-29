@@ -18,8 +18,8 @@
 package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.raphimc.thingl.ThinGL;
+import net.raphimc.thingl.gl.renderer.impl.Renderer2D;
 import net.raphimc.thingl.implementation.window.WindowInterface;
-import net.raphimc.thingl.renderer.impl.Renderer2D;
 
 public class ExtendedThinGL extends ThinGL {
 

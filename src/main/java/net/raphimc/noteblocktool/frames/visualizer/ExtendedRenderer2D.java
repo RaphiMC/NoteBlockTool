@@ -18,19 +18,19 @@
 package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.lenni0451.commons.color.Color;
-import net.raphimc.thingl.drawbuilder.databuilder.holder.VertexDataHolder;
-import net.raphimc.thingl.renderer.impl.Renderer2D;
-import net.raphimc.thingl.resource.image.texture.Texture2D;
+import net.raphimc.thingl.gl.renderer.impl.Renderer2D;
+import net.raphimc.thingl.gl.resource.image.texture.impl.Texture2D;
+import net.raphimc.thingl.rendering.bufferbuilder.impl.VertexBufferBuilder;
 import org.joml.Matrix4f;
 
 public class ExtendedRenderer2D extends Renderer2D {
 
     public void gradientColorizedTexture(final Matrix4f positionMatrix, final Texture2D texture, final float x, final float y, final float width, final float height, final Color color1, final Color color2) {
-        final VertexDataHolder vertexDataHolder = this.targetMultiDrawBatchDataHolder.getVertexDataHolder(this.colorizedTextureQuad.apply(texture.getGlId()));
-        vertexDataHolder.putVector3f(positionMatrix, x, y + height, 0F).putColor(color2).putTextureCoord(0F, 1F).endVertex();
-        vertexDataHolder.putVector3f(positionMatrix, x + width, y + height, 0F).putColor(color2).putTextureCoord(1F, 1F).endVertex();
-        vertexDataHolder.putVector3f(positionMatrix, x + width, y, 0F).putColor(color1).putTextureCoord(1F, 0F).endVertex();
-        vertexDataHolder.putVector3f(positionMatrix, x, y, 0F).putColor(color1).putTextureCoord(0F, 0F).endVertex();
+        final VertexBufferBuilder vertexBufferBuilder = this.targetMultiDrawBatchDataHolder.getVertexBufferBuilder(this.colorizedTextureQuad.apply(texture.getGlId()));
+        vertexBufferBuilder.writeVector3f(positionMatrix, x, y + height, 0F).writeColor(color2).writeTextureCoord(0F, 1F).endVertex();
+        vertexBufferBuilder.writeVector3f(positionMatrix, x + width, y + height, 0F).writeColor(color2).writeTextureCoord(1F, 1F).endVertex();
+        vertexBufferBuilder.writeVector3f(positionMatrix, x + width, y, 0F).writeColor(color1).writeTextureCoord(1F, 0F).endVertex();
+        vertexBufferBuilder.writeVector3f(positionMatrix, x, y, 0F).writeColor(color1).writeTextureCoord(0F, 0F).endVertex();
         this.drawIfNotBuffering();
     }
 

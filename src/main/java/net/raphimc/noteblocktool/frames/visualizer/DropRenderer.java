@@ -31,10 +31,11 @@ import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.audio.player.AudioSystemSongPlayer;
 import net.raphimc.thingl.ThinGL;
-import net.raphimc.thingl.renderer.impl.RendererText;
-import net.raphimc.thingl.resource.image.texture.Texture2D;
+import net.raphimc.thingl.gl.renderer.impl.RendererText;
+import net.raphimc.thingl.gl.resource.image.texture.impl.Texture2D;
+import net.raphimc.thingl.resource.font.Font;
+import net.raphimc.thingl.resource.font.impl.FreeTypeFont;
 import net.raphimc.thingl.text.TextRun;
-import net.raphimc.thingl.text.font.Font;
 import net.raphimc.thingl.text.shaping.ShapedTextRun;
 import org.joml.Matrix4fStack;
 import org.lwjgl.opengl.GL11C;
@@ -81,7 +82,7 @@ public class DropRenderer {
                 if (stream == null) {
                     throw new IllegalStateException("Failed to find Roboto font");
                 }
-                this.robotoFont = new Font(stream.readAllBytes(), TEXT_SIZE);
+                this.robotoFont = new FreeTypeFont(stream.readAllBytes(), TEXT_SIZE);
             }
             try (final InputStream stream = DropRenderer.class.getResourceAsStream("/textures/note_block.png")) {
                 if (stream == null) {
