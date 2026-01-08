@@ -21,7 +21,7 @@ dependencies {
     includeInJar "net.raphimc:audio-mixer:2.3.0-20251009.205229-8"
     includeInJar "org.jcraft:jorbis:0.0.17"
     includeInJar "com.formdev:flatlaf:3.7"
-    includeInJar "net.lenni0451.commons:swing:1.9.1"
+    includeInJar "net.lenni0451.commons:swing:1.9.2"
     includeInJar "org.lwjgl:lwjgl:3.3.6"
     includeInJar "org.lwjgl:lwjgl-openal:3.3.6"
     includeInJar "org.lwjgl:lwjgl-stb:3.3.6"
