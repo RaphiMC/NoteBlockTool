@@ -28,8 +28,7 @@ public class VerticalFileChooser extends JFileChooser {
 
     private void changeListToVertical(final JComponent component) {
         for (Component c : component.getComponents()) {
-            if (c instanceof JList<?>) {
-                JList<?> list = (JList<?>) c;
+            if (c instanceof final JList<?> list) {
                 list.setLayoutOrientation(JList.VERTICAL);
             }
             if (c instanceof JComponent) {

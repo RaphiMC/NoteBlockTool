@@ -24,11 +24,13 @@ import net.raphimc.noteblocktool.audio.player.AudioSystemSongPlayer;
 import net.raphimc.noteblocktool.audio.system.AudioSystem;
 
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
 public class SongRenderer extends AudioSystemSongPlayer {
 
     private boolean isRunning;
+    private boolean timingJitter;
 
     public SongRenderer(final Song song, final Function<Map<String, byte[]>, AudioSystem> audioSystemSupplier) {
         super(song, audioSystemSupplier);
@@ -55,11 +57,22 @@ public class SongRenderer extends AudioSystemSongPlayer {
         return this.isRunning;
     }
 
+    public void setTimingJitter(final boolean timingJitter) {
+        this.timingJitter = timingJitter;
+    }
+
     public float[] renderTick() {
         if (this.isRunning()) {
             this.tick();
         }
-        return this.getAudioSystem().render(MathUtil.millisToFrameCount(this.getAudioSystem().getLoopbackAudioFormat(), 1000F / this.getCurrentTicksPerSecond()));
+        float millis = 1000F / this.getCurrentTicksPerSecond();
+        if (this.timingJitter) {
+            millis += ThreadLocalRandom.current().nextFloat(-1F, 1F);
+            if (millis <= 0F) {
+                millis = 0.1F;
+            }
+        }
+        return this.getAudioSystem().render(MathUtil.millisToFrameCount(this.getAudioSystem().getLoopbackAudioFormat(), millis));
     }
 
     public float[] renderSong() throws InterruptedException {

@@ -76,6 +76,7 @@ public class ExportFrame extends JFrame {
     private final JComboBox<Channels> channels = new JComboBox<>(Channels.values());
     private final JLabel volumeLabel = new JLabel("Volume:");
     private final JSlider volume = new JSlider(0, 100, 50);
+    private final JCheckBox timingJitter = new JCheckBox("Artificial Timing Jitter");
     private JPanel progressPanel;
     private final JProgressBar progressBar = new JProgressBar();
     private final JButton exportButton = new JButton("Export");
@@ -138,6 +139,9 @@ public class ExportFrame extends JFrame {
             this.volume.setPaintTicks(true);
             this.volume.setPaintLabels(true);
         });
+        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.timingJitter, () -> {
+            this.timingJitter.setToolTipText("Adds slight timing jitter (±1ms) to make the song sound more natural and less artificial.\nThis emulates the behaviour of playing the song in Note Block Studio.");
+        });
 
         GBC.create(root).grid(0, gridy++).insets(5, 5, 0, 5).width(1).width(2).weight(1, 1).fill(GBC.BOTH).add(() -> {
             JScrollPane scrollPane = new JScrollPane();
@@ -181,6 +185,7 @@ public class ExportFrame extends JFrame {
 
         this.volumeLabel.setVisible(outputFormat.isAudioFile());
         this.volume.setVisible(outputFormat.isAudioFile());
+        this.timingJitter.setVisible(outputFormat.isAudioFile());
     }
 
     private void initFrameHandler() {
@@ -218,6 +223,7 @@ public class ExportFrame extends JFrame {
             this.bitDepth.setEnabled(true);
             this.channels.setEnabled(true);
             this.volume.setEnabled(true);
+            this.timingJitter.setEnabled(true);
             this.progressPanel.removeAll();
             this.exportButton.setText("Export");
             this.progressBar.setValue(0);
@@ -235,6 +241,7 @@ public class ExportFrame extends JFrame {
         this.bitDepth.setEnabled(false);
         this.channels.setEnabled(false);
         this.volume.setEnabled(false);
+        this.timingJitter.setEnabled(false);
         this.progressPanel.removeAll();
         this.exportButton.setText("Cancel");
         this.progressBar.setValue(0);
@@ -318,6 +325,9 @@ public class ExportFrame extends JFrame {
                     this.exportSong(this.loadedSongs.get(0), outFile, progressConsumer.apply(progressBar));
                 } catch (InterruptedException ignored) {
                 } catch (Throwable t) {
+                    if (t.getCause() instanceof InterruptedException) {
+                        return;
+                    }
                     t.printStackTrace();
                     JOptionPane.showMessageDialog(this, "Failed to export song:\n" + this.loadedSongs.get(0).file().getAbsolutePath() + "\n" + t.getClass().getSimpleName() + ": " + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 } finally {
@@ -350,6 +360,9 @@ public class ExportFrame extends JFrame {
                             });
                         } catch (InterruptedException ignored) {
                         } catch (Throwable t) {
+                            if (t.getCause() instanceof InterruptedException) {
+                                return;
+                            }
                             t.printStackTrace();
                             uiQueue.offer(() -> {
                                 songPanel.remove(progressBar);
@@ -384,6 +397,9 @@ public class ExportFrame extends JFrame {
             }
         } catch (InterruptedException ignored) {
         } catch (Throwable t) {
+            if (t.getCause() instanceof InterruptedException) {
+                return;
+            }
             t.printStackTrace();
             JOptionPane.showMessageDialog(this, "Failed to export songs:\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
@@ -396,6 +412,7 @@ public class ExportFrame extends JFrame {
                 this.bitDepth.setEnabled(true);
                 this.channels.setEnabled(true);
                 this.volume.setEnabled(true);
+                this.timingJitter.setEnabled(true);
                 this.exportButton.setText("Export");
                 this.progressBar.setValue(this.loadedSongs.size());
                 this.progressBar.revalidate();
@@ -424,6 +441,7 @@ public class ExportFrame extends JFrame {
                 case BASS -> new ProgressSongRenderer(song.song(), progressConsumer, soundData -> new BassAudioSystem(soundData, MAX_SOUNDS, renderAudioFormat));
             };
             songRenderer.getAudioSystem().setMasterVolume(this.volume.getValue() / 100F);
+            songRenderer.setTimingJitter(this.timingJitter.isSelected());
             final float[] samples;
             try {
                 samples = songRenderer.renderSong();
