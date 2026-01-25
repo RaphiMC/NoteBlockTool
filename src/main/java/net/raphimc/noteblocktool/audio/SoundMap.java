@@ -53,7 +53,13 @@ public class SoundMap {
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.BANJO, "banjo.ogg");
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.PLING, "pling.ogg");
 
-        reload(null);
+        try {
+            SoundMap.reload(new File(System.getProperty("user.home"), "Minecraft Note Block Studio/Data/Sounds"));
+        } catch (Throwable t) {
+            System.err.println("Failed to load custom sounds from Minecraft NoteBlock Studio folder");
+            t.printStackTrace();
+            reload(null);
+        }
     }
 
     public static void reload(final File customSoundsFolder) {
