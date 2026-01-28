@@ -35,8 +35,7 @@ import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import java.awt.*;
 import java.awt.dnd.DropTarget;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.io.File;
 import java.util.*;
 import java.util.List;
@@ -82,7 +81,19 @@ public class ListFrame extends JFrame {
         this.table.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_DELETE) ListFrame.this.removeButton.doClick(0);
+                final boolean isDeleteKey = e.getKeyCode() == KeyEvent.VK_DELETE;
+                final boolean isMacOsDeleteKeyBind = e.getKeyCode() == KeyEvent.VK_BACK_SPACE && (e.getModifiersEx() & InputEvent.META_DOWN_MASK) != 0;
+                if (isDeleteKey || isMacOsDeleteKeyBind) {
+                    ListFrame.this.removeButton.doClick(0);
+                }
+            }
+        });
+        this.table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2 && ListFrame.this.playButton.isEnabled()) {
+                    ListFrame.this.playButton.doClick(0);
+                }
             }
         });
         this.addContextMenu();
