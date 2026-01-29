@@ -157,7 +157,7 @@ public class DropRenderer {
         final int height = ThinGL.windowInterface().getFramebufferHeight() - (int) (ThinGL.windowInterface().getFramebufferHeight() / PIANO_HEIGHT_DIVIDER);
         final float whiteKeyWidth = (float) width / WHITE_PIANO_KEY_COUNT;
         final float blackKeyWidth = whiteKeyWidth * BLACK_KEY_WIDTH_RATIO;
-        final float noteSize = this.noteBlockTexture.getWidth();
+        final float noteSize = this.noteBlockTexture.getWidth() * Math.max(1, Math.round(width / 1920F));
 
         final Song song = this.songPlayer.getSong();
         final int tickWindow = MathUtils.ceilInt(height / noteSize);
