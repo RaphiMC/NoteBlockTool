@@ -19,12 +19,13 @@ package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.lenni0451.commons.color.Color;
 import net.raphimc.noteblocktool.audio.player.AudioSystemSongPlayer;
-import net.raphimc.thingl.implementation.application.SwingApplicationRunner;
+import net.raphimc.thingl.implementation.application.AwtApplicationRunner;
 import org.joml.Matrix4fStack;
 
+import java.awt.event.WindowEvent;
 import java.util.concurrent.CancellationException;
 
-public class VisualizerWindow extends SwingApplicationRunner {
+public class VisualizerWindow extends AwtApplicationRunner {
 
     private final DropRenderer dropRenderer;
     private final Runnable openCallback;
@@ -45,7 +46,7 @@ public class VisualizerWindow extends SwingApplicationRunner {
     }
 
     public void close() {
-        this.thinGL.getRenderThread().interrupt();
+        this.frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
         try {
             this.freeFuture.join();
         } catch (CancellationException ignored) {
@@ -53,14 +54,9 @@ public class VisualizerWindow extends SwingApplicationRunner {
     }
 
     @Override
-    protected void initSwing() {
-        super.initSwing();
-        this.frame.setAutoRequestFocus(false);
-    }
-
-    @Override
     protected void createWindow() {
         super.createWindow();
+        this.frame.setAutoRequestFocus(false);
         this.openCallback.run();
     }
 
