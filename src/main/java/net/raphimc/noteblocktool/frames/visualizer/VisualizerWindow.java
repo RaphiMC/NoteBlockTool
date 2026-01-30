@@ -19,81 +19,157 @@ package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.lenni0451.commons.color.Color;
 import net.raphimc.noteblocktool.audio.player.AudioSystemSongPlayer;
+import net.raphimc.thingl.gl.resource.framebuffer.Framebuffer;
+import net.raphimc.thingl.implementation.application.ApplicationRunner;
+import net.raphimc.thingl.implementation.application.AwtApplicationRunner;
 import net.raphimc.thingl.implementation.application.GLFWApplicationRunner;
 import org.joml.Matrix4fStack;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.system.Platform;
 
-import java.util.concurrent.CancellationException;
+public class VisualizerWindow {
 
-public class VisualizerWindow extends GLFWApplicationRunner {
-
-    private final DropRenderer dropRenderer;
+    private final AudioSystemSongPlayer songPlayer;
     private final Runnable openCallback;
     private final Runnable closeCallback;
+    private final ApplicationRunner window;
+    private DropRenderer dropRenderer;
 
     public VisualizerWindow(final AudioSystemSongPlayer songPlayer, final Runnable openCallback, final Runnable closeCallback) {
-        super(new Configuration()
-                .setUseSeparateThreads(true)
-                .setWindowTitle("NoteBlockTool Song Visualizer - " + songPlayer.getSong().getTitleOrFileNameOr("No Title"))
-        );
-
-        this.dropRenderer = new DropRenderer(songPlayer);
+        this.songPlayer = songPlayer;
         this.openCallback = openCallback;
         this.closeCallback = closeCallback;
 
-        this.launch();
-        this.launchFuture.join();
+        final ApplicationRunner.Configuration configuration = new ApplicationRunner.Configuration()
+                .setWindowTitle("NoteBlockTool Song Visualizer - " + songPlayer.getSong().getTitleOrFileNameOr("No Title"));
+        if (Platform.get() != Platform.MACOSX) {
+            this.window = new GLFWWindow(configuration);
+        } else {
+            this.window = new AwtWindow(configuration);
+        }
     }
 
     public void close() {
-        this.windowInterface.runOnWindowThread(() -> GLFW.glfwSetWindowShouldClose(this.window, true));
-        try {
-            this.freeFuture.join();
-        } catch (CancellationException ignored) {
-        }
+        this.window.close();
     }
 
-    @Override
-    protected void setWindowHints() {
-        super.setWindowHints();
-        GLFW.glfwWindowHint(GLFW.GLFW_FOCUS_ON_SHOW, GLFW.GLFW_FALSE);
-    }
-
-    @Override
-    protected void createWindow() {
-        super.createWindow();
+    private void createWindow() {
         this.openCallback.run();
     }
 
-    @Override
-    protected void initThinGL() {
-        this.thinGL = new ExtendedThinGL(this.windowInterface);
+    private void init(final Framebuffer mainFramebuffer) {
+        this.dropRenderer = new DropRenderer(this.songPlayer);
+        mainFramebuffer.setClearColor(Color.GRAY);
     }
 
-    @Override
-    protected void init() {
-        super.init();
-        this.dropRenderer.init();
-        this.mainFramebuffer.setClearColor(Color.GRAY);
-    }
-
-    @Override
-    protected void render(final Matrix4fStack positionMatrix) {
+    private void render(final Matrix4fStack positionMatrix) {
         this.dropRenderer.render(positionMatrix);
     }
 
-    @Override
-    protected void freeGL() {
+    private void freeGL() {
         this.dropRenderer.free();
-        super.freeGL();
+        this.dropRenderer = null;
     }
 
-    @Override
-    protected void freeWindowSystem() {
-        super.freeWindowSystem();
+    private void freeWindowSystem() {
         if (this.closeCallback != null) {
             this.closeCallback.run();
         }
+    }
+
+    private class GLFWWindow extends GLFWApplicationRunner {
+
+        public GLFWWindow(final Configuration configuration) {
+            super(configuration);
+            new Thread(this, configuration.getWindowTitle() + " Thread").start();
+            this.launchFuture.join();
+        }
+
+        @Override
+        protected void setWindowHints() {
+            super.setWindowHints();
+            GLFW.glfwWindowHint(GLFW.GLFW_FOCUS_ON_SHOW, GLFW.GLFW_FALSE);
+        }
+
+        @Override
+        protected void createWindow() {
+            super.createWindow();
+            VisualizerWindow.this.createWindow();
+        }
+
+        @Override
+        protected void initThinGL() {
+            this.thinGL = new ExtendedThinGL(this.windowInterface);
+        }
+
+        @Override
+        protected void init() {
+            super.init();
+            VisualizerWindow.this.init(this.mainFramebuffer);
+        }
+
+        @Override
+        protected void render(final Matrix4fStack positionMatrix) {
+            VisualizerWindow.this.render(positionMatrix);
+        }
+
+        @Override
+        protected void freeGL() {
+            VisualizerWindow.this.freeGL();
+            super.freeGL();
+        }
+
+        @Override
+        protected void freeWindowSystem() {
+            super.freeWindowSystem();
+            VisualizerWindow.this.freeWindowSystem();
+        }
+
+    }
+
+    private class AwtWindow extends AwtApplicationRunner {
+
+        public AwtWindow(final Configuration configuration) {
+            super(configuration);
+            new Thread(this, configuration.getWindowTitle() + " Thread").start();
+            this.launchFuture.join();
+        }
+
+        @Override
+        protected void createWindow() {
+            super.createWindow();
+            this.frame.setAutoRequestFocus(false);
+            VisualizerWindow.this.createWindow();
+        }
+
+        @Override
+        protected void initThinGL() {
+            this.thinGL = new ExtendedThinGL(this.windowInterface);
+        }
+
+        @Override
+        protected void init() {
+            super.init();
+            VisualizerWindow.this.init(this.mainFramebuffer);
+        }
+
+        @Override
+        protected void render(final Matrix4fStack positionMatrix) {
+            VisualizerWindow.this.render(positionMatrix);
+        }
+
+        @Override
+        protected void freeGL() {
+            VisualizerWindow.this.freeGL();
+            super.freeGL();
+        }
+
+        @Override
+        protected void freeWindowSystem() {
+            super.freeWindowSystem();
+            VisualizerWindow.this.freeWindowSystem();
+        }
+
     }
 
 }

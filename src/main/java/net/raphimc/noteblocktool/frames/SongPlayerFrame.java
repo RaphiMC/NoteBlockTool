@@ -41,7 +41,7 @@ import java.text.DecimalFormat;
 public class SongPlayerFrame extends JFrame {
 
     private static final String AUDIO_SYSTEM_UNAVAILABLE_MESSAGE = "An error occurred while initializing the audio system.\nPlease make sure that your system supports the selected audio system.";
-    private static final String VISUALIZER_UNAVAILABLE_MESSAGE = "An error occurred while initializing the visualizer window.\nPlease make sure that your system supports at least OpenGL 4.5.";
+    private static final String VISUALIZER_UNAVAILABLE_MESSAGE = "An error occurred while initializing the visualizer window.\nPlease make sure that your system supports at least OpenGL 4.1.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
     private static final PcmFloatAudioFormat PLAYBACK_AUDIO_FORMAT = new PcmFloatAudioFormat(48000, 2);
     private static SongPlayerFrame instance;
