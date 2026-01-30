@@ -47,6 +47,7 @@ public class VisualizerWindow {
         } else {
             this.window = new AwtWindow(configuration);
         }
+        this.window.runAsync();
     }
 
     public void close() {
@@ -81,8 +82,6 @@ public class VisualizerWindow {
 
         public GLFWWindow(final Configuration configuration) {
             super(configuration);
-            new Thread(this, configuration.getWindowTitle() + " Thread").start();
-            this.launchFuture.join();
         }
 
         @Override
@@ -131,8 +130,6 @@ public class VisualizerWindow {
 
         public AwtWindow(final Configuration configuration) {
             super(configuration);
-            new Thread(this, configuration.getWindowTitle() + " Thread").start();
-            this.launchFuture.join();
         }
 
         @Override

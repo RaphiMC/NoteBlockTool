@@ -23,7 +23,7 @@ dependencies {
     includeInJar "com.formdev:flatlaf:3.7"
     includeInJar "net.lenni0451.commons:swing:1.9.2"
     includeInJar "net.java.dev.jna:jna:5.18.1"
-    includeInJar "net.raphimc:thingl:0.1.1-20260130.214717-5:java17"
+    includeInJar "net.raphimc:thingl:0.1.1-20260130.231704-6:java17"
     includeInJar "org.lwjgl:lwjgl:3.4.0"
     includeInJar "org.lwjgl:lwjgl-openal:3.4.0"
     includeInJar "org.lwjgl:lwjgl-opengl:3.4.0"
