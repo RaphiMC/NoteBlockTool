@@ -22,23 +22,26 @@ dependencies {
     includeInJar "org.jcraft:jorbis:0.0.17"
     includeInJar "com.formdev:flatlaf:3.7"
     includeInJar "net.lenni0451.commons:swing:1.9.2"
+    includeInJar "net.java.dev.jna:jna:5.18.1"
+    includeInJar "net.raphimc:thingl:0.1.1-20260130.231704-6:java17"
     includeInJar "org.lwjgl:lwjgl:3.4.0"
     includeInJar "org.lwjgl:lwjgl-openal:3.4.0"
+    includeInJar "org.lwjgl:lwjgl-opengl:3.4.0"
+    includeInJar "org.lwjgl:lwjgl-glfw:3.4.0"
     includeInJar "org.lwjgl:lwjgl-stb:3.4.0"
+    includeInJar "org.lwjgl:lwjgl-freetype:3.4.0"
+    includeInJar("org.lwjglx:lwjgl3-awt:0.2.3") {
+        exclude group: "org.lwjgl", module: "lwjgl"
+        exclude group: "org.lwjgl", module: "lwjgl-opengl"
+        exclude group: "org.lwjgl", module: "lwjgl-vulkan"
+    }
+
     ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64", "natives-macos", "natives-macos-arm64"].each {
         includeInJar "org.lwjgl:lwjgl:3.4.0:$it"
         includeInJar "org.lwjgl:lwjgl-openal:3.4.0:$it"
-        includeInJar "org.lwjgl:lwjgl-stb:3.4.0:$it"
-    }
-    includeInJar "net.java.dev.jna:jna:5.18.1"
-
-    includeInJar "net.raphimc:thingl:0.1.1-20260125.160939-1:java17"
-    includeInJar "org.lwjgl:lwjgl-glfw:3.4.0"
-    includeInJar "org.lwjgl:lwjgl-opengl:3.4.0"
-    includeInJar "org.lwjgl:lwjgl-freetype:3.4.0"
-    ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64"].each {
-        includeInJar "org.lwjgl:lwjgl-glfw:3.4.0:$it"
         includeInJar "org.lwjgl:lwjgl-opengl:3.4.0:$it"
+        includeInJar "org.lwjgl:lwjgl-glfw:3.4.0:$it"
+        includeInJar "org.lwjgl:lwjgl-stb:3.4.0:$it"
         includeInJar "org.lwjgl:lwjgl-freetype:3.4.0:$it"
     }
 }

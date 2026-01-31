@@ -19,7 +19,6 @@ package net.raphimc.noteblocktool.frames.visualizer;
 
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
-import net.lenni0451.commons.Sneaky;
 import net.lenni0451.commons.color.Color;
 import net.lenni0451.commons.math.MathUtils;
 import net.raphimc.noteblocklib.format.midi.MidiDefinitions;
@@ -63,20 +62,17 @@ public class DropRenderer {
     private static final long KEY_ANIMATION_DURATION = 250_000_000L;
 
     private final AudioSystemSongPlayer songPlayer;
-    private Font robotoFont;
-    private Texture2D noteBlockTexture;
-    private Map<MinecraftInstrument, Color> instrumentColors;
-    private Map<NbsCustomInstrument, Pair<Color, Color>> customInstrumentColors;
-    private float[] pianoKeyPositions;
-    private long[] pianoKeyLastPlayed;
-    private Color[] pianoKeyLastColors;
+    private final Font robotoFont;
+    private final Texture2D noteBlockTexture;
+    private final Map<MinecraftInstrument, Color> instrumentColors;
+    private final Map<NbsCustomInstrument, Pair<Color, Color>> customInstrumentColors;
+    private final float[] pianoKeyPositions;
+    private final long[] pianoKeyLastPlayed;
+    private final Color[] pianoKeyLastColors;
     private int renderedNotes;
 
     public DropRenderer(final AudioSystemSongPlayer songPlayer) {
         this.songPlayer = songPlayer;
-    }
-
-    public void init() {
         try {
             try (final InputStream stream = DropRenderer.class.getResourceAsStream("/fonts/Roboto-Regular.ttf")) {
                 if (stream == null) {
@@ -92,7 +88,7 @@ public class DropRenderer {
                 this.noteBlockTexture.setFilter(GL11C.GL_NEAREST);
             }
         } catch (Throwable e) {
-            Sneaky.sneak(e);
+            throw new RuntimeException(e);
         }
 
         this.instrumentColors = new EnumMap<>(MinecraftInstrument.class);
