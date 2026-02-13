@@ -53,7 +53,7 @@ public abstract class AudioSystem implements AutoCloseable {
 
     public abstract void setMasterVolume(final float volume);
 
-    public abstract Integer getPlayingSounds();
+    public abstract int getPlayingSounds();
 
     public int getMaxSounds() {
         return this.maxSounds;

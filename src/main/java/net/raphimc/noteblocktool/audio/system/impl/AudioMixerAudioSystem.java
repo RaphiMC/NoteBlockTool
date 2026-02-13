@@ -120,7 +120,7 @@ public class AudioMixerAudioSystem extends AudioSystem {
     }
 
     @Override
-    public Integer getPlayingSounds() {
+    public int getPlayingSounds() {
         return this.masterMixSound.getMixedSounds();
     }
 

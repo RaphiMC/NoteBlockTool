@@ -53,13 +53,6 @@ public class BassAudioSystem extends AudioSystem {
     private Memory loopbackMemory;
     private NormalizationModifier loopbackNormalizer;
 
-    @SuppressWarnings("FieldCanBeLocal")
-    private final BassLibrary.SYNCPROC channelFreeSync = (handle, channel, data, user) -> {
-        synchronized (this) {
-            this.playingChannels.remove((Integer) channel);
-        }
-    };
-
     public BassAudioSystem(final Map<String, byte[]> soundData, final int maxSounds) {
         super(soundData, maxSounds);
 
@@ -121,43 +114,53 @@ public class BassAudioSystem extends AudioSystem {
     }
 
     @Override
+    public synchronized void preTick() {
+        this.playingChannels.removeIf(channel -> {
+            final int status = BassLibrary.INSTANCE.BASS_ChannelIsActive(channel);
+            if (status == BassLibrary.BASS_ACTIVE_STOPPED) {
+                if (!BassLibrary.INSTANCE.BASS_ChannelFree(channel)) {
+                    this.checkError("Failed to free channel");
+                }
+                return true;
+            }
+            return false;
+        });
+    }
+
+    @Override
     public synchronized void playSound(final String sound, final float pitch, final float volume, final float panning) {
         if (!this.soundSamples.containsKey(sound)) return;
 
         if (this.playingChannels.size() >= this.getMaxSounds()) {
             if (!BassLibrary.INSTANCE.BASS_ChannelFree(this.playingChannels.remove(0))) {
-                this.checkError("Failed to free audio channel", BassLibrary.BASS_ERROR_HANDLE);
+                this.checkError("Failed to free channel");
             }
         }
 
-        final int channel = BassLibrary.INSTANCE.BASS_SampleGetChannel(this.soundSamples.get(sound), BassLibrary.BASS_SAMCHAN_STREAM | (this.getLoopbackAudioFormat() == null ? BassLibrary.BASS_STREAM_AUTOFREE : BassLibrary.BASS_STREAM_DECODE));
+        final int channel = BassLibrary.INSTANCE.BASS_SampleGetChannel(this.soundSamples.get(sound), BassLibrary.BASS_SAMCHAN_STREAM | (this.getLoopbackAudioFormat() != null ? BassLibrary.BASS_STREAM_DECODE : 0));
         if (channel == 0) {
-            this.checkError("Failed to get audio channel");
+            this.checkError("Failed to get channel");
         }
         if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(channel, BassLibrary.BASS_ATTRIB_VOL, volume)) {
-            this.checkError("Failed to set audio channel volume");
+            this.checkError("Failed to set channel volume");
         }
         if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(channel, BassLibrary.BASS_ATTRIB_PAN, panning)) {
-            this.checkError("Failed to set audio channel panning");
+            this.checkError("Failed to set channel panning");
         }
         final FloatByReference freq = new FloatByReference();
         if (!BassLibrary.INSTANCE.BASS_ChannelGetAttribute(channel, BassLibrary.BASS_ATTRIB_FREQ, freq)) {
-            this.checkError("Failed to get audio channel frequency");
+            this.checkError("Failed to get channel frequency");
         }
         if (!BassLibrary.INSTANCE.BASS_ChannelSetAttribute(channel, BassLibrary.BASS_ATTRIB_FREQ, freq.getValue() * pitch)) {
-            this.checkError("Failed to set audio channel frequency");
-        }
-        final int sync = BassLibrary.INSTANCE.BASS_ChannelSetSync(channel, BassLibrary.BASS_SYNC_FREE, 0, this.channelFreeSync, null);
-        if (sync == 0) {
-            this.checkError("Failed to set audio channel end sync");
+            this.checkError("Failed to set channel frequency");
         }
         if (this.getLoopbackAudioFormat() == null) {
             if (!BassLibrary.INSTANCE.BASS_ChannelStart(channel)) {
-                this.checkError("Failed to play audio channel");
+                this.checkError("Failed to play channel");
             }
         } else {
-            if (!BassMixLibrary.INSTANCE.BASS_Mixer_StreamAddChannel(this.loopbackChannel, channel, BassLibrary.BASS_STREAM_AUTOFREE)) {
-                this.checkError("Failed to add audio channel to mixer");
+            if (!BassMixLibrary.INSTANCE.BASS_Mixer_StreamAddChannel(this.loopbackChannel, channel, 0)) {
+                this.checkError("Failed to add channel to mixer");
             }
         }
         this.playingChannels.add(channel);
@@ -181,7 +184,7 @@ public class BassAudioSystem extends AudioSystem {
             throw new IllegalStateException("Loopback memory is too small");
         }
         if (BassLibrary.INSTANCE.BASS_ChannelGetData(this.loopbackChannel, this.loopbackMemory, samplesLength * Float.BYTES | BassLibrary.BASS_DATA_FLOAT) < 0) {
-            this.checkError("Failed to get audio data");
+            this.checkError("Failed to get channel data");
         }
         final float[] samples = this.loopbackMemory.getFloatArray(0, samplesLength);
         this.loopbackNormalizer.modify(this.getLoopbackAudioFormat(), samples);
@@ -207,7 +210,7 @@ public class BassAudioSystem extends AudioSystem {
     }
 
     @Override
-    public synchronized Integer getPlayingSounds() {
+    public synchronized int getPlayingSounds() {
         return this.playingChannels.size();
     }
 
@@ -238,15 +241,10 @@ public class BassAudioSystem extends AudioSystem {
         }
     }
 
-    private void checkError(final String message, final int... allowedErrors) {
-        final int error = BassLibrary.INSTANCE.BASS_ErrorGetCode();
-        if (error != BassLibrary.BASS_OK) {
-            for (int ignoreError : allowedErrors) {
-                if (error == ignoreError) {
-                    return;
-                }
-            }
-            throw new RuntimeException("BASS error: " + message + " (" + error + ")");
+    private void checkError(final String message) {
+        final int code = BassLibrary.INSTANCE.BASS_ErrorGetCode();
+        if (code != BassLibrary.BASS_OK) {
+            throw new RuntimeException("BASS error: " + message + " (" + code + ")");
         }
     }
 

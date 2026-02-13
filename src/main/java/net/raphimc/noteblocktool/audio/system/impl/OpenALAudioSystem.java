@@ -121,10 +121,10 @@ public class OpenALAudioSystem extends AudioSystem {
         try {
             this.playingSources.removeIf(source -> {
                 final int state = AL10.alGetSourcei(source, AL10.AL_SOURCE_STATE);
-                this.checkAlError("Failed to get audio source state");
+                this.checkAlError("Failed to get source state");
                 if (state == AL10.AL_STOPPED) {
                     AL10.alDeleteSources(source);
-                    this.checkAlError("Failed to delete audio source");
+                    this.checkAlError("Failed to delete source");
                     return true;
                 }
                 return false;
@@ -142,21 +142,21 @@ public class OpenALAudioSystem extends AudioSystem {
 
             if (this.playingSources.size() >= this.getMaxSounds()) {
                 AL10.alDeleteSources(this.playingSources.remove(0));
-                this.checkAlError("Failed to delete audio source");
+                this.checkAlError("Failed to delete source");
             }
 
             final int source = AL10.alGenSources();
-            this.checkAlError("Failed to generate audio source");
+            this.checkAlError("Failed to generate source");
             AL10.alSourcei(source, AL10.AL_BUFFER, this.soundBuffers.get(sound));
-            this.checkAlError("Failed to set audio source buffer");
+            this.checkAlError("Failed to set source buffer");
             AL10.alSourcef(source, AL10.AL_PITCH, pitch);
-            this.checkAlError("Failed to set audio source pitch");
+            this.checkAlError("Failed to set source pitch");
             AL10.alSourcef(source, AL10.AL_GAIN, volume);
-            this.checkAlError("Failed to set audio source volume");
+            this.checkAlError("Failed to set source volume");
             AL10.alSource3f(source, AL10.AL_POSITION, panning * 2F, 0F, 0F);
-            this.checkAlError("Failed to set audio source position");
+            this.checkAlError("Failed to set source position");
             AL10.alSourcePlay(source);
-            this.checkAlError("Failed to play audio source");
+            this.checkAlError("Failed to play source");
             this.playingSources.add(source);
         } finally {
             this.unbindContext();
@@ -169,7 +169,7 @@ public class OpenALAudioSystem extends AudioSystem {
         try {
             for (int source : this.playingSources) {
                 AL10.alDeleteSources(source);
-                this.checkAlError("Failed to delete audio source", AL10.AL_INVALID_NAME);
+                this.checkAlError("Failed to delete source");
             }
             this.playingSources.clear();
         } finally {
@@ -222,7 +222,7 @@ public class OpenALAudioSystem extends AudioSystem {
     }
 
     @Override
-    public synchronized Integer getPlayingSounds() {
+    public synchronized int getPlayingSounds() {
         return this.playingSources.size();
     }
 
@@ -271,11 +271,11 @@ public class OpenALAudioSystem extends AudioSystem {
             final byte[] audioBytes = IOUtil.readFully(audioInputStream);
 
             final int buffer = AL10.alGenBuffers();
-            this.checkAlError("Failed to generate audio buffer");
+            this.checkAlError("Failed to generate buffer");
 
             final ByteBuffer audioBuffer = MemoryUtil.memAlloc(audioBytes.length).put(audioBytes).flip();
             AL10.alBufferData(buffer, this.getAlAudioFormat(audioFormat), audioBuffer, (int) audioFormat.getSampleRate());
-            this.checkAlError("Failed to set audio buffer data");
+            this.checkAlError("Failed to set buffer data");
             MemoryUtil.memFree(audioBuffer);
 
             return buffer;
@@ -296,26 +296,16 @@ public class OpenALAudioSystem extends AudioSystem {
         }
     }
 
-    private void checkAlcError(final String message, final int... allowedErrors) {
+    private void checkAlcError(final String message) {
         final int error = ALC10.alcGetError(this.device);
         if (error != ALC10.ALC_NO_ERROR) {
-            for (int ignoreError : allowedErrors) {
-                if (error == ignoreError) {
-                    return;
-                }
-            }
             throw new RuntimeException("ALC error: " + message + " (" + error + ")");
         }
     }
 
-    private void checkAlError(final String message, final int... allowedErrors) {
+    private void checkAlError(final String message) {
         final int error = AL10.alGetError();
         if (error != AL10.AL_NO_ERROR) {
-            for (int ignoreError : allowedErrors) {
-                if (error == ignoreError) {
-                    return;
-                }
-            }
             throw new RuntimeException("AL error: " + message + " (" + error + ")");
         }
     }

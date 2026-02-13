@@ -54,13 +54,13 @@ public class XAudio2AudioSystem extends AudioSystem {
 
         this.checkError(Ole32.INSTANCE.CoInitializeEx(null, Ole32.COINIT_MULTITHREADED), "Failed to initialize COM");
 
-        final PointerByReference ppXAudio2 = new PointerByReference();
-        this.checkError(XAudio2Library.INSTANCE.XAudio2Create(ppXAudio2, 0, XAudio2Library.XAUDIO2_ANY_PROCESSOR), "Failed to create XAudio2 instance");
-        this.xAudio2 = new XAudio2Library.XAudio2(ppXAudio2.getValue());
+        final PointerByReference xAudio2Pointer = new PointerByReference();
+        this.checkError(XAudio2Library.INSTANCE.XAudio2Create(xAudio2Pointer, 0, XAudio2Library.XAUDIO2_ANY_PROCESSOR), "Failed to create XAudio2 instance");
+        this.xAudio2 = new XAudio2Library.XAudio2(xAudio2Pointer.getValue());
 
-        final PointerByReference ppMasteringVoice = new PointerByReference();
-        this.checkError(this.xAudio2.CreateMasteringVoice(ppMasteringVoice, XAudio2Library.XAUDIO2_DEFAULT_CHANNELS, XAudio2Library.XAUDIO2_DEFAULT_SAMPLERATE, 0, null, null, 0), "Failed to create mastering voice");
-        this.masteringVoice = new XAudio2Library.XAudio2MasteringVoice(ppMasteringVoice.getValue());
+        final PointerByReference masteringVoicePointer = new PointerByReference();
+        this.checkError(this.xAudio2.CreateMasteringVoice(masteringVoicePointer, XAudio2Library.XAUDIO2_DEFAULT_CHANNELS, XAudio2Library.XAUDIO2_DEFAULT_SAMPLERATE, 0, null, null, 0), "Failed to create mastering voice");
+        this.masteringVoice = new XAudio2Library.XAudio2MasteringVoice(masteringVoicePointer.getValue());
         final IntByReference masteringVoiceChannelMask = new IntByReference();
         this.checkError(this.masteringVoice.GetChannelMask(masteringVoiceChannelMask), "Failed to get channel mask");
         this.masteringVoiceChannelMask = masteringVoiceChannelMask.getValue();
@@ -97,9 +97,9 @@ public class XAudio2AudioSystem extends AudioSystem {
             this.playingVoices.remove(0).DestroyVoice();
         }
 
-        final PointerByReference ppSourceVoice = new PointerByReference();
-        this.checkError(this.xAudio2.CreateSourceVoice(ppSourceVoice, buffer.waveFormat, 0, 10F, null, null, null), "Failed to create source voice");
-        final XAudio2Library.XAudio2SourceVoice sourceVoice = new XAudio2Library.XAudio2SourceVoice(ppSourceVoice.getValue());
+        final PointerByReference sourceVoicePointer = new PointerByReference();
+        this.checkError(this.xAudio2.CreateSourceVoice(sourceVoicePointer, buffer.waveFormat, 0, 10F, null, null, null), "Failed to create source voice");
+        final XAudio2Library.XAudio2SourceVoice sourceVoice = new XAudio2Library.XAudio2SourceVoice(sourceVoicePointer.getValue());
 
         this.checkError(sourceVoice.SubmitSourceBuffer(buffer.buffer, null), "Failed to submit source buffer");
         this.checkError(sourceVoice.SetFrequencyRatio(pitch, XAudio2Library.XAUDIO2_COMMIT_NOW), "Failed to frequency ratio");
@@ -142,7 +142,7 @@ public class XAudio2AudioSystem extends AudioSystem {
     }
 
     @Override
-    public synchronized Integer getPlayingSounds() {
+    public synchronized int getPlayingSounds() {
         return this.playingVoices.size();
     }
 
@@ -215,14 +215,8 @@ public class XAudio2AudioSystem extends AudioSystem {
         return outputMatrix;
     }
 
-    private void checkError(final int result, final String message, final int... allowedErrors) {
+    private void checkError(final int result, final String message) {
         if (result < 0) {
-            for (int ignoreError : allowedErrors) {
-                if (result == ignoreError) {
-                    return;
-                }
-            }
-
             throw new RuntimeException("XAudio2 error: " + message + " (" + result + ")");
         }
     }

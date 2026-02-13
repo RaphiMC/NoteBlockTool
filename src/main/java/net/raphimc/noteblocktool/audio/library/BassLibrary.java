@@ -17,7 +17,10 @@
  */
 package net.raphimc.noteblocktool.audio.library;
 
-import com.sun.jna.*;
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+import com.sun.jna.Structure;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.PointerByReference;
 
@@ -29,24 +32,6 @@ public interface BassLibrary extends Library {
     BassLibrary INSTANCE = loadNative();
 
     int BASSVERSION = 0x204;
-
-    // BASS_Init flags
-    int BASS_DEVICE_8BITS = 1; // unused
-    int BASS_DEVICE_MONO = 2; // mono
-    int BASS_DEVICE_3D = 4; // unused
-    int BASS_DEVICE_16BITS = 8; // limit output to 16-bit
-    int BASS_DEVICE_REINIT = 128; // reinitialize
-    int BASS_DEVICE_LATENCY = 0x100; // unused
-    int BASS_DEVICE_CPSPEAKERS = 0x400; // unused
-    int BASS_DEVICE_SPEAKERS = 0x800; // force enabling of speaker assignment
-    int BASS_DEVICE_NOSPEAKER = 0x1000; // ignore speaker arrangement
-    int BASS_DEVICE_DMIX = 0x2000; // use ALSA "dmix" plugin
-    int BASS_DEVICE_FREQ = 0x4000; // set device sample rate
-    int BASS_DEVICE_STEREO = 0x8000; // limit output to stereo
-    int BASS_DEVICE_HOG = 0x10000; // hog/exclusive mode
-    int BASS_DEVICE_AUDIOTRACK = 0x20000; // use AudioTrack output
-    int BASS_DEVICE_DSOUND = 0x40000; // use DirectSound output
-    int BASS_DEVICE_SOFTWARE = 0x80000; // disable hardware/fastpath output
 
     // Error codes returned by BASS_ErrorGetCode
     int BASS_OK = 0; // all is OK
@@ -61,6 +46,7 @@ public interface BassLibrary extends Library {
     int BASS_ERROR_START = 9; // BASS_Start has not been successfully called
     int BASS_ERROR_SSL = 10; // SSL/HTTPS support isn't available
     int BASS_ERROR_REINIT = 11; // device needs to be reinitialized
+    int BASS_ERROR_TRACK = 13; // invalid track number
     int BASS_ERROR_ALREADY = 14; // already initialized/paused/whatever
     int BASS_ERROR_NOTAUDIO = 17; // file does not contain audio
     int BASS_ERROR_NOCHAN = 18; // can't get a free channel
@@ -90,6 +76,8 @@ public interface BassLibrary extends Library {
     int BASS_ERROR_UNSTREAMABLE = 47; // unstreamable file
     int BASS_ERROR_PROTOCOL = 48; // unsupported protocol
     int BASS_ERROR_DENIED = 49; // access denied
+    int BASS_ERROR_FREEING = 50; // being freed
+    int BASS_ERROR_CANCEL = 51; // cancelled
     int BASS_ERROR_UNKNOWN = -1; // some other mystery problem
 
     // BASS_SetConfig options
@@ -114,7 +102,6 @@ public interface BassLibrary extends Library {
     int BASS_CONFIG_UPDATETHREADS = 24;
     int BASS_CONFIG_DEV_BUFFER = 27;
     int BASS_CONFIG_REC_LOOPBACK = 28;
-    int BASS_CONFIG_VISTA_TRUEPOS = 30;
     int BASS_CONFIG_IOS_SESSION = 34;
     int BASS_CONFIG_IOS_MIXAUDIO = 34;
     int BASS_CONFIG_DEV_DEFAULT = 36;
@@ -128,7 +115,7 @@ public interface BassLibrary extends Library {
     int BASS_CONFIG_SRC_SAMPLE = 44;
     int BASS_CONFIG_ASYNCFILE_BUFFER = 45;
     int BASS_CONFIG_OGG_PRESCAN = 47;
-    int BASS_CONFIG_MF_VIDEO = 48;
+    int BASS_CONFIG_VIDEO = 48;
     int BASS_CONFIG_AIRPLAY = 49;
     int BASS_CONFIG_DEV_NONSTOP = 50;
     int BASS_CONFIG_IOS_NOCATEGORY = 51;
@@ -148,6 +135,40 @@ public interface BassLibrary extends Library {
     int BASS_CONFIG_NET_RESTRATE = 72;
     int BASS_CONFIG_REC_DEFAULT = 73;
     int BASS_CONFIG_NORAMP = 74;
+    int BASS_CONFIG_NOSOUND_MAXDELAY = 76;
+    int BASS_CONFIG_STACKALLOC = 79;
+    int BASS_CONFIG_DOWNMIX = 80;
+
+    int BASS_SAMPLE_8BITS = 1; // 8 bit
+    int BASS_SAMPLE_MONO = 2; // mono
+    int BASS_SAMPLE_LOOP = 4; // looped
+    int BASS_SAMPLE_3D = 8; // 3D functionality
+    int BASS_SAMPLE_SOFTWARE = 0x10; // unused
+    int BASS_SAMPLE_MUTEMAX = 0x20; // mute at max distance (3D only)
+    int BASS_SAMPLE_NOREORDER = 0x40; // don't reorder channels to match speakers
+    int BASS_SAMPLE_FX = 0x80; // unused
+    int BASS_SAMPLE_FLOAT = 0x100; // 32 bit floating-point
+    int BASS_SAMPLE_OVER_VOL = 0x10000; // override lowest volume
+    int BASS_SAMPLE_OVER_POS = 0x20000; // override longest playing
+    int BASS_SAMPLE_OVER_DIST = 0x30000; // override furthest from listener (3D only)
+
+    int BASS_STREAM_PRESCAN = 0x20000; // scan file for accurate seeking and length
+    int BASS_STREAM_AUTOFREE = 0x40000; // automatically free the stream when it stops/ends
+    int BASS_STREAM_RESTRATE = 0x80000; // restrict the download rate of internet file stream
+    int BASS_STREAM_BLOCK = 0x100000; // download internet file stream in small blocks
+    int BASS_STREAM_DECODE = 0x200000; // don't play the stream, only decode
+    int BASS_STREAM_STATUS = 0x800000; // give server status info (HTTP/ICY tags) in DOWNLOADPROC
+
+    // BASS_SampleGetChannel flags
+    int BASS_SAMCHAN_NEW = 1; // get a new playback channel
+    int BASS_SAMCHAN_STREAM = 2; // create a stream
+
+    // BASS_ChannelIsActive return values
+    int BASS_ACTIVE_STOPPED = 0;
+    int BASS_ACTIVE_PLAYING = 1;
+    int BASS_ACTIVE_STALLED = 2;
+    int BASS_ACTIVE_PAUSED = 3;
+    int BASS_ACTIVE_PAUSED_DEVICE = 4;
 
     // Channel attributes
     int BASS_ATTRIB_FREQ = 1;
@@ -170,6 +191,7 @@ public interface BassLibrary extends Library {
     int BASS_ATTRIB_DOWNLOADPROC = 18;
     int BASS_ATTRIB_VOLDSP = 19;
     int BASS_ATTRIB_VOLDSP_PRIORITY = 20;
+    int BASS_ATTRIB_DOWNMIX = 21;
     int BASS_ATTRIB_MUSIC_AMPLIFY = 0x100;
     int BASS_ATTRIB_MUSIC_PANSEP = 0x101;
     int BASS_ATTRIB_MUSIC_PSCALER = 0x102;
@@ -199,45 +221,6 @@ public interface BassLibrary extends Library {
     int BASS_DATA_FFT_COMPLEX = 0x80; // FFT flag: return complex data
     int BASS_DATA_FFT_NYQUIST = 0x100; // FFT flag: return extra Nyquist value
 
-    // BASS_SampleGetChannel flags
-    int BASS_SAMCHAN_NEW = 1; // get a new playback channel
-    int BASS_SAMCHAN_STREAM = 2; // create a stream
-
-    // BASS_ChannelSetSync types
-    int BASS_SYNC_POS = 0;
-    int BASS_SYNC_END = 2;
-    int BASS_SYNC_META = 4;
-    int BASS_SYNC_SLIDE = 5;
-    int BASS_SYNC_STALL = 6;
-    int BASS_SYNC_DOWNLOAD = 7;
-    int BASS_SYNC_FREE = 8;
-    int BASS_SYNC_SETPOS = 11;
-    int BASS_SYNC_MUSICPOS = 10;
-    int BASS_SYNC_MUSICINST = 1;
-    int BASS_SYNC_MUSICFX = 3;
-    int BASS_SYNC_OGG_CHANGE = 12;
-    int BASS_SYNC_DEV_FAIL = 14;
-    int BASS_SYNC_DEV_FORMAT = 15;
-    int BASS_SYNC_THREAD = 0x20000000; // flag: call sync in other thread
-    int BASS_SYNC_MIXTIME = 0x40000000; // flag: sync at mixtime, else at playtime
-    int BASS_SYNC_ONETIME = 0x80000000; // flag: sync only once, else continuously
-
-    int BASS_SAMPLE_8BITS = 1;// 8 bit
-    int BASS_SAMPLE_FLOAT = 256; // 32 bit floating-point
-    int BASS_SAMPLE_MONO = 2; // mono
-    int BASS_SAMPLE_LOOP = 4; // looped
-    int BASS_SAMPLE_3D = 8; // 3D functionality
-    int BASS_SAMPLE_SOFTWARE = 16; // unused
-    int BASS_SAMPLE_MUTEMAX = 32; // mute at max distance (3D only)
-    int BASS_SAMPLE_VAM = 64; // unused
-    int BASS_SAMPLE_FX = 128; // unused
-    int BASS_SAMPLE_OVER_VOL = 0x10000; // override lowest volume
-    int BASS_SAMPLE_OVER_POS = 0x20000; // override longest playing
-    int BASS_SAMPLE_OVER_DIST = 0x30000; // override furthest from listener (3D only)
-
-    int BASS_STREAM_DECODE = 0x200000; // don't play the stream, only decode
-    int BASS_STREAM_AUTOFREE = 0x40000; // automatically free the stream when it stops/ends
-
     static BassLibrary loadNative() {
         final Map<String, Object> options = new HashMap<>();
         options.put(Library.OPTION_STRING_ENCODING, "UTF-8");
@@ -252,27 +235,25 @@ public interface BassLibrary extends Library {
         return INSTANCE != null;
     }
 
+    boolean BASS_SetConfig(final int option, final int value);
+
+    int BASS_GetVersion();
+
+    int BASS_ErrorGetCode();
+
+    boolean BASS_GetDeviceInfo(final int device, final BASS_DEVICEINFO.ByReference info);
+
     boolean BASS_Init(final int device, final int freq, final int flags, final int win, final PointerByReference clsid);
 
     boolean BASS_Free();
+
+    int BASS_GetDevice();
 
     boolean BASS_Start();
 
     boolean BASS_Stop();
 
-    int BASS_GetVersion();
-
-    int BASS_GetDevice();
-
-    boolean BASS_GetDeviceInfo(final int device, final BASS_DEVICEINFO.ByReference info);
-
-    int BASS_ErrorGetCode();
-
     float BASS_GetCPU();
-
-    int BASS_GetConfig(final int option);
-
-    boolean BASS_SetConfig(final int option, final int value);
 
     int BASS_SampleCreate(final int length, final int freq, final int chans, final int max, final int flags);
 
@@ -280,23 +261,17 @@ public interface BassLibrary extends Library {
 
     int BASS_SampleGetChannel(final int handle, final int flags);
 
-    boolean BASS_ChannelStart(final int handle);
-
-    boolean BASS_ChannelGetAttribute(final int handle, final int attrib, final FloatByReference value);
-
-    boolean BASS_ChannelSetAttribute(final int handle, final int attrib, final float value);
-
-    int BASS_ChannelSetSync(final int handle, final int type, final long param, final SYNCPROC proc, final Pointer user);
+    int BASS_ChannelIsActive(final int handle);
 
     boolean BASS_ChannelFree(final int handle);
 
+    boolean BASS_ChannelStart(final int handle);
+
+    boolean BASS_ChannelSetAttribute(final int handle, final int attrib, final float value);
+
+    boolean BASS_ChannelGetAttribute(final int handle, final int attrib, final FloatByReference value);
+
     int BASS_ChannelGetData(final int handle, final Pointer buffer, final int length);
-
-    interface SYNCPROC extends Callback {
-
-        void syncProc(final int handle, final int channel, final int data, final Pointer user);
-
-    }
 
     @Structure.FieldOrder({"name", "driver", "flags"})
     class BASS_DEVICEINFO extends Structure {

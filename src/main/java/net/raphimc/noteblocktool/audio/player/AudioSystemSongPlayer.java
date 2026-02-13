@@ -97,9 +97,7 @@ public abstract class AudioSystemSongPlayer extends SongPlayer implements AutoCl
 
     public List<String> getStatusLines() {
         final List<String> statusLines = new ArrayList<>();
-        if (this.audioSystem.getPlayingSounds() != null) {
-            statusLines.add("Sounds: " + this.audioSystem.getPlayingSounds() + " / " + this.audioSystem.getMaxSounds());
-        }
+        statusLines.add("Sounds: " + this.audioSystem.getPlayingSounds() + " / " + this.audioSystem.getMaxSounds());
         if (this.getAudioRendererCpuLoad() != null) {
             statusLines.add("Audio Renderer CPU Load: " + this.getAudioRendererCpuLoad().intValue() + "%");
         }
