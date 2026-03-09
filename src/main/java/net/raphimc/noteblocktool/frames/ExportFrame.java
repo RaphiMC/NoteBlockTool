@@ -70,8 +70,10 @@ public class ExportFrame extends JFrame {
     private final JCheckBox audioMixerThreaded = new JCheckBox("Multithreaded Rendering");
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
-    private final JLabel bitDepthLabel = new JLabel("PCM Bit Depth:");
-    private final JComboBox<BitDepth> bitDepth = new JComboBox<>(BitDepth.values());
+    private final JLabel wavBitDepthLabel = new JLabel("WAV Bit Depth:");
+    private final JComboBox<WavBitDepth> wavBitDepth = new JComboBox<>(WavBitDepth.values());
+    private final JLabel mp3QualityLabel = new JLabel("MP3 Quality:");
+    private final JSlider mp3Quality = new JSlider(0, 100, 60);
     private final JLabel channelsLabel = new JLabel("Channels:");
     private final JComboBox<Channels> channels = new JComboBox<>(Channels.values());
     private final JLabel volumeLabel = new JLabel("Volume:");
@@ -122,14 +124,22 @@ public class ExportFrame extends JFrame {
         GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.sampleRateLabel);
         GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.sampleRate);
 
-        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.bitDepthLabel);
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.bitDepth, () -> {
-            this.bitDepth.setSelectedIndex(1);
+        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.wavBitDepthLabel);
+        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.wavBitDepth, () -> {
+            this.wavBitDepth.setSelectedItem(WavBitDepth.PCM16);
+        });
+
+        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.mp3QualityLabel);
+        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.mp3Quality, () -> {
+            this.mp3Quality.setMajorTickSpacing(10);
+            this.mp3Quality.setMinorTickSpacing(5);
+            this.mp3Quality.setPaintTicks(true);
+            this.mp3Quality.setPaintLabels(true);
         });
 
         GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.channelsLabel);
         GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.channels, () -> {
-            this.channels.setSelectedIndex(1);
+            this.channels.setSelectedItem(Channels.STEREO);
         });
 
         GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.volumeLabel);
@@ -177,8 +187,11 @@ public class ExportFrame extends JFrame {
         this.sampleRateLabel.setVisible(outputFormat.isAudioFile());
         this.sampleRate.setVisible(outputFormat.isAudioFile());
 
-        this.bitDepthLabel.setVisible(outputFormat.isAudioFile() && !outputFormat.equals(OutputFormat.MP3));
-        this.bitDepth.setVisible(outputFormat.isAudioFile() && !outputFormat.equals(OutputFormat.MP3));
+        this.wavBitDepthLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
+        this.wavBitDepth.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
+
+        this.mp3QualityLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
+        this.mp3Quality.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
 
         this.channelsLabel.setVisible(outputFormat.isAudioFile());
         this.channels.setVisible(outputFormat.isAudioFile());
@@ -220,7 +233,8 @@ public class ExportFrame extends JFrame {
             this.audioMixerGlobalNormalization.setEnabled(true);
             this.audioMixerThreaded.setEnabled(true);
             this.sampleRate.setEnabled(true);
-            this.bitDepth.setEnabled(true);
+            this.wavBitDepth.setEnabled(true);
+            this.mp3Quality.setEnabled(true);
             this.channels.setEnabled(true);
             this.volume.setEnabled(true);
             this.timingJitter.setEnabled(true);
@@ -238,7 +252,8 @@ public class ExportFrame extends JFrame {
         this.audioMixerGlobalNormalization.setEnabled(false);
         this.audioMixerThreaded.setEnabled(false);
         this.sampleRate.setEnabled(false);
-        this.bitDepth.setEnabled(false);
+        this.wavBitDepth.setEnabled(false);
+        this.mp3Quality.setEnabled(false);
         this.channels.setEnabled(false);
         this.volume.setEnabled(false);
         this.timingJitter.setEnabled(false);
@@ -409,7 +424,8 @@ public class ExportFrame extends JFrame {
                 this.audioMixerGlobalNormalization.setEnabled(true);
                 this.audioMixerThreaded.setEnabled(true);
                 this.sampleRate.setEnabled(true);
-                this.bitDepth.setEnabled(true);
+                this.wavBitDepth.setEnabled(true);
+                this.mp3Quality.setEnabled(true);
                 this.channels.setEnabled(true);
                 this.volume.setEnabled(true);
                 this.timingJitter.setEnabled(true);
@@ -426,18 +442,11 @@ public class ExportFrame extends JFrame {
         if (outputFormat.isSongFile()) {
             this.writeSong(song, file, outputFormat.getSongFormat());
         } else if (outputFormat.isAudioFile()) {
-            final AudioFormat audioFormat = new AudioFormat(
-                    ((Number) this.sampleRate.getValue()).floatValue(),
-                    ((BitDepth) this.bitDepth.getSelectedItem()).getBitDepth(),
-                    ((Channels) this.channels.getSelectedItem()).getChannels(),
-                    true,
-                    false
-            );
-            final PcmFloatAudioFormat renderAudioFormat = new PcmFloatAudioFormat(audioFormat);
-
+            final PcmFloatAudioFormat renderAudioFormat = new PcmFloatAudioFormat(((Number) this.sampleRate.getValue()).floatValue(), ((Channels) this.channels.getSelectedItem()).getChannels());
             final SongRenderer songRenderer = switch ((AudioRendererType) this.audioSystem.getSelectedItem()) {
                 case OPENAL -> new ProgressSongRenderer(song.song(), progressConsumer, soundData -> new OpenALAudioSystem(soundData, MAX_SOUNDS, renderAudioFormat));
-                case AUDIO_MIXER -> new ProgressSongRenderer(song.song(), progressConsumer, soundData -> new AudioMixerAudioSystem(soundData, MAX_SOUNDS, !this.audioMixerGlobalNormalization.isSelected(), this.audioMixerThreaded.isSelected(), renderAudioFormat));
+                case AUDIO_MIXER ->
+                        new ProgressSongRenderer(song.song(), progressConsumer, soundData -> new AudioMixerAudioSystem(soundData, MAX_SOUNDS, !this.audioMixerGlobalNormalization.isSelected(), this.audioMixerThreaded.isSelected(), renderAudioFormat));
                 case BASS -> new ProgressSongRenderer(song.song(), progressConsumer, soundData -> new BassAudioSystem(soundData, MAX_SOUNDS, renderAudioFormat));
             };
             songRenderer.getAudioSystem().setMasterVolume(this.volume.getValue() / 100F);
@@ -451,45 +460,72 @@ public class ExportFrame extends JFrame {
             if (this.audioSystem.getSelectedItem() == AudioRendererType.AUDIO_MIXER && this.audioMixerGlobalNormalization.isSelected()) {
                 SoundSampleUtil.normalize(samples);
             }
-            if (outputFormat.equals(OutputFormat.WAV) || outputFormat.equals(OutputFormat.AIF)) {
+            if (outputFormat.equals(OutputFormat.WAV)) {
                 progressConsumer.accept(101F);
+                final AudioFormat audioFormat = new AudioFormat(
+                        ((Number) this.sampleRate.getValue()).floatValue(),
+                        ((WavBitDepth) this.wavBitDepth.getSelectedItem()).getBitDepth(),
+                        ((Channels) this.channels.getSelectedItem()).getChannels(),
+                        true,
+                        false
+                );
                 final AudioInputStream audioInputStream = AudioIO.createAudioInputStream(samples, audioFormat);
-                AudioSystem.write(audioInputStream, outputFormat.equals(OutputFormat.WAV) ? AudioFileFormat.Type.WAVE : AudioFileFormat.Type.AIFF, file);
+                AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, file);
                 audioInputStream.close();
             } else if (outputFormat.equals(OutputFormat.MP3)) {
                 progressConsumer.accept(200F);
-                final FileOutputStream fos = new FileOutputStream(file);
-                final int numSamples = samples.length / audioFormat.getChannels();
-                final byte[] mp3Buffer = new byte[(int) (1.25 * numSamples + 7200)];
                 final Pointer lame = LameLibrary.INSTANCE.lame_init();
                 if (lame == null) {
                     throw new IllegalStateException("Failed to initialize LAME encoder");
                 }
-                int result = LameLibrary.INSTANCE.lame_set_in_samplerate(lame, (int) audioFormat.getSampleRate());
+                int result = LameLibrary.INSTANCE.lame_set_in_samplerate(lame, (int) renderAudioFormat.getSampleRate());
                 if (result < 0) {
                     throw new IllegalStateException("Failed to set sample rate: " + result);
                 }
-                result = LameLibrary.INSTANCE.lame_set_num_channels(lame, audioFormat.getChannels());
+                result = LameLibrary.INSTANCE.lame_set_num_channels(lame, renderAudioFormat.getChannels());
                 if (result < 0) {
                     throw new IllegalStateException("Failed to set channels: " + result);
+                }
+                result = LameLibrary.INSTANCE.lame_set_VBR(lame, LameLibrary.vbr_default);
+                if (result < 0) {
+                    throw new IllegalStateException("Failed to set VBR mode: " + result);
+                }
+                result = LameLibrary.INSTANCE.lame_set_VBR_quality(lame, (1F - (this.mp3Quality.getValue() / 100F)) * 9F);
+                if (result < 0) {
+                    throw new IllegalStateException("Failed to set VBR quality: " + result);
                 }
                 result = LameLibrary.INSTANCE.lame_init_params(lame);
                 if (result < 0) {
                     throw new IllegalStateException("Failed to initialize LAME parameters: " + result);
                 }
-                result = LameLibrary.INSTANCE.lame_encode_buffer_interleaved_ieee_float(lame, samples, numSamples, mp3Buffer, mp3Buffer.length);
-                if (result < 0) {
-                    throw new IllegalStateException("Failed to encode buffer: " + result);
+
+                final int frameCount = samples.length / renderAudioFormat.getChannels();
+                final byte[] dataBuffer = new byte[(int) (1.25F * frameCount + 7200)];
+                final int dataLength = LameLibrary.INSTANCE.lame_encode_buffer_interleaved_ieee_float(lame, samples, frameCount, dataBuffer, dataBuffer.length);
+                if (dataLength < 0) {
+                    throw new IllegalStateException("Failed to encode buffer: " + dataLength);
                 }
+                final byte[] trailerBuffer = new byte[7200];
+                final int trailerLength = LameLibrary.INSTANCE.lame_encode_flush(lame, trailerBuffer, trailerBuffer.length);
+                if (trailerLength < 0) {
+                    throw new IllegalStateException("Failed to flush encoder: " + trailerLength);
+                }
+                final byte[] headerBuffer = new byte[LameLibrary.INSTANCE.lame_get_lametag_frame(lame, null, 0)];
+                final int headerLength = LameLibrary.INSTANCE.lame_get_lametag_frame(lame, headerBuffer, headerBuffer.length);
+                if (headerLength < 0) {
+                    throw new IllegalStateException("Failed to get LAME tag frame: " + headerLength);
+                }
+                result = LameLibrary.INSTANCE.lame_close(lame);
+                if (result < 0) {
+                    throw new IllegalStateException("Failed to close encoder: " + result);
+                }
+
                 progressConsumer.accept(101F);
-                fos.write(mp3Buffer, 0, result);
-                result = LameLibrary.INSTANCE.lame_encode_flush(lame, mp3Buffer, mp3Buffer.length);
-                if (result < 0) {
-                    throw new IllegalStateException("Failed to flush encoder: " + result);
+                try (FileOutputStream fos = new FileOutputStream(file)) {
+                    fos.write(headerBuffer, 0, headerLength);
+                    fos.write(dataBuffer, 0, dataLength);
+                    fos.write(trailerBuffer, 0, trailerLength);
                 }
-                fos.write(mp3Buffer, 0, result);
-                LameLibrary.INSTANCE.lame_close(lame);
-                fos.close();
             } else {
                 throw new UnsupportedOperationException("Unsupported output format: " + this.format.getSelectedIndex());
             }
@@ -514,8 +550,7 @@ public class ExportFrame extends JFrame {
         MCSP2("MCSP2", "mcsp2", SongFormat.MCSP2),
         TXT("TXT", "txt", SongFormat.TXT),
         MP3("MP3 (Using LAME encoder)", "mp3", null),
-        WAV("WAV", "wav", null),
-        AIF("AIF", "aif", null);
+        WAV("WAV", "wav", null);
 
         private final String name;
         private final String extension;
@@ -566,7 +601,7 @@ public class ExportFrame extends JFrame {
         }
     }
 
-    private enum BitDepth {
+    private enum WavBitDepth {
         PCM8("PCM 8", 8),
         PCM16("PCM 16", 16),
         PCM24("PCM 24", 24),
@@ -575,7 +610,7 @@ public class ExportFrame extends JFrame {
         private final String name;
         private final int bitDepth;
 
-        BitDepth(final String name, final int bitDepth) {
+        WavBitDepth(final String name, final int bitDepth) {
             this.name = name;
             this.bitDepth = bitDepth;
         }

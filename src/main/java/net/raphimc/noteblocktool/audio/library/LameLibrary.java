@@ -28,6 +28,14 @@ public interface LameLibrary extends Library {
 
     LameLibrary INSTANCE = loadNative();
 
+    int vbr_off = 0;
+    int vbr_mt = 1; /* obsolete, same as vbr_mtrh */
+    int vbr_rh = 2;
+    int vbr_abr = 3;
+    int vbr_mtrh = 4;
+    int vbr_max_indicator = 5; /* Don't use this! It's used for sanity checks. */
+    int vbr_default = vbr_mtrh; /* change this to change the default VBR mode of LAME */
+
     static LameLibrary loadNative() {
         try {
             final Map<String, Object> options = new HashMap<>();
@@ -50,11 +58,17 @@ public interface LameLibrary extends Library {
 
     int lame_set_num_channels(final Pointer lame, final int num_channels);
 
+    int lame_set_VBR(final Pointer lame, final int vbr_mode);
+
+    int lame_set_VBR_quality(final Pointer lame, float vbr_quality);
+
     int lame_init_params(final Pointer lame);
 
     int lame_encode_buffer_interleaved_ieee_float(final Pointer lame, final float[] pcm, final int num_samples, final byte[] mp3buf, final int mp3buf_size);
 
     int lame_encode_flush(final Pointer lame, final byte[] mp3buf, final int mp3buf_size);
+
+    int lame_get_lametag_frame(final Pointer lame, final byte[] buffer, final int size);
 
     int lame_close(final Pointer lame);
 
