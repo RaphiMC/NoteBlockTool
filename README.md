@@ -7,8 +7,8 @@ To download the latest dev version, go to [GitHub Actions](https://github.com/Ra
 Using it is very simple, just run the jar file, and it will start a user interface. Detailed instructions can be found in the [Usage](#usage) section.
 
 ## Features
-- Reads .nbs, .mcsp2, .mid, .txt and .notebot files
-- Can export all of the above as .nbs, .mp3, .wav and .aif files
+- Can import .nbs, .mcsp2, .mid, .txt and .notebot files
+- Can export all of the above as .nbs, .txt, .mcsp2, .mp3 and .wav files
 - Work with multiple songs at once (Batch processing)
 - High performance and accurate song player
   - Lag free playback of very large songs
@@ -18,8 +18,8 @@ Using it is very simple, just run the jar file, and it will start a user interfa
   - Supports velocity and panning
   - Can handle Black MIDI files
 - Supports all NBS versions
-  - Version 0 - 5
-  - Supports undocumented features like Tempo Changers
+  - Version 0 - 6
+  - Supports Tempo Changers
 - Many tools for manipulating songs
     - Optimize songs for use in Minecraft (Transposing, Resampling)
     - Resampling songs with a different TPS

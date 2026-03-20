@@ -108,6 +108,10 @@ public class DropRenderer {
         this.instrumentColors.put(MinecraftInstrument.BIT, Color.GREEN.darker(0.8F));
         this.instrumentColors.put(MinecraftInstrument.BANJO, Color.RED.darker());
         this.instrumentColors.put(MinecraftInstrument.PLING, Color.DARK_GRAY);
+        this.instrumentColors.put(MinecraftInstrument.TRUMPET, Color.ORANGE.darker(0.9F));
+        this.instrumentColors.put(MinecraftInstrument.TRUMPET_EXPOSED, Color.ORANGE.darker(0.7F));
+        this.instrumentColors.put(MinecraftInstrument.TRUMPET_WEATHERED, Color.GREEN.darker(0.4F));
+        this.instrumentColors.put(MinecraftInstrument.TRUMPET_OXIDIZED, Color.GREEN.darker(0.2F));
 
         this.customInstrumentColors = new IdentityHashMap<>();
         final NbsCustomInstrument[] customInstruments = SongUtil.getUsedNbsCustomInstruments(this.songPlayer.getSong()).toArray(NbsCustomInstrument[]::new);

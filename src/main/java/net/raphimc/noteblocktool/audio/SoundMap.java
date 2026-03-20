@@ -36,8 +36,8 @@ public class SoundMap {
     private static final Map<String, URL> ALL_SOUND_LOCATIONS = new HashMap<>();
 
     static {
-        INSTRUMENT_SOUNDS.put(MinecraftInstrument.HARP, "harp.ogg");
-        INSTRUMENT_SOUNDS.put(MinecraftInstrument.BASS, "bass.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.HARP, "harp2.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.BASS, "bassattack.ogg");
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.BASS_DRUM, "bd.ogg");
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.SNARE, "snare.ogg");
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.HAT, "hat.ogg");
@@ -52,6 +52,10 @@ public class SoundMap {
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.BIT, "bit.ogg");
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.BANJO, "banjo.ogg");
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.PLING, "pling.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.TRUMPET, "trumpet.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.TRUMPET_EXPOSED, "trumpet_exposed.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.TRUMPET_OXIDIZED, "trumpet_oxidized.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.TRUMPET_WEATHERED, "trumpet_weathered.ogg");
 
         try {
             SoundMap.reload(new File(System.getProperty("user.home"), "Minecraft Note Block Studio/Data/Sounds"));
