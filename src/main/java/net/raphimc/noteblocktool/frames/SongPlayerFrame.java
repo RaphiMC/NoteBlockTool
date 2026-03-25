@@ -41,12 +41,14 @@ public class SongPlayerFrame extends JFrame {
     private static SongPlayerFrame instance;
     private static Point lastPosition;
     private static int lastVolume = 50;
+    private static boolean lastTimingJitter = false;
     private static int lastMaxSounds = 4096;
 
     public static void open(final Song song) {
         if (instance != null && instance.isVisible()) {
             lastPosition = instance.getLocation();
             lastVolume = instance.volumeSlider.getValue();
+            lastTimingJitter = instance.timingJitter.isSelected();
             lastMaxSounds = (int) instance.maxSoundsSpinner.getValue();
             instance.dispose();
         }
@@ -54,6 +56,7 @@ public class SongPlayerFrame extends JFrame {
             instance = new SongPlayerFrame(song);
             if (lastPosition != null) instance.setLocation(lastPosition);
             instance.volumeSlider.setValue(lastVolume);
+            instance.timingJitter.setSelected(lastTimingJitter);
             instance.maxSoundsSpinner.setValue(lastMaxSounds);
             instance.playStopButton.doClick(0);
             instance.setVisible(true);
@@ -65,6 +68,7 @@ public class SongPlayerFrame extends JFrame {
     private final Timer updateTimer;
     private final JSlider volumeSlider = new JSlider(0, 100, lastVolume);
     private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(lastMaxSounds, 64, 131_070, 64));
+    private final JCheckBox timingJitter = new JCheckBox("Artificial Timing Jitter", lastTimingJitter);
     private final JButton playStopButton = new JButton("Play");
     private final JButton pauseResumeButton = new JButton("Pause");
     private final JButton openVisualizerButton = new JButton("Open Visualizer");
@@ -113,6 +117,16 @@ public class SongPlayerFrame extends JFrame {
                         this.songRenderer.setMasterVolume(this.volumeSlider.getValue() / 100F);
                     }
                     lastVolume = this.volumeSlider.getValue();
+                });
+            });
+
+            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.timingJitter, () -> {
+                this.timingJitter.setToolTipText("Adds slight timing jitter (±1ms) to make the song sound more natural and less artificial.\nThis emulates the behaviour of playing the song in Note Block Studio.");
+                this.timingJitter.addChangeListener(e -> {
+                    if (this.songRenderer != null) {
+                        this.songRenderer.setTimingJitter(this.timingJitter.isSelected());
+                    }
+                    lastTimingJitter = this.timingJitter.isSelected();
                 });
             });
 
@@ -237,6 +251,7 @@ public class SongPlayerFrame extends JFrame {
             this.closeSongPlayerAndVisualizer();
             this.songRenderer = new RealtimeSongRenderer(this.song, maxSounds, true, false, PLAYBACK_AUDIO_FORMAT);
             this.songRenderer.setMasterVolume(this.volumeSlider.getValue() / 100F);
+            this.songRenderer.setTimingJitter(this.timingJitter.isSelected());
         }
     }
 
