@@ -29,11 +29,8 @@ import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.library.LameLibrary;
-import net.raphimc.noteblocktool.audio.player.impl.ProgressSongRenderer;
-import net.raphimc.noteblocktool.audio.player.impl.SongRenderer;
-import net.raphimc.noteblocktool.audio.system.impl.AudioMixerAudioSystem;
-import net.raphimc.noteblocktool.audio.system.impl.BassAudioSystem;
-import net.raphimc.noteblocktool.audio.system.impl.OpenALAudioSystem;
+import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
+import net.raphimc.noteblocktool.audio.renderer.impl.ProgressSongRenderer;
 import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
 
@@ -64,10 +61,8 @@ public class ExportFrame extends JFrame {
     private final ListFrame parent;
     private final List<ListFrame.LoadedSong> loadedSongs;
     private final JComboBox<OutputFormat> format = new JComboBox<>(OutputFormat.values());
-    private final JLabel audioSystemLabel = new JLabel("Audio System:");
-    private final JComboBox<AudioRendererType> audioSystem = new JComboBox<>(AudioRendererType.values());
-    private final JCheckBox audioMixerGlobalNormalization = new JCheckBox("Global Normalization");
-    private final JCheckBox audioMixerThreaded = new JCheckBox("Multithreaded Rendering");
+    private final JCheckBox globalNormalization = new JCheckBox("Global Normalization");
+    private final JCheckBox threaded = new JCheckBox("Multithreaded Rendering");
     private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
     private final JLabel wavBitDepthLabel = new JLabel("WAV Bit Depth:");
@@ -113,13 +108,8 @@ public class ExportFrame extends JFrame {
             this.format.addActionListener(e -> this.updateVisibility());
         });
 
-        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.audioSystemLabel);
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.audioSystem, () -> {
-            this.audioSystem.addActionListener(e -> this.updateVisibility());
-        });
-
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.audioMixerGlobalNormalization);
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.audioMixerThreaded);
+        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.globalNormalization);
+        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.threaded);
 
         GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.sampleRateLabel);
         GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.sampleRate);
@@ -176,13 +166,9 @@ public class ExportFrame extends JFrame {
 
     private void updateVisibility() {
         final OutputFormat outputFormat = (OutputFormat) this.format.getSelectedItem();
-        final AudioRendererType audioRendererType = (AudioRendererType) this.audioSystem.getSelectedItem();
 
-        this.audioSystemLabel.setVisible(outputFormat.isAudioFile());
-        this.audioSystem.setVisible(outputFormat.isAudioFile());
-
-        this.audioMixerGlobalNormalization.setVisible(outputFormat.isAudioFile() && audioRendererType.equals(AudioRendererType.AUDIO_MIXER));
-        this.audioMixerThreaded.setVisible(outputFormat.isAudioFile() && audioRendererType.equals(AudioRendererType.AUDIO_MIXER));
+        this.globalNormalization.setVisible(outputFormat.isAudioFile());
+        this.threaded.setVisible(outputFormat.isAudioFile());
 
         this.sampleRateLabel.setVisible(outputFormat.isAudioFile());
         this.sampleRate.setVisible(outputFormat.isAudioFile());
@@ -229,9 +215,8 @@ public class ExportFrame extends JFrame {
             }
 
             this.format.setEnabled(true);
-            this.audioSystem.setEnabled(true);
-            this.audioMixerGlobalNormalization.setEnabled(true);
-            this.audioMixerThreaded.setEnabled(true);
+            this.globalNormalization.setEnabled(true);
+            this.threaded.setEnabled(true);
             this.sampleRate.setEnabled(true);
             this.wavBitDepth.setEnabled(true);
             this.mp3Quality.setEnabled(true);
@@ -248,9 +233,8 @@ public class ExportFrame extends JFrame {
         if (out == null) return;
 
         this.format.setEnabled(false);
-        this.audioSystem.setEnabled(false);
-        this.audioMixerGlobalNormalization.setEnabled(false);
-        this.audioMixerThreaded.setEnabled(false);
+        this.globalNormalization.setEnabled(false);
+        this.threaded.setEnabled(false);
         this.sampleRate.setEnabled(false);
         this.wavBitDepth.setEnabled(false);
         this.mp3Quality.setEnabled(false);
@@ -296,8 +280,7 @@ public class ExportFrame extends JFrame {
     }
 
     private void doExport(final File outFile) {
-        final boolean audioMixerThreaded = this.audioSystem.getSelectedItem().equals(AudioRendererType.AUDIO_MIXER) && this.audioMixerThreaded.isSelected();
-        final boolean forceSingleThreaded = !((OutputFormat) this.format.getSelectedItem()).isAudioFile() || this.audioSystem.getSelectedItem().equals(AudioRendererType.BASS) || audioMixerThreaded;
+        final boolean forceSingleThreaded = !((OutputFormat) this.format.getSelectedItem()).isAudioFile() || this.threaded.isSelected();
         final boolean isMp3 = this.format.getSelectedItem().equals(OutputFormat.MP3);
 
         try {
@@ -420,9 +403,8 @@ public class ExportFrame extends JFrame {
         } finally {
             SwingUtilities.invokeLater(() -> {
                 this.format.setEnabled(true);
-                this.audioSystem.setEnabled(true);
-                this.audioMixerGlobalNormalization.setEnabled(true);
-                this.audioMixerThreaded.setEnabled(true);
+                this.globalNormalization.setEnabled(true);
+                this.threaded.setEnabled(true);
                 this.sampleRate.setEnabled(true);
                 this.wavBitDepth.setEnabled(true);
                 this.mp3Quality.setEnabled(true);
@@ -443,13 +425,8 @@ public class ExportFrame extends JFrame {
             this.writeSong(song, file, outputFormat.getSongFormat());
         } else if (outputFormat.isAudioFile()) {
             final PcmFloatAudioFormat renderAudioFormat = new PcmFloatAudioFormat(((Number) this.sampleRate.getValue()).floatValue(), ((Channels) this.channels.getSelectedItem()).getChannels());
-            final SongRenderer songRenderer = switch ((AudioRendererType) this.audioSystem.getSelectedItem()) {
-                case OPENAL -> new ProgressSongRenderer(song.song(), progressConsumer, soundData -> new OpenALAudioSystem(soundData, MAX_SOUNDS, renderAudioFormat));
-                case AUDIO_MIXER ->
-                        new ProgressSongRenderer(song.song(), progressConsumer, soundData -> new AudioMixerAudioSystem(soundData, MAX_SOUNDS, !this.audioMixerGlobalNormalization.isSelected(), this.audioMixerThreaded.isSelected(), renderAudioFormat));
-                case BASS -> new ProgressSongRenderer(song.song(), progressConsumer, soundData -> new BassAudioSystem(soundData, MAX_SOUNDS, renderAudioFormat));
-            };
-            songRenderer.getAudioSystem().setMasterVolume(this.volume.getValue() / 100F);
+            final SongRenderer songRenderer = new ProgressSongRenderer(song.song(), MAX_SOUNDS, !this.globalNormalization.isSelected(), this.threaded.isSelected(), renderAudioFormat, progressConsumer);
+            songRenderer.setMasterVolume(this.volume.getValue() / 100F);
             songRenderer.setTimingJitter(this.timingJitter.isSelected());
             final float[] samples;
             try {
@@ -457,7 +434,7 @@ public class ExportFrame extends JFrame {
             } finally {
                 songRenderer.close();
             }
-            if (this.audioSystem.getSelectedItem() == AudioRendererType.AUDIO_MIXER && this.audioMixerGlobalNormalization.isSelected()) {
+            if (this.globalNormalization.isSelected()) {
                 SoundSampleUtil.normalize(samples);
             }
             if (outputFormat.equals(OutputFormat.WAV)) {
@@ -576,23 +553,6 @@ public class ExportFrame extends JFrame {
 
         public boolean isAudioFile() {
             return this.songFormat == null;
-        }
-
-        @Override
-        public String toString() {
-            return this.name;
-        }
-    }
-
-    private enum AudioRendererType {
-        OPENAL("OpenAL (best sound quality, fastest)"),
-        AUDIO_MIXER("AudioMixer"),
-        BASS("Un4seen BASS");
-
-        private final String name;
-
-        AudioRendererType(final String name) {
-            this.name = name;
         }
 
         @Override

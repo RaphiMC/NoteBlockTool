@@ -18,7 +18,7 @@
 package net.raphimc.noteblocktool.frames.visualizer;
 
 import net.lenni0451.commons.color.Color;
-import net.raphimc.noteblocktool.audio.player.AudioSystemSongPlayer;
+import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
 import net.raphimc.thingl.gl.resource.framebuffer.Framebuffer;
 import net.raphimc.thingl.implementation.application.ApplicationRunner;
 import net.raphimc.thingl.implementation.application.AwtApplicationRunner;
@@ -29,19 +29,19 @@ import org.lwjgl.system.Platform;
 
 public class VisualizerWindow {
 
-    private final AudioSystemSongPlayer songPlayer;
+    private final SongRenderer songRenderer;
     private final Runnable openCallback;
     private final Runnable closeCallback;
     private final ApplicationRunner window;
     private DropRenderer dropRenderer;
 
-    public VisualizerWindow(final AudioSystemSongPlayer songPlayer, final Runnable openCallback, final Runnable closeCallback) {
-        this.songPlayer = songPlayer;
+    public VisualizerWindow(final SongRenderer songRenderer, final Runnable openCallback, final Runnable closeCallback) {
+        this.songRenderer = songRenderer;
         this.openCallback = openCallback;
         this.closeCallback = closeCallback;
 
         final ApplicationRunner.Configuration configuration = new ApplicationRunner.Configuration()
-                .setWindowTitle("NoteBlockTool Song Visualizer - " + songPlayer.getSong().getTitleOrFileNameOr("No Title"));
+                .setWindowTitle("NoteBlockTool Song Visualizer - " + songRenderer.getSong().getTitleOrFileNameOr("No Title"));
         if (Platform.get() != Platform.MACOSX) {
             this.window = new GLFWWindow(configuration);
         } else {
@@ -59,7 +59,7 @@ public class VisualizerWindow {
     }
 
     private void init(final Framebuffer mainFramebuffer) {
-        this.dropRenderer = new DropRenderer(this.songPlayer);
+        this.dropRenderer = new DropRenderer(this.songRenderer);
         mainFramebuffer.setClearColor(Color.GRAY);
     }
 

@@ -15,16 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.audio.player.impl;
+package net.raphimc.noteblocktool.audio.renderer.impl;
 
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
+import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
 import net.raphimc.noteblocklib.model.note.Note;
 import net.raphimc.noteblocklib.model.song.Song;
-import net.raphimc.noteblocktool.audio.system.AudioSystem;
+import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 public class ProgressSongRenderer extends SongRenderer {
 
@@ -32,8 +31,8 @@ public class ProgressSongRenderer extends SongRenderer {
     private final int noteCount;
     private int processedNotes;
 
-    public ProgressSongRenderer(final Song song, final FloatConsumer progressConsumer, final Function<Map<String, byte[]>, AudioSystem> audioSystemSupplier) {
-        super(song, audioSystemSupplier);
+    public ProgressSongRenderer(final Song song, final int maxSounds, final boolean normalized, final boolean threaded, final PcmFloatAudioFormat audioFormat, final FloatConsumer progressConsumer) {
+        super(song, maxSounds, normalized, threaded, audioFormat);
         this.noteCount = song.getNotes().getNoteCount();
         this.progressConsumer = progressConsumer;
     }

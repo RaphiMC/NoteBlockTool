@@ -15,25 +15,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.audio.player.impl;
+package net.raphimc.noteblocktool.audio.renderer.impl;
 
+import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
 import net.raphimc.audiomixer.util.SourceDataLineWriter;
 import net.raphimc.noteblocklib.model.song.Song;
-import net.raphimc.noteblocktool.audio.system.AudioSystem;
+import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
 
 import javax.sound.sampled.AudioFormat;
-import java.util.Map;
-import java.util.function.Function;
+import javax.sound.sampled.AudioSystem;
+import java.util.List;
 
 public class RealtimeSongRenderer extends SongRenderer {
 
     private final SourceDataLineWriter sourceDataLineWriter;
 
-    public RealtimeSongRenderer(final Song song, final Function<Map<String, byte[]>, AudioSystem> audioSystemSupplier) {
-        super(song, audioSystemSupplier);
+    public RealtimeSongRenderer(final Song song, final int maxSounds, final boolean normalized, final boolean threaded, final PcmFloatAudioFormat audioFormat) {
+        super(song, maxSounds, normalized, threaded, audioFormat);
         try {
-            final AudioFormat audioFormat = new AudioFormat(this.getAudioSystem().getLoopbackAudioFormat().getSampleRate(), Short.SIZE, this.getAudioSystem().getLoopbackAudioFormat().getChannels(), true, false);
-            this.sourceDataLineWriter = new SourceDataLineWriter(javax.sound.sampled.AudioSystem.getSourceDataLine(audioFormat), 50, this::renderTick);
+            final AudioFormat playbackAudioFormat = new AudioFormat(audioFormat.getSampleRate(), Short.SIZE, audioFormat.getChannels(), true, false);
+            this.sourceDataLineWriter = new SourceDataLineWriter(AudioSystem.getSourceDataLine(playbackAudioFormat), 50, this::renderTick);
             this.sourceDataLineWriter.start();
         } catch (Throwable e) {
             throw new RuntimeException("Failed to open SourceDataLine", e);
@@ -41,28 +42,16 @@ public class RealtimeSongRenderer extends SongRenderer {
     }
 
     @Override
-    public void stop() {
-        super.stop();
-        this.getAudioSystem().stopAllSounds();
-    }
-
-    @Override
-    public void setPaused(final boolean paused) {
-        super.setPaused(paused);
-        if (paused) {
-            this.getAudioSystem().stopAllSounds();
-        }
+    public List<String> getStatusLines() {
+        final List<String> statusLines = super.getStatusLines();
+        statusLines.add("Audio Renderer CPU Load: " + (int) this.sourceDataLineWriter.getCpuLoad() + "%");
+        return statusLines;
     }
 
     @Override
     public void close() {
         this.sourceDataLineWriter.close();
         super.close();
-    }
-
-    @Override
-    protected Float getAudioRendererCpuLoad() {
-        return this.sourceDataLineWriter.getCpuLoad();
     }
 
 }
