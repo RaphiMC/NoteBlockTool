@@ -41,7 +41,7 @@ public class SongPlayerFrame extends JFrame {
     private static SongPlayerFrame instance;
     private static Point lastPosition;
     private static int lastVolume = 50;
-    private static int lastMaxSounds = 1024;
+    private static int lastMaxSounds = 4096;
 
     public static void open(final Song song) {
         if (instance != null && instance.isVisible()) {
