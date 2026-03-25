@@ -60,10 +60,6 @@ public class SongPlayerFrame extends JFrame {
         });
     }
 
-    public static void close() {
-        if (instance != null) instance.dispose();
-    }
-
 
     private final Song song;
     private final Timer updateTimer;

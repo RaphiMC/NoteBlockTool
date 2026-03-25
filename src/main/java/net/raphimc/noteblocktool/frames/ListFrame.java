@@ -161,7 +161,6 @@ public class ListFrame extends JFrame {
         });
         GBC.create(buttonPanel).gridx(6).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.exportButton, () -> {
             this.exportButton.addActionListener(e -> {
-                SongPlayerFrame.close();
                 this.setEnabled(false);
                 final int[] rows = this.table.getSelectedRows();
                 List<LoadedSong> songs = new ArrayList<>();
