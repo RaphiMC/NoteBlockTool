@@ -30,7 +30,7 @@ dependencies {
     includeInJar "org.lwjgl:lwjgl-glfw:3.4.1"
     includeInJar "org.lwjgl:lwjgl-stb:3.4.1"
     includeInJar "org.lwjgl:lwjgl-freetype:3.4.1"
-    includeInJar("org.lwjglx:lwjgl3-awt:0.2.3") {
+    includeInJar("org.lwjglx:lwjgl3-awt:0.2.4") {
         exclude group: "org.lwjgl", module: "lwjgl"
         exclude group: "org.lwjgl", module: "lwjgl-opengl"
         exclude group: "org.lwjgl", module: "lwjgl-vulkan"
