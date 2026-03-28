@@ -88,9 +88,13 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     }
 
     private void playSound(final String sound, final float pitch, final float volume, final float panning) {
-        if (this.sounds.containsKey(sound)) {
-            this.masterMixSound.playSound(new OptimizedMonoSound(new MonoStaticPcmSource(this.sounds.get(sound)), pitch, volume, panning));
+        if (volume <= 0F) {
+            return;
         }
+        if (!this.sounds.containsKey(sound)) {
+            return;
+        }
+        this.masterMixSound.playSound(new OptimizedMonoSound(new MonoStaticPcmSource(this.sounds.get(sound)), pitch, volume, panning));
     }
 
     public float[] renderTick() {
