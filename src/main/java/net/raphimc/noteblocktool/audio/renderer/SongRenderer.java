@@ -170,7 +170,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     }
 
     public void stopAllSounds() {
-        this.audioMixer.stopAllSounds();
+        this.masterMixSound.stopAllSounds();
     }
 
     public void setTimingJitter(final boolean timingJitter) {
@@ -181,10 +181,6 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
         final List<String> statusLines = new ArrayList<>();
         statusLines.add("Sounds: " + this.masterMixSound.getMixedSounds() + " / " + this.masterMixSound.getMaxSounds());
         return statusLines;
-    }
-
-    public int getMaxSounds() {
-        return this.masterMixSound.getMaxSounds();
     }
 
     @Override

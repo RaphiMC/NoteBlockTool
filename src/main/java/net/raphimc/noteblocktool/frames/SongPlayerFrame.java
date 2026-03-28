@@ -43,6 +43,7 @@ public class SongPlayerFrame extends JFrame {
     private static int lastVolume = 50;
     private static boolean lastTimingJitter = false;
     private static int lastMaxSounds = 4096;
+    private static boolean lastThreaded = false;
 
     public static void open(final Song song) {
         if (instance != null && instance.isVisible()) {
@@ -50,6 +51,7 @@ public class SongPlayerFrame extends JFrame {
             lastVolume = instance.volumeSlider.getValue();
             lastTimingJitter = instance.timingJitter.isSelected();
             lastMaxSounds = (int) instance.maxSoundsSpinner.getValue();
+            lastThreaded = instance.threaded.isSelected();
             instance.dispose();
         }
         SwingUtilities.invokeLater(() -> {
@@ -58,6 +60,7 @@ public class SongPlayerFrame extends JFrame {
             instance.volumeSlider.setValue(lastVolume);
             instance.timingJitter.setSelected(lastTimingJitter);
             instance.maxSoundsSpinner.setValue(lastMaxSounds);
+            instance.threaded.setSelected(lastThreaded);
             instance.playStopButton.doClick(0);
             instance.setVisible(true);
         });
@@ -67,8 +70,9 @@ public class SongPlayerFrame extends JFrame {
     private final Song song;
     private final Timer updateTimer;
     private final JSlider volumeSlider = new JSlider(0, 100, lastVolume);
-    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(lastMaxSounds, 64, 131_070, 64));
     private final JCheckBox timingJitter = new JCheckBox("Artificial Timing Jitter", lastTimingJitter);
+    private final JSpinner maxSoundsSpinner = new JSpinner(new SpinnerNumberModel(lastMaxSounds, 64, 131_070, 64));
+    private final JCheckBox threaded = new JCheckBox("Multithreaded Rendering", lastThreaded);
     private final JButton playStopButton = new JButton("Play");
     private final JButton pauseResumeButton = new JButton("Pause");
     private final JButton openVisualizerButton = new JButton("Open Visualizer");
@@ -76,6 +80,8 @@ public class SongPlayerFrame extends JFrame {
     private final JLabel statusLine = new JLabel(" ");
     private final JLabel progressLabel = new JLabel("Current Position: 00:00:00");
     private SongRenderer songRenderer;
+    private int currentMaxSounds;
+    private boolean currentThreaded;
     private VisualizerWindow visualizerWindow;
 
     private SongPlayerFrame(final Song song) {
@@ -107,7 +113,7 @@ public class SongPlayerFrame extends JFrame {
 
             int gridy = 0;
             GBC.create(northPanel).grid(0, gridy).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(new JLabel("Volume:"));
-            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.volumeSlider, () -> {
+            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(this.volumeSlider, () -> {
                 this.volumeSlider.setPaintLabels(true);
                 this.volumeSlider.setPaintTicks(true);
                 this.volumeSlider.setMajorTickSpacing(10);
@@ -131,11 +137,14 @@ public class SongPlayerFrame extends JFrame {
             });
 
             GBC.create(northPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
-            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSoundsSpinner, () -> {
+            GBC.create(northPanel).grid(1, gridy).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSoundsSpinner, () -> {
                 this.maxSoundsSpinner.addChangeListener(e -> lastMaxSounds = (int) this.maxSoundsSpinner.getValue());
             });
+            GBC.create(northPanel).grid(2, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_END).add(this.threaded, () -> {
+                this.threaded.addChangeListener(e -> lastThreaded = this.threaded.isSelected());
+            });
 
-            GBC.create(northPanel).grid(0, gridy++).insets(5, 5, 0, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(new JSeparator());
+            GBC.create(northPanel).grid(0, gridy++).insets(5, 5, 0, 5).weightx(1).width(3).fill(GBC.HORIZONTAL).add(new JSeparator());
         }
         { //Center Panel
             final JScrollPane centerScrollPane = new FastScrollPane();
@@ -247,11 +256,14 @@ public class SongPlayerFrame extends JFrame {
 
     private void initSongPlayer() {
         final int maxSounds = (int) this.maxSoundsSpinner.getValue();
-        if (this.songRenderer == null || this.songRenderer.getMaxSounds() != maxSounds) {
+        final boolean threaded = this.threaded.isSelected();
+        if (this.songRenderer == null || this.currentMaxSounds != maxSounds || this.currentThreaded != threaded) {
             this.closeSongPlayerAndVisualizer();
-            this.songRenderer = new RealtimeSongRenderer(this.song, maxSounds, true, false, PLAYBACK_AUDIO_FORMAT);
+            this.songRenderer = new RealtimeSongRenderer(this.song, maxSounds, true, threaded, PLAYBACK_AUDIO_FORMAT);
             this.songRenderer.setMasterVolume(this.volumeSlider.getValue() / 100F);
             this.songRenderer.setTimingJitter(this.timingJitter.isSelected());
+            this.currentMaxSounds = maxSounds;
+            this.currentThreaded = threaded;
         }
     }
 
@@ -275,6 +287,7 @@ public class SongPlayerFrame extends JFrame {
         this.openVisualizerButton.setEnabled(this.songRenderer != null);
         if (this.songRenderer != null && this.songRenderer.isRunning()) {
             this.maxSoundsSpinner.setEnabled(false);
+            this.threaded.setEnabled(false);
             this.pauseResumeButton.setEnabled(true);
             this.progressSlider.setEnabled(true);
             this.playStopButton.setText("Stop");
@@ -291,6 +304,7 @@ public class SongPlayerFrame extends JFrame {
             this.statusLine.setText(String.join(", ", this.songRenderer.getStatusLines()));
         } else {
             this.maxSoundsSpinner.setEnabled(true);
+            this.threaded.setEnabled(true);
             this.pauseResumeButton.setEnabled(false);
             this.progressSlider.setEnabled(false);
             this.playStopButton.setText("Play");
