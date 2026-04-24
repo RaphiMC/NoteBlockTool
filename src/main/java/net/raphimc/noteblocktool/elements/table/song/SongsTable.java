@@ -28,6 +28,7 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class SongsTable extends JTable {
 
@@ -74,6 +75,15 @@ public class SongsTable extends JTable {
                 model.setValueAt(song.song().getTempoEvents().getHumanReadableTempoRange(), i, 5);
                 model.setValueAt(this.isSchematicCompatible(song), i, 6);
                 break;
+            }
+        }
+    }
+
+    public void removeRowIf(final Predicate<ListFrame.LoadedSong> condition) {
+        final DefaultTableModel model = (DefaultTableModel) this.getModel();
+        for (int i = model.getRowCount() - 1; i >= 0; i--) {
+            if (condition.test((ListFrame.LoadedSong) model.getValueAt(i, 0))) {
+                model.removeRow(i);
             }
         }
     }

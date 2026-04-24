@@ -42,11 +42,9 @@ import java.util.*;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ListFrame extends JFrame {
 
-    private final List<LoadedSong> loadedSongs = new CopyOnWriteArrayList<>();
     private final SongsTable table = new SongsTable();
     private final JButton addButton = new JButton("Add");
     private final JButton removeButton = new JButton("Remove");
@@ -120,9 +118,7 @@ public class ListFrame extends JFrame {
             this.removeButton.addActionListener(e -> {
                 final int[] selectedRows = this.table.getSelectedRows();
                 for (int i = selectedRows.length - 1; i >= 0; i--) {
-                    final LoadedSong song = (LoadedSong) this.table.getValueAt(selectedRows[i], 0);
-                    this.loadedSongs.remove(song);
-                    ((SongsTableModel) this.table.getModel()).removeRow(selectedRows[i]);
+                    ((SongsTableModel) this.table.getModel()).removeRow(this.table.convertRowIndexToModel(selectedRows[i]));
                 }
             });
         });
@@ -234,20 +230,21 @@ public class ListFrame extends JFrame {
                         queue.addAll(Arrays.asList(subFiles));
                     }
                 } else if (file.isFile()) {
-                    if (this.loadedSongs.stream().anyMatch(s -> s.file().equals(file))) continue;
                     try {
-                        final Song song = NoteBlockLib.readSong(file);
-                        final LoadedSong loadedSong = new LoadedSong(file, song);
-                        this.loadedSongs.add(loadedSong);
+                        final LoadedSong loadedSong = new LoadedSong(file, NoteBlockLib.readSong(file));
                         this.runSync(() -> {
+                            this.table.removeRowIf(s -> s.file().equals(loadedSong.file()));
                             this.table.addRow(loadedSong);
-                            StringBuilder text = new StringBuilder("Loading Songs (" + this.loadedSongs.size() + ")...\n");
+                            StringBuilder text = new StringBuilder("Loading Songs (" + this.table.getRowCount() + ")...\n");
                             for (int i = 0; i < 5; i++) {
-                                int index = this.loadedSongs.size() - i - 1;
-                                if (index < 0) break;
-                                text.append(this.loadedSongs.get(index).file().getName()).append("\n");
+                                final int index = this.table.getRowCount() - i - 1;
+                                if (index >= 0) {
+                                    text.append(((LoadedSong) this.table.getValueAt(index, 0)).file().getName()).append("\n");
+                                }
                             }
-                            if (text.toString().endsWith("\n")) text = new StringBuilder(text.substring(0, text.length() - 1));
+                            if (text.toString().endsWith("\n")) {
+                                text = new StringBuilder(text.substring(0, text.length() - 1));
+                            }
                             this.textOverlayPanel.setText(text.toString());
                         });
                     } catch (Throwable t) {
