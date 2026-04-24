@@ -17,6 +17,7 @@
  */
 package net.raphimc.noteblocktool.util;
 
+import net.raphimc.audiomixer.io.mp3.Mp3InputStream;
 import net.raphimc.audiomixer.io.ogg.OggVorbisInputStream;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.stb.STBVorbis;
@@ -38,6 +39,7 @@ import java.util.Arrays;
 public class SoundFileUtil {
 
     private static final byte[] OGG_MAGIC = new byte[]{(byte) 'O', (byte) 'g', (byte) 'g', (byte) 'S'};
+    private static final byte[] TAGGED_MP3_MAGIC = new byte[]{(byte) 'I', (byte) 'D', (byte) '3'};
 
     public static AudioInputStream readAudioFile(final InputStream inputStream) throws UnsupportedAudioFileException, IOException {
         final BufferedInputStream bis = new BufferedInputStream(inputStream);
@@ -45,7 +47,7 @@ public class SoundFileUtil {
         bis.mark(magic.length);
         bis.read(magic);
         bis.reset();
-        if (Arrays.equals(magic, OGG_MAGIC)) {
+        if (Arrays.equals(magic, 0, OGG_MAGIC.length, OGG_MAGIC, 0, OGG_MAGIC.length)) {
             final byte[] data = IOUtil.readFully(bis);
             try {
                 final ByteBuffer dataBuffer = MemoryUtil.memAlloc(data.length).put(data).flip();
@@ -75,6 +77,10 @@ public class SoundFileUtil {
                 e.printStackTrace();
                 return OggVorbisInputStream.createAudioInputStream(new ByteArrayInputStream(data));
             }
+        } else if (Arrays.equals(magic, 0, TAGGED_MP3_MAGIC.length, TAGGED_MP3_MAGIC, 0, TAGGED_MP3_MAGIC.length)) {
+            return Mp3InputStream.createAudioInputStream(bis);
+        } else if (magic[0] == (byte) 0xFF && (magic[1] & 0xE0) == 0xE0 && ((magic[1] >> 3) & 0x03) == 0x01) { // Untagged MP3
+            return Mp3InputStream.createAudioInputStream(bis);
         } else {
             return AudioSystem.getAudioInputStream(bis);
         }

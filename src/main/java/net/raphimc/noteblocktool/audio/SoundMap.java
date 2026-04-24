@@ -79,7 +79,7 @@ public class SoundMap {
                         if (Files.isDirectory(path)) return;
 
                         final String fileName = customSoundsFolder.toPath().relativize(path).toString();
-                        if (fileName.endsWith(".ogg") || fileName.endsWith(".wav")) {
+                        if (fileName.endsWith(".ogg") || fileName.endsWith(".mp3") || fileName.endsWith(".wav")) {
                             ALL_SOUND_LOCATIONS.put(fileName.replace(File.separatorChar, '/'), path.toUri().toURL());
                         }
                     } catch (Throwable e) {
