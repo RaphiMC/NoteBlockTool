@@ -21,7 +21,7 @@ import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
-import net.raphimc.noteblocktool.elements.instruments.InstrumentsTable;
+import net.raphimc.noteblocktool.elements.table.instrument.InstrumentsTable;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
 import javax.swing.*;

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.elements.drag;
+package net.raphimc.noteblocktool.elements.table.song;
 
 import net.raphimc.noteblocktool.elements.TextOverlayPanel;
 
@@ -27,13 +27,13 @@ import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class DragTableDropTargetListener implements DropTargetListener {
+public class SongsTableDropTargetListener implements DropTargetListener {
 
     private final JFrame frame;
     private final Consumer<File[]> fileConsumer;
     private TextOverlayPanel textOverlayPanel;
 
-    public DragTableDropTargetListener(final JFrame frame, final Consumer<File[]> fileConsumer) {
+    public SongsTableDropTargetListener(final JFrame frame, final Consumer<File[]> fileConsumer) {
         this.frame = frame;
         this.fileConsumer = fileConsumer;
     }

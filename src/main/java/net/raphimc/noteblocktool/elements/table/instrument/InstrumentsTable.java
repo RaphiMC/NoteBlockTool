@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.elements.instruments;
+package net.raphimc.noteblocktool.elements.table.instrument;
 
 import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
 
@@ -28,9 +28,13 @@ public class InstrumentsTable extends JTable {
         super(new InstrumentsModel("Original", "Replacement"));
         this.getTableHeader().setReorderingAllowed(false);
 
-        JComboBox<MinecraftInstrument> instruments = new JComboBox<>();
-        if (addEmptyEntry) instruments.addItem(null);
-        for (MinecraftInstrument instrument : MinecraftInstrument.values()) instruments.addItem(instrument);
+        final JComboBox<MinecraftInstrument> instruments = new JComboBox<>();
+        if (addEmptyEntry) {
+            instruments.addItem(null);
+        }
+        for (MinecraftInstrument instrument : MinecraftInstrument.values()) {
+            instruments.addItem(instrument);
+        }
         this.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(instruments));
     }
 
@@ -42,9 +46,12 @@ public class InstrumentsTable extends JTable {
     }
 
     @Override
-    public Class<?> getColumnClass(int column) {
-        if (column == 1) return JComboBox.class;
-        else return super.getColumnClass(column);
+    public Class<?> getColumnClass(final int column) {
+        if (column == 1) {
+            return JComboBox.class;
+        } else {
+            return super.getColumnClass(column);
+        }
     }
 
 }

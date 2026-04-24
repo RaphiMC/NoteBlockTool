@@ -15,19 +15,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.elements.instruments;
+package net.raphimc.noteblocktool.elements.table.song;
 
 import javax.swing.table.DefaultTableModel;
 
-public class InstrumentsModel extends DefaultTableModel {
+public class SongsTableModel extends DefaultTableModel {
 
-    public InstrumentsModel(final String... columns) {
+    public SongsTableModel(final String... columns) {
         super(columns, 0);
     }
 
     @Override
     public boolean isCellEditable(int row, int column) {
-        return column == 1;
+        return false;
     }
 
 }

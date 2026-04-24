@@ -15,12 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.elements.drag;
+package net.raphimc.noteblocktool.elements.table.song;
 
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.event.MouseEvent;
@@ -28,10 +29,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class DragTable extends JTable {
+public class SongsTable extends JTable {
 
-    public DragTable() {
-        super(new DragTableModel("Path", "Title", "Author", "Length", "Notes", "Tempo", "Minecraft compatible"));
+    public SongsTable() {
+        super(new SongsTableModel("Path", "Title", "Author", "Length", "Notes", "Tempo", "Minecraft compatible"));
 
         this.getTableHeader().setReorderingAllowed(false);
         this.getColumnModel().getColumn(1).setPreferredWidth(250);
@@ -39,16 +40,19 @@ public class DragTable extends JTable {
         this.getColumnModel().getColumn(4).setPreferredWidth(25);
         this.getColumnModel().getColumn(5).setPreferredWidth(25);
 
-        TableRowSorter<TableModel> sorter = new TableRowSorter<>(this.getModel());
-        List<RowSorter.SortKey> sortKeys = new ArrayList<>();
-        for (int i = 0; i < 6; i++) sortKeys.add(new RowSorter.SortKey(i, SortOrder.UNSORTED));
+        final TableRowSorter<TableModel> sorter = new TableRowSorter<>(this.getModel());
+        final List<RowSorter.SortKey> sortKeys = new ArrayList<>();
+        for (int i = 0; i < this.getModel().getColumnCount(); i++) {
+            sortKeys.add(new RowSorter.SortKey(i, SortOrder.UNSORTED));
+        }
         sorter.setSortKeys(sortKeys);
         sorter.setComparator(4, Comparator.comparingInt(o -> (int) o));
         this.setRowSorter(sorter);
     }
 
     public void addRow(final ListFrame.LoadedSong song) {
-        ((DragTableModel) this.getModel()).addRow(new Object[]{
+        final DefaultTableModel model = (DefaultTableModel) this.getModel();
+        model.addRow(new Object[]{
                 song,
                 song.song().getTitleOrFileNameOr("No Title"),
                 song.song().getAuthorOr("Unknown"),
@@ -60,72 +64,71 @@ public class DragTable extends JTable {
     }
 
     public void refreshRow(final ListFrame.LoadedSong song) {
-        for (int i = 0; i < this.getModel().getRowCount(); i++) {
-            if (this.getModel().getValueAt(i, 0) == song) {
-                this.getModel().setValueAt(song.song().getTitleOrFileNameOr("No Title"), i, 1);
-                this.getModel().setValueAt(song.song().getAuthorOr("Unknown"), i, 2);
-                this.getModel().setValueAt(song.song().getHumanReadableLength(), i, 3);
-                this.getModel().setValueAt(song.song().getNotes().getNoteCount(), i, 4);
-                this.getModel().setValueAt(song.song().getTempoEvents().getHumanReadableTempoRange(), i, 5);
-                this.getModel().setValueAt(this.isSchematicCompatible(song), i, 6);
+        final DefaultTableModel model = (DefaultTableModel) this.getModel();
+        for (int i = 0; i < model.getRowCount(); i++) {
+            if (model.getValueAt(i, 0) == song) {
+                model.setValueAt(song.song().getTitleOrFileNameOr("No Title"), i, 1);
+                model.setValueAt(song.song().getAuthorOr("Unknown"), i, 2);
+                model.setValueAt(song.song().getHumanReadableLength(), i, 3);
+                model.setValueAt(song.song().getNotes().getNoteCount(), i, 4);
+                model.setValueAt(song.song().getTempoEvents().getHumanReadableTempoRange(), i, 5);
+                model.setValueAt(this.isSchematicCompatible(song), i, 6);
                 break;
             }
         }
     }
 
     @Override
-    public String getToolTipText(MouseEvent event) {
-        int row = this.rowAtPoint(event.getPoint());
-        int column = this.columnAtPoint(event.getPoint());
-        if (row < 0) return null;
-        if (column == 0) return this.getModel().getValueAt(row, column).toString();
-        if (column == 6) {
-            CompatibilityResult result = (CompatibilityResult) this.getModel().getValueAt(row, column);
-            return result.getTooltip();
+    public String getToolTipText(final MouseEvent event) {
+        final int row = this.rowAtPoint(event.getPoint());
+        final int column = this.columnAtPoint(event.getPoint());
+        if (row < 0) {
+            return null;
+        } else if (column == 0) {
+            return this.getValueAt(row, column).toString();
+        } else if (column == 6) {
+            return ((CompatibilityResult) this.getValueAt(row, column)).getTooltip();
+        } else {
+            return null;
         }
-        return null;
     }
 
     private CompatibilityResult isSchematicCompatible(final ListFrame.LoadedSong song) {
         final CompatibilityResult result = new CompatibilityResult();
-
         final float[] tempoRange = song.song().getTempoEvents().getTempoRange();
         if (tempoRange[0] != tempoRange[1] || (tempoRange[0] != 2.5F && tempoRange[0] != 5F && tempoRange[0] != 10F)) {
             result.add("The tempo must be 2.5, 5 or 10 TPS");
         }
-
         if (SongUtil.hasOutsideMinecraftOctaveRangeNotes(song.song())) {
             result.add("The song contains notes which are outside of the Minecraft octave range");
         }
-
         if (!SongUtil.getUsedNbsCustomInstruments(song.song()).isEmpty()) {
             result.add("The song contains notes with custom instruments");
         }
-
         return result;
     }
 
-
     private static class CompatibilityResult {
-        private final List<String> reasons;
 
-        private CompatibilityResult() {
-            this.reasons = new ArrayList<>();
-        }
+        private final List<String> reasons = new ArrayList<>();
 
         private void add(final String reason) {
             this.reasons.add(reason);
         }
 
         private String getTooltip() {
-            if (this.reasons.isEmpty()) return null;
-            return String.join("\n", this.reasons);
+            if (!this.reasons.isEmpty()) {
+                return String.join("\n", this.reasons);
+            } else {
+                return null;
+            }
         }
 
         @Override
         public String toString() {
             return this.reasons.isEmpty() ? "Yes" : "No";
         }
+
     }
 
 }

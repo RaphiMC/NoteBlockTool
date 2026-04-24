@@ -17,6 +17,7 @@
  */
 package net.raphimc.noteblocktool.frames;
 
+import net.lenni0451.commons.arrays.ArrayUtils;
 import net.lenni0451.commons.swing.GBC;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
@@ -25,9 +26,9 @@ import net.raphimc.noteblocktool.audio.SoundMap;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.TextOverlayPanel;
 import net.raphimc.noteblocktool.elements.VerticalFileChooser;
-import net.raphimc.noteblocktool.elements.drag.DragTable;
-import net.raphimc.noteblocktool.elements.drag.DragTableDropTargetListener;
-import net.raphimc.noteblocktool.elements.drag.DragTableModel;
+import net.raphimc.noteblocktool.elements.table.song.SongsTable;
+import net.raphimc.noteblocktool.elements.table.song.SongsTableDropTargetListener;
+import net.raphimc.noteblocktool.elements.table.song.SongsTableModel;
 import net.raphimc.noteblocktool.util.filefilter.NoteBlockFileFilter;
 
 import javax.swing.*;
@@ -46,7 +47,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class ListFrame extends JFrame {
 
     private final List<LoadedSong> loadedSongs = new CopyOnWriteArrayList<>();
-    private final DragTable table = new DragTable();
+    private final SongsTable table = new SongsTable();
     private final JButton addButton = new JButton("Add");
     private final JButton removeButton = new JButton("Remove");
     private final JButton setCustomSoundsFolder = new JButton("Set Custom Sounds folder");
@@ -76,7 +77,7 @@ public class ListFrame extends JFrame {
         this.setContentPane(root);
 
         root.add(new FastScrollPane(this.table), BorderLayout.CENTER);
-        this.dropTarget = new DropTarget(this, new DragTableDropTargetListener(this, this::load));
+        this.dropTarget = new DropTarget(this, new SongsTableDropTargetListener(this, this::load));
         this.table.getSelectionModel().addListSelectionListener(e -> this.refreshButtons());
         this.table.addKeyListener(new KeyAdapter() {
             @Override
@@ -102,12 +103,14 @@ public class ListFrame extends JFrame {
         buttonPanel.setLayout(new GridBagLayout());
         GBC.create(buttonPanel).gridx(0).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.addButton, () -> {
             this.addButton.addActionListener(e -> {
-                VerticalFileChooser fileChooser = new VerticalFileChooser();
+                final VerticalFileChooser fileChooser = new VerticalFileChooser();
                 fileChooser.setDialogTitle("Add Songs");
                 fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
                 fileChooser.setMultiSelectionEnabled(true);
                 fileChooser.setFileFilter(new NoteBlockFileFilter());
-                for (SongFormat songFormat : SongFormat.values()) fileChooser.addChoosableFileFilter(new NoteBlockFileFilter(songFormat));
+                for (SongFormat songFormat : SongFormat.values()) {
+                    fileChooser.addChoosableFileFilter(new NoteBlockFileFilter(songFormat));
+                }
                 if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                     this.load(fileChooser.getSelectedFiles());
                 }
@@ -119,13 +122,13 @@ public class ListFrame extends JFrame {
                 for (int i = selectedRows.length - 1; i >= 0; i--) {
                     final LoadedSong song = (LoadedSong) this.table.getValueAt(selectedRows[i], 0);
                     this.loadedSongs.remove(song);
-                    ((DragTableModel) this.table.getModel()).removeRow(selectedRows[i]);
+                    ((SongsTableModel) this.table.getModel()).removeRow(selectedRows[i]);
                 }
             });
         });
         GBC.create(buttonPanel).gridx(2).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.setCustomSoundsFolder, () -> {
             this.setCustomSoundsFolder.addActionListener(e -> {
-                VerticalFileChooser fileChooser = new VerticalFileChooser();
+                final VerticalFileChooser fileChooser = new VerticalFileChooser();
                 fileChooser.setDialogTitle("Select Custom Sounds folder");
                 fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -142,29 +145,23 @@ public class ListFrame extends JFrame {
         GBC.create(buttonPanel).gridx(3).weightx(1).fill(GBC.HORIZONTAL).add(Box.createVerticalGlue());
         GBC.create(buttonPanel).gridx(4).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.editButton, () -> {
             this.editButton.addActionListener(e -> {
-                final int[] rows = this.table.getSelectedRows();
-                if (rows.length > 0) {
-                    final List<LoadedSong> songs = new ArrayList<>();
-                    for (int row : rows) songs.add((LoadedSong) this.table.getValueAt(row, 0));
-                    new EditFrame(songs, this.table::refreshRow);
+                final List<LoadedSong> songs = new ArrayList<>();
+                for (int row : this.table.getSelectedRows()) {
+                    songs.add((LoadedSong) this.table.getValueAt(row, 0));
                 }
+                new EditFrame(songs, this.table::refreshRow);
             });
         });
         GBC.create(buttonPanel).gridx(5).insets(5, 5, 5, 0).anchor(GBC.LINE_START).add(this.playButton, () -> {
-            this.playButton.addActionListener(e -> {
-                final int[] rows = this.table.getSelectedRows();
-                if (rows.length == 1) {
-                    final LoadedSong song = (LoadedSong) this.table.getValueAt(rows[0], 0);
-                    SongPlayerFrame.open(song.song());
-                }
-            });
+            this.playButton.addActionListener(e -> SongPlayerFrame.open(((LoadedSong) this.table.getValueAt(this.table.getSelectedRow(), 0)).song()));
         });
         GBC.create(buttonPanel).gridx(6).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.exportButton, () -> {
             this.exportButton.addActionListener(e -> {
                 this.setEnabled(false);
-                final int[] rows = this.table.getSelectedRows();
                 List<LoadedSong> songs = new ArrayList<>();
-                for (int row : rows) songs.add((LoadedSong) this.table.getValueAt(row, 0));
+                for (int row : this.table.getSelectedRows()) {
+                    songs.add((LoadedSong) this.table.getValueAt(row, 0));
+                }
                 new ExportFrame(this, songs);
             });
         });
@@ -172,16 +169,17 @@ public class ListFrame extends JFrame {
     }
 
     private void addContextMenu() {
-        JPopupMenu contextMenu = new JPopupMenu();
+        final JPopupMenu contextMenu = new JPopupMenu();
         contextMenu.addPopupMenuListener(new PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
-                Point mousePosition = contextMenu.getInvoker().getMousePosition();
-                if (mousePosition == null) return;
+                final Point mousePosition = contextMenu.getInvoker().getMousePosition();
+                if (mousePosition == null) {
+                    return;
+                }
 
-                int[] selectedRows = ListFrame.this.table.getSelectedRows();
-                int hoveredRow = ListFrame.this.table.rowAtPoint(mousePosition);
-                if (hoveredRow >= 0 && Arrays.stream(selectedRows).noneMatch(i -> i == hoveredRow)) {
+                final int hoveredRow = ListFrame.this.table.rowAtPoint(mousePosition);
+                if (hoveredRow >= 0 && !ArrayUtils.contains(ListFrame.this.table.getSelectedRows(), hoveredRow)) {
                     ListFrame.this.table.setRowSelectionInterval(hoveredRow, hoveredRow);
                 }
             }
@@ -195,17 +193,17 @@ public class ListFrame extends JFrame {
             }
         });
 
-        JMenuItem contextMenuRemove = new JMenuItem("Remove");
+        final JMenuItem contextMenuRemove = new JMenuItem("Remove");
         contextMenuRemove.addActionListener(e -> this.removeButton.doClick(0));
         contextMenu.add(contextMenuRemove);
-        JMenuItem contextMenuEdit = new JMenuItem("Edit");
+        final JMenuItem contextMenuEdit = new JMenuItem("Edit");
         contextMenuEdit.addActionListener(e -> this.editButton.doClick(0));
         contextMenu.add(contextMenuEdit);
-        JMenuItem contextMenuPlay = new JMenuItem("Play");
+        final JMenuItem contextMenuPlay = new JMenuItem("Play");
         contextMenuPlay.addActionListener(e -> this.playButton.doClick(0));
         contextMenu.add(contextMenuPlay);
         this.table.getSelectionModel().addListSelectionListener(e -> contextMenuPlay.setEnabled(this.table.getSelectedRows().length == 1));
-        JMenuItem contextMenuExport = new JMenuItem("Export");
+        final JMenuItem contextMenuExport = new JMenuItem("Export");
         contextMenuExport.addActionListener(e -> this.exportButton.doClick(0));
         contextMenu.add(contextMenuExport);
         this.table.setComponentPopupMenu(contextMenu);
@@ -232,7 +230,9 @@ public class ListFrame extends JFrame {
                 final File file = queue.poll();
                 if (file.isDirectory()) {
                     final File[] subFiles = file.listFiles();
-                    if (subFiles != null) queue.addAll(Arrays.asList(subFiles));
+                    if (subFiles != null) {
+                        queue.addAll(Arrays.asList(subFiles));
+                    }
                 } else if (file.isFile()) {
                     if (this.loadedSongs.stream().anyMatch(s -> s.file().equals(file))) continue;
                     try {
@@ -263,7 +263,7 @@ public class ListFrame extends JFrame {
                 this.setDropTarget(this.dropTarget);
             });
             if (!failedFiles.isEmpty()) {
-                String message;
+                final String message;
                 if (failedFiles.size() == 1) {
                     Map.Entry<File, Throwable> entry = failedFiles.entrySet().iterator().next();
                     message = "Failed to load song:\n" + entry.getKey().getAbsolutePath() + "\n" + entry.getValue().getMessage();
