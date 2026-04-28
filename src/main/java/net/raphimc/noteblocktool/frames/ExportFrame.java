@@ -33,6 +33,7 @@ import net.raphimc.noteblocktool.audio.library.LameLibrary;
 import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
 import net.raphimc.noteblocktool.audio.renderer.impl.ProgressSongRenderer;
 import net.raphimc.noteblocktool.audio.util.LameException;
+import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
 
@@ -58,27 +59,34 @@ import java.util.function.Function;
 
 public class ExportFrame extends JFrame {
 
-    private static final int MAX_SOUNDS = 16384;
-
     private final ListFrame parent;
     private final List<ListFrame.LoadedSong> loadedSongs;
+    private final JLabel formatLabel = new JLabel("Format:");
     private final JComboBox<OutputFormat> format = new JComboBox<>(OutputFormat.values());
-    private final JCheckBox globalNormalization = new JCheckBox("Global Normalization");
-    private final JCheckBox threaded = new JCheckBox("Multithreaded Rendering");
-    private final JLabel sampleRateLabel = new JLabel("Sample Rate:");
+
+    // Audio File settings
+    private final JPanel audioFilePanel = new JPanel(new GridBagLayout());
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
+    private final JComboBox<Channels> channels = new JComboBox<>(Channels.values());
     private final JLabel wavBitDepthLabel = new JLabel("WAV Bit Depth:");
     private final JComboBox<WavBitDepth> wavBitDepth = new JComboBox<>(WavBitDepth.values());
     private final JLabel mp3QualityLabel = new JLabel("MP3 Quality:");
     private final JSlider mp3Quality = new JSlider(0, 100, 60);
-    private final JLabel channelsLabel = new JLabel("Channels:");
-    private final JComboBox<Channels> channels = new JComboBox<>(Channels.values());
-    private final JLabel volumeLabel = new JLabel("Volume:");
+
+    // Playback settings
+    private final JPanel playbackPanel = new JPanel(new GridBagLayout());
     private final JSlider volume = new JSlider(0, 100, 50);
     private final JCheckBox timingJitter = new JCheckBox("Artificial Timing Jitter");
-    private JPanel progressPanel;
+
+    // Renderer settings
+    private final JPanel rendererPanel = new JPanel(new GridBagLayout());
+    private final JSpinner maxSounds = new JSpinner(new SpinnerNumberModel(16384, 64, 131070, 64));
+    private final JCheckBox globalNormalization = new JCheckBox("Global Normalization");
+    private final JCheckBox threaded = new JCheckBox("Multithreaded Rendering");
+
+    private final JPanel progressPanel = new JPanel();
     private final JProgressBar progressBar = new JProgressBar();
-    private final JButton exportButton = new JButton("Export");
+    private final JButton export = new JButton("Export");
     private Thread exportThread;
 
     public ExportFrame(final ListFrame parent, final List<ListFrame.LoadedSong> loadedSongs) {
@@ -92,7 +100,7 @@ public class ExportFrame extends JFrame {
         this.setLocationRelativeTo(null);
 
         this.initComponents();
-        this.updateVisibility();
+        this.updateVisibility(true);
         this.initFrameHandler();
 
         this.setMinimumSize(this.getSize());
@@ -101,92 +109,109 @@ public class ExportFrame extends JFrame {
 
     private void initComponents() {
         JPanel root = new JPanel();
-        root.setLayout(new GridBagLayout());
+        root.setLayout(new BorderLayout());
         this.setContentPane(root);
-        int gridy = 0;
 
-        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Format:"));
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.format, () -> {
-            this.format.addActionListener(e -> this.updateVisibility());
-        });
+        { // North panel
+            final JPanel northPanel = new JPanel(new GridBagLayout());
+            root.add(northPanel, BorderLayout.NORTH);
+            GBC.create(northPanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.formatLabel);
+            GBC.create(northPanel).nextColumn().insets(5, 5, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.format, format -> {
+                format.addActionListener(e -> this.updateVisibility(true));
+            });
+        }
 
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.globalNormalization);
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.threaded);
+        { // Center panel
+            final JScrollPane centerScrollPane = new FastScrollPane();
+            final JPanel centerPanel = new ScrollPaneSizedPanel(centerScrollPane);
+            centerScrollPane.setViewportView(centerPanel);
+            centerPanel.setLayout(new GridBagLayout());
+            root.add(centerScrollPane, BorderLayout.CENTER);
+            GBC.create(centerPanel).nextRow().insets(0, 5, 0, 5).width(2).weightx(1).fill(GBC.HORIZONTAL).add(this.audioFilePanel, audioFilePanel -> {
+                audioFilePanel.setBorder(BorderFactory.createTitledBorder("Audio File"));
+                GBC.create(audioFilePanel).nextRow().insets(0, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Sample Rate:"));
+                GBC.create(audioFilePanel).nextColumn().insets(0, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.sampleRate);
+                GBC.create(audioFilePanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Channels:"));
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.channels, channels -> {
+                    channels.setSelectedItem(Channels.STEREO);
+                });
+                GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.wavBitDepthLabel);
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.wavBitDepth, wavBitDepth -> {
+                    wavBitDepth.setSelectedItem(WavBitDepth.PCM16);
+                });
+                GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.mp3QualityLabel);
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.mp3Quality, mp3Quality -> {
+                    mp3Quality.setMajorTickSpacing(10);
+                    mp3Quality.setMinorTickSpacing(5);
+                    mp3Quality.setPaintTicks(true);
+                    mp3Quality.setPaintLabels(true);
+                });
+            });
 
-        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.sampleRateLabel);
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.sampleRate);
+            GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).width(2).weightx(1).fill(GBC.HORIZONTAL).add(this.playbackPanel, playbackPanel -> {
+                playbackPanel.setBorder(BorderFactory.createTitledBorder("Playback"));
+                GBC.create(playbackPanel).nextRow().insets(0, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Volume:"));
+                GBC.create(playbackPanel).nextColumn().insets(0, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.volume, volume -> {
+                    volume.setMajorTickSpacing(10);
+                    volume.setMinorTickSpacing(5);
+                    volume.setPaintLabels(true);
+                    volume.setPaintTicks(true);
+                });
+                GBC.create(playbackPanel).nextRow().insets(5, 5, 5, 5).width(2).anchor(GBC.LINE_START).add(this.timingJitter, timingJitter -> {
+                    timingJitter.setToolTipText("Adds slight timing jitter (±1ms) to make the song sound more natural and less artificial.\nThis emulates the behaviour of playing the song in Note Block Studio.");
+                });
+            });
 
-        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.wavBitDepthLabel);
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.wavBitDepth, () -> {
-            this.wavBitDepth.setSelectedItem(WavBitDepth.PCM16);
-        });
+            GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).width(2).weightx(1).fill(GBC.HORIZONTAL).add(this.rendererPanel, rendererPanel -> {
+                rendererPanel.setBorder(BorderFactory.createTitledBorder("Renderer"));
+                GBC.create(rendererPanel).nextRow().insets(0, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
+                GBC.create(rendererPanel).nextColumn().insets(0, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSounds);
+                GBC.create(rendererPanel).nextRow().insets(5, 5, 0, 5).width(2).anchor(GBC.LINE_START).add(this.globalNormalization);
+                GBC.create(rendererPanel).nextRow().insets(5, 5, 5, 5).width(2).anchor(GBC.LINE_START).add(this.threaded);
+            });
 
-        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.mp3QualityLabel);
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.mp3Quality, () -> {
-            this.mp3Quality.setMajorTickSpacing(10);
-            this.mp3Quality.setMinorTickSpacing(5);
-            this.mp3Quality.setPaintTicks(true);
-            this.mp3Quality.setPaintLabels(true);
-        });
+            GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).width(1).width(2).weight(1, 1).fill(GBC.BOTH).add(this.progressPanel, progressPanel -> {
+                progressPanel.setLayout(new VerticalLayout(5, 5));
+            });
 
-        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.channelsLabel);
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.channels, () -> {
-            this.channels.setSelectedItem(Channels.STEREO);
-        });
+            GBC.fillVerticalSpace(centerPanel);
+        }
 
-        GBC.create(root).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.volumeLabel);
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.volume, () -> {
-            this.volume.setMajorTickSpacing(10);
-            this.volume.setMinorTickSpacing(5);
-            this.volume.setPaintTicks(true);
-            this.volume.setPaintLabels(true);
-        });
-        GBC.create(root).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.timingJitter, () -> {
-            this.timingJitter.setToolTipText("Adds slight timing jitter (±1ms) to make the song sound more natural and less artificial.\nThis emulates the behaviour of playing the song in Note Block Studio.");
-        });
-
-        GBC.create(root).grid(0, gridy++).insets(5, 5, 0, 5).width(1).width(2).weight(1, 1).fill(GBC.BOTH).add(() -> {
-            JScrollPane scrollPane = new JScrollPane();
-            this.progressPanel = new ScrollPaneSizedPanel(scrollPane);
-            this.progressPanel.setLayout(new VerticalLayout(5, 5));
-            scrollPane.setViewportView(this.progressPanel);
-            scrollPane.setBorder(BorderFactory.createEmptyBorder());
-            return scrollPane;
-        });
-
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new GridBagLayout());
-        GBC.create(root).grid(0, gridy++).insets(0, 0, 0, 0).weightx(1).width(2).fill(GBC.HORIZONTAL).add(bottomPanel);
-
-        GBC.create(bottomPanel).grid(0, 0).insets(5, 5, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.progressBar, () -> {
-            this.progressBar.setStringPainted(true);
-        });
-        GBC.create(bottomPanel).grid(1, 0).insets(5, 0, 5, 5).anchor(GBC.LINE_END).add(this.exportButton, () -> {
-            this.exportButton.addActionListener(e -> this.export());
-        });
+        { // South panel
+            final JPanel southPanel = new JPanel(new GridBagLayout());
+            root.add(southPanel, BorderLayout.SOUTH);
+            GBC.create(southPanel).nextRow().insets(5, 5, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.progressBar, progressBar -> {
+                progressBar.setStringPainted(true);
+            });
+            GBC.create(southPanel).nextColumn().insets(5, 0, 5, 5).anchor(GBC.LINE_END).add(this.export, exportButton -> {
+                exportButton.addActionListener(e -> this.export());
+            });
+        }
     }
 
-    private void updateVisibility() {
-        final OutputFormat outputFormat = (OutputFormat) this.format.getSelectedItem();
+    private void updateVisibility(final boolean showSettings) {
+        if (showSettings) {
+            final OutputFormat outputFormat = (OutputFormat) this.format.getSelectedItem();
+            this.formatLabel.setVisible(true);
+            this.format.setVisible(true);
+            this.audioFilePanel.setVisible(outputFormat.isAudioFile());
+            this.playbackPanel.setVisible(outputFormat.isAudioFile());
+            this.rendererPanel.setVisible(outputFormat.isAudioFile());
+            this.progressPanel.setVisible(false);
 
-        this.globalNormalization.setVisible(outputFormat.isAudioFile());
-        this.threaded.setVisible(outputFormat.isAudioFile());
+            this.wavBitDepthLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
+            this.wavBitDepth.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
+            this.mp3QualityLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
+            this.mp3Quality.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
 
-        this.sampleRateLabel.setVisible(outputFormat.isAudioFile());
-        this.sampleRate.setVisible(outputFormat.isAudioFile());
-
-        this.wavBitDepthLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
-        this.wavBitDepth.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
-
-        this.mp3QualityLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
-        this.mp3Quality.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
-
-        this.channelsLabel.setVisible(outputFormat.isAudioFile());
-        this.channels.setVisible(outputFormat.isAudioFile());
-
-        this.volumeLabel.setVisible(outputFormat.isAudioFile());
-        this.volume.setVisible(outputFormat.isAudioFile());
-        this.timingJitter.setVisible(outputFormat.isAudioFile());
+        } else {
+            this.formatLabel.setVisible(false);
+            this.format.setVisible(false);
+            this.audioFilePanel.setVisible(false);
+            this.playbackPanel.setVisible(false);
+            this.rendererPanel.setVisible(false);
+            this.progressPanel.setVisible(true);
+        }
     }
 
     private void initFrameHandler() {
@@ -216,37 +241,21 @@ public class ExportFrame extends JFrame {
             } catch (InterruptedException ignored) {
             }
 
-            this.format.setEnabled(true);
-            this.globalNormalization.setEnabled(true);
-            this.threaded.setEnabled(true);
-            this.sampleRate.setEnabled(true);
-            this.wavBitDepth.setEnabled(true);
-            this.mp3Quality.setEnabled(true);
-            this.channels.setEnabled(true);
-            this.volume.setEnabled(true);
-            this.timingJitter.setEnabled(true);
             this.progressPanel.removeAll();
-            this.exportButton.setText("Export");
+            this.export.setText("Export");
             this.progressBar.setValue(0);
+            this.updateVisibility(true);
             return;
         }
 
         File out = this.openFileChooser();
         if (out == null) return;
 
-        this.format.setEnabled(false);
-        this.globalNormalization.setEnabled(false);
-        this.threaded.setEnabled(false);
-        this.sampleRate.setEnabled(false);
-        this.wavBitDepth.setEnabled(false);
-        this.mp3Quality.setEnabled(false);
-        this.channels.setEnabled(false);
-        this.volume.setEnabled(false);
-        this.timingJitter.setEnabled(false);
         this.progressPanel.removeAll();
-        this.exportButton.setText("Cancel");
+        this.export.setText("Cancel");
         this.progressBar.setValue(0);
         this.progressBar.setMaximum(this.loadedSongs.size());
+        this.updateVisibility(false);
 
         this.exportThread = new Thread(() -> this.doExport(out), "Song Export Thread");
         this.exportThread.setDaemon(true);
@@ -404,19 +413,11 @@ public class ExportFrame extends JFrame {
             JOptionPane.showMessageDialog(this, "Failed to export songs:\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
             SwingUtilities.invokeLater(() -> {
-                this.format.setEnabled(true);
-                this.globalNormalization.setEnabled(true);
-                this.threaded.setEnabled(true);
-                this.sampleRate.setEnabled(true);
-                this.wavBitDepth.setEnabled(true);
-                this.mp3Quality.setEnabled(true);
-                this.channels.setEnabled(true);
-                this.volume.setEnabled(true);
-                this.timingJitter.setEnabled(true);
-                this.exportButton.setText("Export");
+                this.export.setText("Export");
                 this.progressBar.setValue(this.loadedSongs.size());
                 this.progressBar.revalidate();
                 this.progressBar.repaint();
+                this.updateVisibility(true);
             });
         }
     }
@@ -427,7 +428,7 @@ public class ExportFrame extends JFrame {
             this.writeSong(song, file, outputFormat.getSongFormat());
         } else if (outputFormat.isAudioFile()) {
             final PcmFloatAudioFormat renderAudioFormat = new PcmFloatAudioFormat(((Number) this.sampleRate.getValue()).floatValue(), ((Channels) this.channels.getSelectedItem()).getChannels());
-            final SongRenderer songRenderer = new ProgressSongRenderer(song.song(), MAX_SOUNDS, !this.globalNormalization.isSelected(), this.threaded.isSelected(), renderAudioFormat, progressConsumer);
+            final SongRenderer songRenderer = new ProgressSongRenderer(song.song(), (int) this.maxSounds.getValue(), !this.globalNormalization.isSelected(), this.threaded.isSelected(), renderAudioFormat, progressConsumer);
             songRenderer.setMasterVolume(this.volume.getValue() / 100F);
             songRenderer.setTimingJitter(this.timingJitter.isSelected());
             final float[] samples;
