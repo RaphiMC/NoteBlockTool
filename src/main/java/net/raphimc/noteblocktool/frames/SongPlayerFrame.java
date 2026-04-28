@@ -91,7 +91,7 @@ public class SongPlayerFrame extends JFrame {
 
         this.setTitle("NoteBlockTool Song Player - " + song.getTitleOrFileNameOr("No Title"));
         this.setIconImage(new ImageIcon(this.getClass().getResource("/icon.png")).getImage());
-        this.setSize(500, 400);
+        this.setSize(500, 450);
         this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         this.setLocationRelativeTo(null);
 
@@ -106,45 +106,6 @@ public class SongPlayerFrame extends JFrame {
         root.setLayout(new BorderLayout());
         this.setContentPane(root);
 
-        { //North Panel
-            final JPanel northPanel = new JPanel();
-            northPanel.setLayout(new GridBagLayout());
-            root.add(northPanel, BorderLayout.NORTH);
-
-            GBC.create(northPanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(new JLabel("Volume:"));
-            GBC.create(northPanel).nextColumn().insets(5, 0, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(this.volumeSlider, () -> {
-                this.volumeSlider.setPaintLabels(true);
-                this.volumeSlider.setPaintTicks(true);
-                this.volumeSlider.setMajorTickSpacing(10);
-                this.volumeSlider.setMinorTickSpacing(5);
-                this.volumeSlider.addChangeListener(e -> {
-                    if (this.songRenderer != null) {
-                        this.songRenderer.setMasterVolume(this.volumeSlider.getValue() / 100F);
-                    }
-                    lastVolume = this.volumeSlider.getValue();
-                });
-            });
-
-            GBC.create(northPanel).nextRow().skipColumn().insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.timingJitter, () -> {
-                this.timingJitter.setToolTipText("Adds slight timing jitter (±1ms) to make the song sound more natural and less artificial.\nThis emulates the behaviour of playing the song in Note Block Studio.");
-                this.timingJitter.addChangeListener(e -> {
-                    if (this.songRenderer != null) {
-                        this.songRenderer.setTimingJitter(this.timingJitter.isSelected());
-                    }
-                    lastTimingJitter = this.timingJitter.isSelected();
-                });
-            });
-
-            GBC.create(northPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
-            GBC.create(northPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSoundsSpinner, () -> {
-                this.maxSoundsSpinner.addChangeListener(e -> lastMaxSounds = (int) this.maxSoundsSpinner.getValue());
-            });
-            GBC.create(northPanel).nextColumn().insets(5, 0, 0, 5).anchor(GBC.LINE_END).add(this.threaded, () -> {
-                this.threaded.addChangeListener(e -> lastThreaded = this.threaded.isSelected());
-            });
-
-            GBC.create(northPanel).nextRow().insets(5, 5, 0, 5).weightx(1).width(3).fill(GBC.HORIZONTAL).add(new JSeparator());
-        }
         { //Center Panel
             final JScrollPane centerScrollPane = new FastScrollPane();
             final JPanel centerPanel = new ScrollPaneSizedPanel(centerScrollPane);
@@ -177,7 +138,7 @@ public class SongPlayerFrame extends JFrame {
             GBC.create(centerPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(DECIMAL_FORMAT.format(this.song.getNotes().getNoteCount())));
 
             GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Tempo:"));
-            GBC.create(centerPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getTempoEvents().getHumanReadableTempoRange() + " TPS"));
+            GBC.create(centerPanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getTempoEvents().getHumanReadableTempoRange() + " TPS"));
 
             GBC.fillVerticalSpace(centerPanel);
         }
@@ -186,9 +147,11 @@ public class SongPlayerFrame extends JFrame {
             southPanel.setLayout(new GridBagLayout());
             root.add(southPanel, BorderLayout.SOUTH);
 
-            GBC.create(southPanel).nextRow().anchor(GBC.CENTER).add(this.progressLabel);
+            GBC.create(southPanel).nextRow().anchor(GBC.CENTER).weightx(1).width(2).fill(GBC.HORIZONTAL).add(new JSeparator());
 
-            GBC.create(southPanel).nextRow().insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.progressSlider, () -> {
+            GBC.create(southPanel).nextRow().anchor(GBC.CENTER).width(2).add(this.progressLabel);
+
+            GBC.create(southPanel).nextRow().insets(0, 5, 0, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(this.progressSlider, () -> {
                 this.progressSlider.addChangeListener(e -> {
                     if (!this.progressSlider.getValueIsAdjusting()) { // Skip updates if the value is set directly
                         return;
@@ -203,7 +166,7 @@ public class SongPlayerFrame extends JFrame {
                 });
             });
 
-            GBC.create(southPanel).nextRow().insets(5, 5, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(new JPanel(), buttonPanel -> {
+            GBC.create(southPanel).nextRow().insets(5, 5, 0, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(new JPanel(), buttonPanel -> {
                 buttonPanel.setLayout(new GridLayout(1, 3, 5, 0));
                 buttonPanel.add(this.playStopButton);
                 this.playStopButton.addActionListener(e -> {
@@ -243,11 +206,62 @@ public class SongPlayerFrame extends JFrame {
                 });
             });
 
-            final JPanel statusBar = new JPanel();
-            statusBar.setBorder(BorderFactory.createEtchedBorder());
-            statusBar.setLayout(new GridLayout(1, 1));
-            statusBar.add(this.statusLine);
-            GBC.create(southPanel).nextRow().weightx(1).fill(GBC.HORIZONTAL).add(statusBar);
+            GBC.create(southPanel).nextRow().insets(5, 5, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(new JPanel(), controls -> {
+                controls.setLayout(new GridLayout(1, 2, 5, 5));
+                {
+                    JPanel playbackPanel = new JPanel(new GridBagLayout());
+                    playbackPanel.setBorder(BorderFactory.createTitledBorder("Playback"));
+                    controls.add(playbackPanel);
+
+                    GBC.create(playbackPanel).nextRow().insets(0, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Volume:"));
+                    GBC.create(playbackPanel).nextRow().insets(0, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.volumeSlider, () -> {
+                        this.volumeSlider.setPaintLabels(true);
+                        this.volumeSlider.setPaintTicks(true);
+                        this.volumeSlider.setMajorTickSpacing(20);
+                        this.volumeSlider.setMinorTickSpacing(5);
+                        this.volumeSlider.addChangeListener(e -> {
+                            if (this.songRenderer != null) {
+                                this.songRenderer.setMasterVolume(this.volumeSlider.getValue() / 100F);
+                            }
+                            lastVolume = this.volumeSlider.getValue();
+                        });
+                    });
+
+                    GBC.create(playbackPanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.timingJitter, () -> {
+                        this.timingJitter.setToolTipText("Adds slight timing jitter (±1ms) to make the song sound more natural and less artificial.\nThis emulates the behaviour of playing the song in Note Block Studio.");
+                        this.timingJitter.addChangeListener(e -> {
+                            if (this.songRenderer != null) {
+                                this.songRenderer.setTimingJitter(this.timingJitter.isSelected());
+                            }
+                            lastTimingJitter = this.timingJitter.isSelected();
+                        });
+                    });
+
+                    GBC.fillVerticalSpace(playbackPanel);
+                }
+                {
+                    JPanel rendererPanel = new JPanel(new GridBagLayout());
+                    rendererPanel.setBorder(BorderFactory.createTitledBorder("Renderer"));
+                    controls.add(rendererPanel);
+
+                    GBC.create(rendererPanel).nextRow().insets(0, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
+                    GBC.create(rendererPanel).nextRow().insets(0, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSoundsSpinner, () -> {
+                        this.maxSoundsSpinner.addChangeListener(e -> lastMaxSounds = (int) this.maxSoundsSpinner.getValue());
+                    });
+
+                    GBC.create(rendererPanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.threaded, () -> {
+                        this.threaded.addChangeListener(e -> lastThreaded = this.threaded.isSelected());
+                    });
+
+                    GBC.fillVerticalSpace(rendererPanel);
+                }
+            });
+
+            GBC.create(southPanel).nextRow().weightx(1).width(2).fill(GBC.HORIZONTAL).add(new JPanel(), statusBar -> {
+                statusBar.setBorder(BorderFactory.createEtchedBorder());
+                statusBar.setLayout(new GridLayout(1, 1));
+                statusBar.add(this.statusLine);
+            });
         }
     }
 
