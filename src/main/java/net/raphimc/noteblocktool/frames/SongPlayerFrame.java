@@ -111,9 +111,8 @@ public class SongPlayerFrame extends JFrame {
             northPanel.setLayout(new GridBagLayout());
             root.add(northPanel, BorderLayout.NORTH);
 
-            int gridy = 0;
-            GBC.create(northPanel).grid(0, gridy).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(new JLabel("Volume:"));
-            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(this.volumeSlider, () -> {
+            GBC.create(northPanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(new JLabel("Volume:"));
+            GBC.create(northPanel).nextColumn().insets(5, 0, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(this.volumeSlider, () -> {
                 this.volumeSlider.setPaintLabels(true);
                 this.volumeSlider.setPaintTicks(true);
                 this.volumeSlider.setMajorTickSpacing(10);
@@ -126,7 +125,7 @@ public class SongPlayerFrame extends JFrame {
                 });
             });
 
-            GBC.create(northPanel).grid(1, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.timingJitter, () -> {
+            GBC.create(northPanel).nextRow().skipColumn().insets(5, 0, 0, 5).anchor(GBC.LINE_START).add(this.timingJitter, () -> {
                 this.timingJitter.setToolTipText("Adds slight timing jitter (±1ms) to make the song sound more natural and less artificial.\nThis emulates the behaviour of playing the song in Note Block Studio.");
                 this.timingJitter.addChangeListener(e -> {
                     if (this.songRenderer != null) {
@@ -136,15 +135,15 @@ public class SongPlayerFrame extends JFrame {
                 });
             });
 
-            GBC.create(northPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
-            GBC.create(northPanel).grid(1, gridy).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSoundsSpinner, () -> {
+            GBC.create(northPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
+            GBC.create(northPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSoundsSpinner, () -> {
                 this.maxSoundsSpinner.addChangeListener(e -> lastMaxSounds = (int) this.maxSoundsSpinner.getValue());
             });
-            GBC.create(northPanel).grid(2, gridy++).insets(5, 0, 0, 5).anchor(GBC.LINE_END).add(this.threaded, () -> {
+            GBC.create(northPanel).nextColumn().insets(5, 0, 0, 5).anchor(GBC.LINE_END).add(this.threaded, () -> {
                 this.threaded.addChangeListener(e -> lastThreaded = this.threaded.isSelected());
             });
 
-            GBC.create(northPanel).grid(0, gridy++).insets(5, 5, 0, 5).weightx(1).width(3).fill(GBC.HORIZONTAL).add(new JSeparator());
+            GBC.create(northPanel).nextRow().insets(5, 5, 0, 5).weightx(1).width(3).fill(GBC.HORIZONTAL).add(new JSeparator());
         }
         { //Center Panel
             final JScrollPane centerScrollPane = new FastScrollPane();
@@ -153,33 +152,32 @@ public class SongPlayerFrame extends JFrame {
             centerPanel.setLayout(new GridBagLayout());
             root.add(centerScrollPane, BorderLayout.CENTER);
 
-            int gridy = 0;
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Title:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getTitleOrFileNameOr("No Title")));
+            GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Title:"));
+            GBC.create(centerPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getTitleOrFileNameOr("No Title")));
 
             if (this.song.getAuthor() != null) {
-                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Author:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getAuthor()));
+                GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Author:"));
+                GBC.create(centerPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getAuthor()));
             }
 
             if (this.song.getOriginalAuthor() != null) {
-                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Original Author:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getOriginalAuthor()));
+                GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Original Author:"));
+                GBC.create(centerPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getOriginalAuthor()));
             }
 
             if (this.song.getDescription() != null) {
-                GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Description:"));
-                GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getDescription()));
+                GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Description:"));
+                GBC.create(centerPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getDescription()));
             }
 
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Length:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getHumanReadableLength()));
+            GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Length:"));
+            GBC.create(centerPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getHumanReadableLength()));
 
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Note count:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(DECIMAL_FORMAT.format(this.song.getNotes().getNoteCount())));
+            GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Note count:"));
+            GBC.create(centerPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(DECIMAL_FORMAT.format(this.song.getNotes().getNoteCount())));
 
-            GBC.create(centerPanel).grid(0, gridy).insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Tempo:"));
-            GBC.create(centerPanel).grid(1, gridy++).insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getTempoEvents().getHumanReadableTempoRange() + " TPS"));
+            GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.NORTHWEST).add(new JLabel("Tempo:"));
+            GBC.create(centerPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(new NewLineLabel(this.song.getTempoEvents().getHumanReadableTempoRange() + " TPS"));
 
             GBC.fillVerticalSpace(centerPanel);
         }
@@ -188,10 +186,9 @@ public class SongPlayerFrame extends JFrame {
             southPanel.setLayout(new GridBagLayout());
             root.add(southPanel, BorderLayout.SOUTH);
 
-            int gridy = 0;
-            GBC.create(southPanel).grid(0, gridy++).anchor(GBC.CENTER).add(this.progressLabel);
+            GBC.create(southPanel).nextRow().anchor(GBC.CENTER).add(this.progressLabel);
 
-            GBC.create(southPanel).grid(0, gridy++).insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.progressSlider, () -> {
+            GBC.create(southPanel).nextRow().insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.progressSlider, () -> {
                 this.progressSlider.addChangeListener(e -> {
                     if (!this.progressSlider.getValueIsAdjusting()) { // Skip updates if the value is set directly
                         return;
@@ -206,51 +203,51 @@ public class SongPlayerFrame extends JFrame {
                 });
             });
 
-            final JPanel buttonPanel = new JPanel();
-            buttonPanel.setLayout(new GridLayout(1, 3, 5, 0));
-            buttonPanel.add(this.playStopButton);
-            this.playStopButton.addActionListener(e -> {
-                this.initSongPlayer();
-                if (this.songRenderer.isRunning()) {
-                    this.songRenderer.stop();
-                    this.songRenderer.stopAllSounds();
-                    this.songRenderer.setTick(0);
-                } else {
-                    this.songRenderer.start();
-                }
-            });
-            buttonPanel.add(this.pauseResumeButton);
-            this.pauseResumeButton.addActionListener(e -> {
-                if (this.songRenderer != null) {
-                    this.songRenderer.setPaused(!this.songRenderer.isPaused());
-                }
-            });
-            buttonPanel.add(this.openVisualizerButton);
-            this.openVisualizerButton.addActionListener(e -> {
-                if (this.visualizerWindow != null) {
-                    this.openVisualizerButton.setText("Open Visualizer");
-                    this.visualizerWindow.close();
-                    this.visualizerWindow = null;
-                } else {
-                    try {
-                        this.visualizerWindow = new VisualizerWindow(this.songRenderer, () -> SwingUtilities.invokeLater(this::toFront), () -> SwingUtilities.invokeLater(() -> {
-                            this.openVisualizerButton.setText("Open Visualizer");
-                            this.visualizerWindow = null;
-                        }));
-                        this.openVisualizerButton.setText("Close Visualizer");
-                    } catch (Throwable t) {
-                        this.visualizerWindow = null;
-                        JOptionPane.showMessageDialog(this, VISUALIZER_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
+            GBC.create(southPanel).nextRow().insets(5, 5, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(new JPanel(), buttonPanel -> {
+                buttonPanel.setLayout(new GridLayout(1, 3, 5, 0));
+                buttonPanel.add(this.playStopButton);
+                this.playStopButton.addActionListener(e -> {
+                    this.initSongPlayer();
+                    if (this.songRenderer.isRunning()) {
+                        this.songRenderer.stop();
+                        this.songRenderer.stopAllSounds();
+                        this.songRenderer.setTick(0);
+                    } else {
+                        this.songRenderer.start();
                     }
-                }
+                });
+                buttonPanel.add(this.pauseResumeButton);
+                this.pauseResumeButton.addActionListener(e -> {
+                    if (this.songRenderer != null) {
+                        this.songRenderer.setPaused(!this.songRenderer.isPaused());
+                    }
+                });
+                buttonPanel.add(this.openVisualizerButton);
+                this.openVisualizerButton.addActionListener(e -> {
+                    if (this.visualizerWindow != null) {
+                        this.openVisualizerButton.setText("Open Visualizer");
+                        this.visualizerWindow.close();
+                        this.visualizerWindow = null;
+                    } else {
+                        try {
+                            this.visualizerWindow = new VisualizerWindow(this.songRenderer, () -> SwingUtilities.invokeLater(this::toFront), () -> SwingUtilities.invokeLater(() -> {
+                                this.openVisualizerButton.setText("Open Visualizer");
+                                this.visualizerWindow = null;
+                            }));
+                            this.openVisualizerButton.setText("Close Visualizer");
+                        } catch (Throwable t) {
+                            this.visualizerWindow = null;
+                            JOptionPane.showMessageDialog(this, VISUALIZER_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                });
             });
-            GBC.create(southPanel).grid(0, gridy++).insets(5, 5, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(buttonPanel);
 
             final JPanel statusBar = new JPanel();
             statusBar.setBorder(BorderFactory.createEtchedBorder());
             statusBar.setLayout(new GridLayout(1, 1));
             statusBar.add(this.statusLine);
-            GBC.create(southPanel).grid(0, gridy++).weightx(1).fill(GBC.HORIZONTAL).add(statusBar);
+            GBC.create(southPanel).nextRow().weightx(1).fill(GBC.HORIZONTAL).add(statusBar);
         }
     }
 
