@@ -203,7 +203,6 @@ public class ExportFrame extends JFrame {
             this.wavBitDepth.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
             this.mp3QualityLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
             this.mp3Quality.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
-
         } else {
             this.formatLabel.setVisible(false);
             this.format.setVisible(false);
