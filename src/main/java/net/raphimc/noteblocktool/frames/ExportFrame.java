@@ -19,6 +19,7 @@ package net.raphimc.noteblocktool.frames;
 
 import com.sun.jna.Pointer;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
+import net.lenni0451.commons.math.MathUtils;
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
@@ -31,6 +32,7 @@ import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.library.LameLibrary;
 import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
 import net.raphimc.noteblocktool.audio.renderer.impl.ProgressSongRenderer;
+import net.raphimc.noteblocktool.audio.util.LameException;
 import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
 
@@ -453,55 +455,46 @@ public class ExportFrame extends JFrame {
                 progressConsumer.accept(200F);
                 final Pointer lame = LameLibrary.INSTANCE.lame_init();
                 if (lame == null) {
-                    throw new IllegalStateException("Failed to initialize LAME encoder");
+                    throw new IllegalStateException("Failed to create LAME instance");
                 }
-                int result = LameLibrary.INSTANCE.lame_set_in_samplerate(lame, (int) renderAudioFormat.getSampleRate());
-                if (result < 0) {
-                    throw new IllegalStateException("Failed to set sample rate: " + result);
+                LameException.check(LameLibrary.INSTANCE.lame_set_in_samplerate(lame, (int) renderAudioFormat.getSampleRate()), "Failed to set sample rate");
+                LameException.check(LameLibrary.INSTANCE.lame_set_num_channels(lame, renderAudioFormat.getChannels()), "Failed to set channels");
+                LameException.check(LameLibrary.INSTANCE.lame_set_VBR(lame, LameLibrary.vbr_default), "Failed to set VBR mode");
+                LameException.check(LameLibrary.INSTANCE.lame_set_VBR_quality(lame, (1F - (this.mp3Quality.getValue() / 100F)) * 9F), "Failed to set VBR quality");
+                LameLibrary.INSTANCE.id3tag_init(lame);
+                LameLibrary.INSTANCE.lame_set_write_id3tag_automatic(lame, false);
+                if (songRenderer.getSong().getTitle() != null) {
+                    LameLibrary.INSTANCE.id3tag_set_title(lame, songRenderer.getSong().getTitle());
                 }
-                result = LameLibrary.INSTANCE.lame_set_num_channels(lame, renderAudioFormat.getChannels());
-                if (result < 0) {
-                    throw new IllegalStateException("Failed to set channels: " + result);
+                if (songRenderer.getSong().getAuthor() != null) {
+                    LameLibrary.INSTANCE.id3tag_set_artist(lame, songRenderer.getSong().getAuthor());
                 }
-                result = LameLibrary.INSTANCE.lame_set_VBR(lame, LameLibrary.vbr_default);
-                if (result < 0) {
-                    throw new IllegalStateException("Failed to set VBR mode: " + result);
+                if (songRenderer.getSong().getDescription() != null) {
+                    LameLibrary.INSTANCE.id3tag_set_comment(lame, songRenderer.getSong().getDescription());
                 }
-                result = LameLibrary.INSTANCE.lame_set_VBR_quality(lame, (1F - (this.mp3Quality.getValue() / 100F)) * 9F);
-                if (result < 0) {
-                    throw new IllegalStateException("Failed to set VBR quality: " + result);
-                }
-                result = LameLibrary.INSTANCE.lame_init_params(lame);
-                if (result < 0) {
-                    throw new IllegalStateException("Failed to initialize LAME parameters: " + result);
-                }
+                LameException.check(LameLibrary.INSTANCE.id3tag_set_fieldvalue(lame, "TXXX=Renderer=NoteBlockTool"), "Failed to set custom ID3 tag");
+                LameException.check(LameLibrary.INSTANCE.lame_init_params(lame), "Failed to initialize LAME instance");
 
                 final int frameCount = samples.length / renderAudioFormat.getChannels();
-                final byte[] dataBuffer = new byte[(int) (1.25F * frameCount + 7200)];
-                final int dataLength = LameLibrary.INSTANCE.lame_encode_buffer_interleaved_ieee_float(lame, samples, frameCount, dataBuffer, dataBuffer.length);
-                if (dataLength < 0) {
-                    throw new IllegalStateException("Failed to encode buffer: " + dataLength);
-                }
-                final byte[] trailerBuffer = new byte[7200];
-                final int trailerLength = LameLibrary.INSTANCE.lame_encode_flush(lame, trailerBuffer, trailerBuffer.length);
-                if (trailerLength < 0) {
-                    throw new IllegalStateException("Failed to flush encoder: " + trailerLength);
-                }
-                final byte[] headerBuffer = new byte[LameLibrary.INSTANCE.lame_get_lametag_frame(lame, null, 0)];
-                final int headerLength = LameLibrary.INSTANCE.lame_get_lametag_frame(lame, headerBuffer, headerBuffer.length);
-                if (headerLength < 0) {
-                    throw new IllegalStateException("Failed to get LAME tag frame: " + headerLength);
-                }
-                result = LameLibrary.INSTANCE.lame_close(lame);
-                if (result < 0) {
-                    throw new IllegalStateException("Failed to close encoder: " + result);
-                }
+                final byte[] data = new byte[MathUtils.ceilInt(1.25F * frameCount + 7200)];
+                final int dataLength = LameException.check(LameLibrary.INSTANCE.lame_encode_buffer_interleaved_ieee_float(lame, samples, frameCount, data, data.length), "Failed to encode buffer");
+                final byte[] trailer = new byte[7200];
+                final int trailerLength = LameException.check(LameLibrary.INSTANCE.lame_encode_flush(lame, trailer, trailer.length), "Failed to flush encoder");
+                final byte[] lameTagFrame = new byte[LameLibrary.INSTANCE.lame_get_lametag_frame(lame, null, 0)];
+                final int lameTagFrameLength = LameException.check(LameLibrary.INSTANCE.lame_get_lametag_frame(lame, lameTagFrame, lameTagFrame.length), "Failed to get LAME tag frame");
+                final byte[] id3v1Tag = new byte[LameLibrary.INSTANCE.lame_get_id3v1_tag(lame, null, 0)];
+                final int id3v1TagLength = LameException.check(LameLibrary.INSTANCE.lame_get_id3v1_tag(lame, id3v1Tag, id3v1Tag.length), "Failed to get ID3v1 tag");
+                final byte[] id3v2Tag = new byte[LameLibrary.INSTANCE.lame_get_id3v2_tag(lame, null, 0)];
+                final int id3v2TagLength = LameException.check(LameLibrary.INSTANCE.lame_get_id3v2_tag(lame, id3v2Tag, id3v2Tag.length), "Failed to get ID3v2 tag");
+                LameException.check(LameLibrary.INSTANCE.lame_close(lame), "Failed to close LAME instance");
 
                 progressConsumer.accept(101F);
+                System.arraycopy(lameTagFrame, 0, data, 0, lameTagFrameLength);
                 try (FileOutputStream fos = new FileOutputStream(file)) {
-                    fos.write(headerBuffer, 0, headerLength);
-                    fos.write(dataBuffer, 0, dataLength);
-                    fos.write(trailerBuffer, 0, trailerLength);
+                    fos.write(id3v2Tag, 0, id3v2TagLength);
+                    fos.write(data, 0, dataLength);
+                    fos.write(trailer, 0, trailerLength);
+                    fos.write(id3v1Tag, 0, id3v1TagLength);
                 }
             } else {
                 throw new UnsupportedOperationException("Unsupported output format: " + this.format.getSelectedIndex());

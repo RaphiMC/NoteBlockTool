@@ -21,6 +21,7 @@ import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,7 +40,7 @@ public interface LameLibrary extends Library {
     static LameLibrary loadNative() {
         try {
             final Map<String, Object> options = new HashMap<>();
-            options.put(Library.OPTION_STRING_ENCODING, "UTF-8");
+            options.put(Library.OPTION_STRING_ENCODING, StandardCharsets.ISO_8859_1.name());
             return Native.load("mp3lame", LameLibrary.class, options);
         } catch (Throwable ignored) {
         }
@@ -49,8 +50,6 @@ public interface LameLibrary extends Library {
     static boolean isLoaded() {
         return INSTANCE != null;
     }
-
-    String get_lame_version();
 
     Pointer lame_init();
 
@@ -71,5 +70,21 @@ public interface LameLibrary extends Library {
     int lame_get_lametag_frame(final Pointer lame, final byte[] buffer, final int size);
 
     int lame_close(final Pointer lame);
+
+    void id3tag_init(final Pointer lame);
+
+    void id3tag_set_title(final Pointer lame, final String title);
+
+    void id3tag_set_artist(final Pointer lame, final String artist);
+
+    void id3tag_set_comment(final Pointer lame, final String comment);
+
+    int id3tag_set_fieldvalue(final Pointer lame, final String fieldvalue);
+
+    int lame_get_id3v1_tag(final Pointer lame, final byte[] buffer, final int size);
+
+    int lame_get_id3v2_tag(final Pointer lame, final byte[] buffer, final int size);
+
+    void lame_set_write_id3tag_automatic(final Pointer lame, final boolean write_id3tag_automatic);
 
 }
