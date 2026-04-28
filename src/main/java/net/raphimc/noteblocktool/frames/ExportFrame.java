@@ -477,7 +477,11 @@ public class ExportFrame extends JFrame {
 
                 final int frameCount = samples.length / renderAudioFormat.getChannels();
                 final byte[] data = new byte[MathUtils.ceilInt(1.25F * frameCount + 7200)];
-                final int dataLength = LameException.check(LameLibrary.INSTANCE.lame_encode_buffer_interleaved_ieee_float(lame, samples, frameCount, data, data.length), "Failed to encode buffer");
+                final int dataLength = LameException.check(switch (renderAudioFormat.getChannels()) {
+                    case 1 -> LameLibrary.INSTANCE.lame_encode_buffer_ieee_float(lame, samples, null, frameCount, data, data.length);
+                    case 2 -> LameLibrary.INSTANCE.lame_encode_buffer_interleaved_ieee_float(lame, samples, frameCount, data, data.length);
+                    default -> throw new UnsupportedOperationException("Unsupported channel count: " + renderAudioFormat.getChannels());
+                }, "Failed to encode buffer");
                 final byte[] trailer = new byte[7200];
                 final int trailerLength = LameException.check(LameLibrary.INSTANCE.lame_encode_flush(lame, trailer, trailer.length), "Failed to flush encoder");
                 final byte[] lameTagFrame = new byte[LameLibrary.INSTANCE.lame_get_lametag_frame(lame, null, 0)];
