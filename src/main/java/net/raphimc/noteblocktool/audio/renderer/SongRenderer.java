@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.audio.renderer;
 
-import net.raphimc.audiomixer.NormalizedAudioMixer;
+import net.raphimc.audiomixer.LimitingAudioMixer;
 import net.raphimc.audiomixer.io.AudioIO;
 import net.raphimc.audiomixer.pcmsource.impl.MonoStaticPcmSource;
 import net.raphimc.audiomixer.sound.impl.mix.MixSound;
@@ -45,13 +45,13 @@ import java.util.concurrent.ThreadLocalRandom;
 public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
 
     private final Map<String, float[]> sounds = new HashMap<>();
-    private final NormalizedAudioMixer audioMixer;
+    private final LimitingAudioMixer audioMixer;
     private final MixSound masterMixSound;
     private boolean running;
     private boolean timingJitter;
     private long lastTickTime;
 
-    public SongRenderer(final Song song, final int maxSounds, final boolean normalized, final boolean threaded, final PcmFloatAudioFormat audioFormat) {
+    public SongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final PcmFloatAudioFormat audioFormat) {
         super(song);
         this.setCustomScheduler(null);
         try {
@@ -61,9 +61,9 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
         } catch (Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
         }
-        this.audioMixer = new NormalizedAudioMixer(audioFormat);
-        if (!normalized) {
-            this.audioMixer.getSoundModifiers().remove(this.audioMixer.getNormalizationModifier());
+        this.audioMixer = new LimitingAudioMixer(audioFormat);
+        if (!limited) {
+            this.audioMixer.getSoundModifiers().remove(this.audioMixer.getLimiterModifier());
         }
         if (threaded) {
             this.masterMixSound = new ThreadedChannelMixSound(Math.max(1, Runtime.getRuntime().availableProcessors() - 2));

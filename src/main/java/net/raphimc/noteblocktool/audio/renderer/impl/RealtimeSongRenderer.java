@@ -30,8 +30,8 @@ public class RealtimeSongRenderer extends SongRenderer {
 
     private final SourceDataLineWriter sourceDataLineWriter;
 
-    public RealtimeSongRenderer(final Song song, final int maxSounds, final boolean normalized, final boolean threaded, final PcmFloatAudioFormat audioFormat) {
-        super(song, maxSounds, normalized, threaded, audioFormat);
+    public RealtimeSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final PcmFloatAudioFormat audioFormat) {
+        super(song, maxSounds, limited, threaded, audioFormat);
         try {
             final AudioFormat playbackAudioFormat = new AudioFormat(audioFormat.getSampleRate(), Short.SIZE, audioFormat.getChannels(), true, false);
             this.sourceDataLineWriter = new SourceDataLineWriter(AudioSystem.getSourceDataLine(playbackAudioFormat), 50, this::renderTick);
