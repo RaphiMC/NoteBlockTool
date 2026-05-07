@@ -235,7 +235,7 @@ public class ListFrame extends JFrame {
                         this.runSync(() -> {
                             this.table.removeRowIf(s -> s.file().equals(loadedSong.file()));
                             this.table.addRow(loadedSong);
-                            StringBuilder text = new StringBuilder("Loading Songs (" + this.table.getRowCount() + ")...\n");
+                            StringBuilder text = new StringBuilder("Loading Songs (%,d)...\n".formatted(this.table.getRowCount()));
                             for (int i = 0; i < 5; i++) {
                                 final int index = this.table.getRowCount() - i - 1;
                                 if (index >= 0) {
