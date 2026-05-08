@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    includeInJar "net.raphimc:NoteBlockLib:3.2.0"
+    includeInJar "net.raphimc:NoteBlockLib:3.2.1-20260508.220345-3"
     includeInJar "net.raphimc:audio-mixer:2.4.0-20260505.172513-1"
     includeInJar "org.jcraft:jorbis:0.0.17"
     includeInJar "javazoom:jlayer:1.0.1"
