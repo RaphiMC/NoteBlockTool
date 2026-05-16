@@ -18,7 +18,7 @@
 package net.raphimc.noteblocktool.audio.renderer.impl;
 
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
-import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
+import net.raphimc.audiomixer.util.FloatAudioFormat;
 import net.raphimc.noteblocklib.model.note.Note;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
@@ -31,7 +31,7 @@ public class ProgressSongRenderer extends SongRenderer {
     private final int noteCount;
     private int processedNotes;
 
-    public ProgressSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final PcmFloatAudioFormat audioFormat, final FloatConsumer progressConsumer) {
+    public ProgressSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final FloatAudioFormat audioFormat, final FloatConsumer progressConsumer) {
         super(song, maxSounds, limited, threaded, audioFormat);
         this.noteCount = song.getNotes().getNoteCount();
         this.progressConsumer = progressConsumer;

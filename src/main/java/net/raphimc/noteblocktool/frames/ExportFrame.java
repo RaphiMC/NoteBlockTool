@@ -24,8 +24,8 @@ import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
 import net.raphimc.audiomixer.io.AudioIO;
-import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
-import net.raphimc.audiomixer.util.SoundSampleUtil;
+import net.raphimc.audiomixer.util.FloatAudioFormat;
+import net.raphimc.audiomixer.util.buffer.AudioBuffer;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.model.song.Song;
@@ -38,7 +38,6 @@ import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
 
 import javax.sound.sampled.AudioFileFormat;
-import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.swing.*;
@@ -426,29 +425,22 @@ public class ExportFrame extends JFrame {
         if (outputFormat.isSongFile()) {
             this.writeSong(song, file, outputFormat.getSongFormat());
         } else if (outputFormat.isAudioFile()) {
-            final PcmFloatAudioFormat renderAudioFormat = new PcmFloatAudioFormat(((Number) this.sampleRate.getValue()).floatValue(), ((Channels) this.channels.getSelectedItem()).getChannels());
-            final SongRenderer songRenderer = new ProgressSongRenderer(song.song(), (int) this.maxSounds.getValue(), !this.globalNormalization.isSelected(), this.threaded.isSelected(), renderAudioFormat, progressConsumer);
-            songRenderer.setMasterVolume(this.volume.getValue() / 100F);
+            final FloatAudioFormat audioFormat = new FloatAudioFormat(((Number) this.sampleRate.getValue()).floatValue(), ((Channels) this.channels.getSelectedItem()).getChannels());
+            final SongRenderer songRenderer = new ProgressSongRenderer(song.song(), (int) this.maxSounds.getValue(), !this.globalNormalization.isSelected(), this.threaded.isSelected(), audioFormat, progressConsumer);
+            songRenderer.setMasterVolume(this.volume.getValue());
             songRenderer.setTimingJitter(this.timingJitter.isSelected());
-            final float[] samples;
+            final AudioBuffer buffer;
             try {
-                samples = songRenderer.renderSong();
+                buffer = songRenderer.renderSong();
             } finally {
                 songRenderer.close();
             }
             if (this.globalNormalization.isSelected()) {
-                SoundSampleUtil.normalize(samples);
+                buffer.limitToUnitRange();
             }
             if (outputFormat.equals(OutputFormat.WAV)) {
                 progressConsumer.accept(101F);
-                final AudioFormat audioFormat = new AudioFormat(
-                        ((Number) this.sampleRate.getValue()).floatValue(),
-                        ((WavBitDepth) this.wavBitDepth.getSelectedItem()).getBitDepth(),
-                        ((Channels) this.channels.getSelectedItem()).getChannels(),
-                        true,
-                        false
-                );
-                final AudioInputStream audioInputStream = AudioIO.createAudioInputStream(samples, audioFormat);
+                final AudioInputStream audioInputStream = AudioIO.createAudioInputStream(buffer.samples(), buffer.format().toJavaPcmAudioFormat(((WavBitDepth) this.wavBitDepth.getSelectedItem()).getBitDepth()));
                 AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, file);
                 audioInputStream.close();
             } else if (outputFormat.equals(OutputFormat.MP3)) {
@@ -457,8 +449,8 @@ public class ExportFrame extends JFrame {
                 if (lame == null) {
                     throw new IllegalStateException("Failed to create LAME instance");
                 }
-                LameException.check(LameLibrary.INSTANCE.lame_set_in_samplerate(lame, (int) renderAudioFormat.getSampleRate()), "Failed to set sample rate");
-                LameException.check(LameLibrary.INSTANCE.lame_set_num_channels(lame, renderAudioFormat.getChannels()), "Failed to set channels");
+                LameException.check(LameLibrary.INSTANCE.lame_set_in_samplerate(lame, (int) buffer.format().sampleRate()), "Failed to set sample rate");
+                LameException.check(LameLibrary.INSTANCE.lame_set_num_channels(lame, buffer.format().channels()), "Failed to set channels");
                 LameException.check(LameLibrary.INSTANCE.lame_set_VBR(lame, LameLibrary.vbr_default), "Failed to set VBR mode");
                 LameException.check(LameLibrary.INSTANCE.lame_set_VBR_quality(lame, (1F - (this.mp3Quality.getValue() / 100F)) * 9F), "Failed to set VBR quality");
                 LameLibrary.INSTANCE.id3tag_init(lame);
@@ -475,12 +467,11 @@ public class ExportFrame extends JFrame {
                 LameException.check(LameLibrary.INSTANCE.id3tag_set_fieldvalue(lame, "TXXX=Renderer=NoteBlockTool"), "Failed to set custom ID3 tag");
                 LameException.check(LameLibrary.INSTANCE.lame_init_params(lame), "Failed to initialize LAME instance");
 
-                final int frameCount = samples.length / renderAudioFormat.getChannels();
-                final byte[] data = new byte[MathUtils.ceilInt(1.25F * frameCount + 7200)];
-                final int dataLength = LameException.check(switch (renderAudioFormat.getChannels()) {
-                    case 1 -> LameLibrary.INSTANCE.lame_encode_buffer_ieee_float(lame, samples, null, frameCount, data, data.length);
-                    case 2 -> LameLibrary.INSTANCE.lame_encode_buffer_interleaved_ieee_float(lame, samples, frameCount, data, data.length);
-                    default -> throw new UnsupportedOperationException("Unsupported channel count: " + renderAudioFormat.getChannels());
+                final byte[] data = new byte[MathUtils.ceilInt(1.25F * buffer.getFrameCount() + 7200)];
+                final int dataLength = LameException.check(switch (buffer.format().channels()) {
+                    case 1 -> LameLibrary.INSTANCE.lame_encode_buffer_ieee_float(lame, buffer.samples(), null, buffer.getFrameCount(), data, data.length);
+                    case 2 -> LameLibrary.INSTANCE.lame_encode_buffer_interleaved_ieee_float(lame, buffer.samples(), buffer.getFrameCount(), data, data.length);
+                    default -> throw new UnsupportedOperationException("Unsupported channel count: " + buffer.format().channels());
                 }, "Failed to encode buffer");
                 final byte[] trailer = new byte[7200];
                 final int trailerLength = LameException.check(LameLibrary.INSTANCE.lame_encode_flush(lame, trailer, trailer.length), "Failed to flush encoder");

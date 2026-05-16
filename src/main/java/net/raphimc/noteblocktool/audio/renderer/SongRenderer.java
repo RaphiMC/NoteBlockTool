@@ -18,14 +18,14 @@
 package net.raphimc.noteblocktool.audio.renderer;
 
 import net.raphimc.audiomixer.LimitingAudioMixer;
+import net.raphimc.audiomixer.dsp.processor.spatial.GainPanProcessor;
 import net.raphimc.audiomixer.io.AudioIO;
-import net.raphimc.audiomixer.pcmsource.impl.MonoStaticPcmSource;
-import net.raphimc.audiomixer.sound.impl.mix.MixSound;
-import net.raphimc.audiomixer.sound.impl.mix.ThreadedChannelMixSound;
-import net.raphimc.audiomixer.sound.impl.pcm.OptimizedMonoSound;
-import net.raphimc.audiomixer.util.GrowableArray;
-import net.raphimc.audiomixer.util.MathUtil;
-import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
+import net.raphimc.audiomixer.source.audio.impl.BufferedAudioSource;
+import net.raphimc.audiomixer.source.mixer.MixerSource;
+import net.raphimc.audiomixer.source.mixer.ParallelMixerSource;
+import net.raphimc.audiomixer.util.FloatAudioFormat;
+import net.raphimc.audiomixer.util.buffer.AudioBuffer;
+import net.raphimc.audiomixer.util.buffer.AudioBufferBuilder;
 import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.model.note.Note;
@@ -44,34 +44,34 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
 
-    private final Map<String, float[]> sounds = new HashMap<>();
+    private final Map<String, AudioBuffer> sounds = new HashMap<>();
     private final LimitingAudioMixer audioMixer;
-    private final MixSound masterMixSound;
+    private final MixerSource masterMixer;
     private boolean running;
     private boolean timingJitter;
     private long lastTickTime;
 
-    public SongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final PcmFloatAudioFormat audioFormat) {
+    public SongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final FloatAudioFormat audioFormat) {
         super(song);
         this.setCustomScheduler(null);
         try {
             for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(song).entrySet()) {
-                this.sounds.put(entry.getKey(), AudioIO.readSamples(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), new PcmFloatAudioFormat(audioFormat.getSampleRate(), 1)));
+                this.sounds.put(entry.getKey(), AudioIO.read(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), audioFormat.withChannels(1)));
             }
         } catch (Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
         }
         this.audioMixer = new LimitingAudioMixer(audioFormat);
         if (!limited) {
-            this.audioMixer.getSoundModifiers().remove(this.audioMixer.getLimiterModifier());
+            this.audioMixer.getProcessors().remove(this.audioMixer.getLimiterProcessor());
         }
         if (threaded) {
-            this.masterMixSound = new ThreadedChannelMixSound(Math.max(1, Runtime.getRuntime().availableProcessors() - 2));
-            this.audioMixer.playSound(this.masterMixSound);
+            this.masterMixer = new ParallelMixerSource(Math.max(1, Runtime.getRuntime().availableProcessors() - 2));
+            this.audioMixer.add(this.masterMixer);
         } else {
-            this.masterMixSound = this.audioMixer.getMasterMixSound();
+            this.masterMixer = this.audioMixer;
         }
-        this.masterMixSound.setMaxSounds(maxSounds);
+        this.masterMixer.setMaxSources(maxSounds);
     }
 
     @Override
@@ -88,16 +88,16 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     }
 
     private void playSound(final String sound, final float pitch, final float volume, final float panning) {
-        if (volume <= 0F) {
+        if (volume <= 0F || !this.sounds.containsKey(sound)) {
             return;
         }
-        if (!this.sounds.containsKey(sound)) {
-            return;
-        }
-        this.masterMixSound.playSound(new OptimizedMonoSound(new MonoStaticPcmSource(this.sounds.get(sound)), pitch, volume, panning));
+        final BufferedAudioSource source = new BufferedAudioSource(this.sounds.get(sound));
+        source.setPitch(pitch);
+        source.getProcessors().add(new GainPanProcessor(volume, panning));
+        this.masterMixer.add(source);
     }
 
-    public float[] renderTick() {
+    public AudioBuffer renderTick() {
         if (this.isRunning()) {
             this.tick();
         }
@@ -111,17 +111,18 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
         return this.audioMixer.renderMillis(millis);
     }
 
-    public float[] renderSong() throws InterruptedException {
-        final GrowableArray samples = new GrowableArray(MathUtil.millisToSampleCount(this.audioMixer.getAudioFormat(), (this.getSong().getLengthInSeconds() + 5) * 1000F));
+    public AudioBuffer renderSong() throws InterruptedException {
+        final int expectedSampleCount = this.audioMixer.getAudioFormat().millisToSampleCount((this.getSong().getLengthInSeconds() + 5) * 1000F);
+        final AudioBufferBuilder bufferBuilder = new AudioBufferBuilder(this.audioMixer.getAudioFormat(), expectedSampleCount);
         this.start();
         while (this.isRunning()) {
-            samples.add(this.renderTick());
+            bufferBuilder.put(this.renderTick());
             if (Thread.currentThread().isInterrupted()) {
                 throw new InterruptedException();
             }
         }
-        samples.add(this.audioMixer.renderMillis(3000F));
-        return samples.getArray();
+        bufferBuilder.put(this.audioMixer.renderMillis(3000F));
+        return bufferBuilder.build();
     }
 
     @Override
@@ -165,12 +166,12 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
         }
     }
 
-    public void setMasterVolume(final float volume) {
-        this.audioMixer.setMasterVolume(volume);
+    public void setMasterVolume(final int volume) {
+        this.audioMixer.setGainPercent(volume);
     }
 
     public void stopAllSounds() {
-        this.masterMixSound.stopAllSounds();
+        this.masterMixer.clear();
     }
 
     public void setTimingJitter(final boolean timingJitter) {
@@ -179,15 +180,15 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
 
     public List<String> getStatusLines() {
         final List<String> statusLines = new ArrayList<>();
-        statusLines.add("Sounds: " + this.masterMixSound.getMixedSounds() + " / " + this.masterMixSound.getMaxSounds());
+        statusLines.add("Sounds: " + this.masterMixer.getMixedSources() + " / " + this.masterMixer.getMaxSources());
         return statusLines;
     }
 
     @Override
     public void close() {
         this.stop();
-        if (this.masterMixSound instanceof ThreadedChannelMixSound threadedMixSound) {
-            threadedMixSound.close();
+        if (this.masterMixer instanceof ParallelMixerSource parallelMixer) {
+            parallelMixer.close();
         }
     }
 

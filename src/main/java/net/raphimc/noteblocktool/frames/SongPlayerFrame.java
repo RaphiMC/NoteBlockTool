@@ -19,7 +19,7 @@ package net.raphimc.noteblocktool.frames;
 
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
-import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
+import net.raphimc.audiomixer.util.FloatAudioFormat;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
 import net.raphimc.noteblocktool.audio.renderer.impl.RealtimeSongRenderer;
@@ -37,7 +37,7 @@ public class SongPlayerFrame extends JFrame {
 
     private static final String VISUALIZER_UNAVAILABLE_MESSAGE = "An error occurred while initializing the visualizer window.\nPlease make sure that your system supports at least OpenGL 4.1.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
-    private static final PcmFloatAudioFormat PLAYBACK_AUDIO_FORMAT = new PcmFloatAudioFormat(48000, 2);
+    private static final FloatAudioFormat PLAYBACK_AUDIO_FORMAT = new FloatAudioFormat(48000, 2);
     private static SongPlayerFrame instance;
     private static Point lastPosition;
     private static int lastVolume = 50;
@@ -221,7 +221,7 @@ public class SongPlayerFrame extends JFrame {
                         this.volume.setPaintTicks(true);
                         this.volume.addChangeListener(e -> {
                             if (this.songRenderer != null) {
-                                this.songRenderer.setMasterVolume(this.volume.getValue() / 100F);
+                                this.songRenderer.setMasterVolume(this.volume.getValue());
                             }
                             lastVolume = this.volume.getValue();
                         });
@@ -271,7 +271,7 @@ public class SongPlayerFrame extends JFrame {
         if (this.songRenderer == null || this.currentMaxSounds != maxSounds || this.currentThreaded != threaded) {
             this.closeSongPlayerAndVisualizer();
             this.songRenderer = new RealtimeSongRenderer(this.song, maxSounds, true, threaded, PLAYBACK_AUDIO_FORMAT);
-            this.songRenderer.setMasterVolume(this.volume.getValue() / 100F);
+            this.songRenderer.setMasterVolume(this.volume.getValue());
             this.songRenderer.setTimingJitter(this.timingJitter.isSelected());
             this.currentMaxSounds = maxSounds;
             this.currentThreaded = threaded;

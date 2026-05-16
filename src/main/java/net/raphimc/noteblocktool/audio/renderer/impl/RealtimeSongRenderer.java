@@ -17,12 +17,11 @@
  */
 package net.raphimc.noteblocktool.audio.renderer.impl;
 
-import net.raphimc.audiomixer.util.PcmFloatAudioFormat;
+import net.raphimc.audiomixer.util.FloatAudioFormat;
 import net.raphimc.audiomixer.util.SourceDataLineWriter;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
 
-import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import java.util.List;
 
@@ -30,11 +29,10 @@ public class RealtimeSongRenderer extends SongRenderer {
 
     private final SourceDataLineWriter sourceDataLineWriter;
 
-    public RealtimeSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final PcmFloatAudioFormat audioFormat) {
+    public RealtimeSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final FloatAudioFormat audioFormat) {
         super(song, maxSounds, limited, threaded, audioFormat);
         try {
-            final AudioFormat playbackAudioFormat = new AudioFormat(audioFormat.getSampleRate(), Short.SIZE, audioFormat.getChannels(), true, false);
-            this.sourceDataLineWriter = new SourceDataLineWriter(AudioSystem.getSourceDataLine(playbackAudioFormat), 50, this::renderTick);
+            this.sourceDataLineWriter = new SourceDataLineWriter(AudioSystem.getSourceDataLine(audioFormat.toJavaPcmAudioFormat(Short.SIZE)), 50, this::renderTick);
             this.sourceDataLineWriter.start();
         } catch (Throwable e) {
             throw new RuntimeException("Failed to open SourceDataLine", e);
@@ -44,7 +42,7 @@ public class RealtimeSongRenderer extends SongRenderer {
     @Override
     public List<String> getStatusLines() {
         final List<String> statusLines = super.getStatusLines();
-        statusLines.add("Audio Renderer CPU Load: " + (int) this.sourceDataLineWriter.getCpuLoad() + "%");
+        statusLines.add("Audio Renderer CPU Load: " + (int) this.sourceDataLineWriter.getProcessingLoad() + "%");
         return statusLines;
     }
 
