@@ -167,7 +167,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     }
 
     public void setMasterVolume(final int volume) {
-        this.audioMixer.setGainPercent(volume);
+        this.audioMixer.gain().set(volume / 100F);
     }
 
     public void stopAllSounds() {
