@@ -112,7 +112,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     }
 
     public AudioBuffer renderSong() throws InterruptedException {
-        final int expectedSampleCount = this.audioMixer.getAudioFormat().millisToSampleCount((this.getSong().getLengthInSeconds() + 5) * 1000F);
+        final int expectedSampleCount = this.audioMixer.getAudioFormat().millisToSampleCount((this.getSong().getLengthInSeconds() + 1) * 1000F);
         final AudioBufferBuilder bufferBuilder = new AudioBufferBuilder(this.audioMixer.getAudioFormat(), expectedSampleCount);
         this.start();
         while (this.isRunning()) {
@@ -121,7 +121,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
                 throw new InterruptedException();
             }
         }
-        bufferBuilder.put(this.audioMixer.renderMillis(3000F));
+        bufferBuilder.put(this.audioMixer.renderMillis(750F));
         return bufferBuilder.build();
     }
 
