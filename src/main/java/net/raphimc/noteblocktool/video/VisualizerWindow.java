@@ -15,16 +15,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.frames.visualizer;
+package net.raphimc.noteblocktool.video;
 
 import net.lenni0451.commons.color.Color;
 import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
+import net.raphimc.noteblocktool.video.thingl.ExtendedThinGL;
+import net.raphimc.noteblocktool.video.visualizer.impl.DropVisualizer;
 import net.raphimc.thingl.gl.resource.framebuffer.Framebuffer;
 import net.raphimc.thingl.implementation.application.ApplicationRunner;
 import net.raphimc.thingl.implementation.application.AwtApplicationRunner;
 import net.raphimc.thingl.implementation.application.GLFWApplicationRunner;
 import org.joml.Matrix4fStack;
-import org.lwjgl.glfw.GLFW;
 import org.lwjgl.system.Platform;
 
 public class VisualizerWindow {
@@ -33,7 +34,7 @@ public class VisualizerWindow {
     private final Runnable openCallback;
     private final Runnable closeCallback;
     private final ApplicationRunner window;
-    private DropRenderer dropRenderer;
+    private DropVisualizer dropVisualizer;
 
     public VisualizerWindow(final SongRenderer songRenderer, final Runnable openCallback, final Runnable closeCallback) {
         this.songRenderer = songRenderer;
@@ -59,17 +60,17 @@ public class VisualizerWindow {
     }
 
     private void init(final Framebuffer mainFramebuffer) {
-        this.dropRenderer = new DropRenderer(this.songRenderer);
+        this.dropVisualizer = new DropVisualizer(this.songRenderer);
         mainFramebuffer.setClearColor(Color.GRAY);
     }
 
     private void render(final Matrix4fStack positionMatrix) {
-        this.dropRenderer.render(positionMatrix);
+        this.dropVisualizer.render(positionMatrix);
     }
 
     private void freeGL() {
-        this.dropRenderer.free();
-        this.dropRenderer = null;
+        this.dropVisualizer.free();
+        this.dropVisualizer = null;
     }
 
     private void freeWindowSystem() {
@@ -82,23 +83,6 @@ public class VisualizerWindow {
 
         public GLFWWindow(final Configuration configuration) {
             super(configuration);
-        }
-
-        @Override
-        protected void setWindowHints() {
-            super.setWindowHints();
-            GLFW.glfwWindowHint(GLFW.GLFW_FOCUS_ON_SHOW, GLFW.GLFW_FALSE);
-        }
-
-        @Override
-        protected void createWindow() {
-            super.createWindow();
-            VisualizerWindow.this.createWindow();
-        }
-
-        @Override
-        protected void initThinGL() {
-            this.thinGL = new ExtendedThinGL(this.windowInterface);
         }
 
         @Override
@@ -116,12 +100,6 @@ public class VisualizerWindow {
         protected void freeGL() {
             VisualizerWindow.this.freeGL();
             super.freeGL();
-        }
-
-        @Override
-        protected void freeWindowSystem() {
-            super.freeWindowSystem();
-            VisualizerWindow.this.freeWindowSystem();
         }
 
     }

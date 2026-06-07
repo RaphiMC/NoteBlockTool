@@ -289,11 +289,8 @@ public class ExportFrame extends JFrame {
     }
 
     private void doExport(final File outFile) {
-        final boolean forceSingleThreaded = !((OutputFormat) this.format.getSelectedItem()).isAudioFile() || this.threaded.isSelected();
-        final boolean isMp3 = this.format.getSelectedItem().equals(OutputFormat.MP3);
-
         try {
-            if (isMp3 && !LameLibrary.isLoaded()) {
+            if (this.format.getSelectedItem().equals(OutputFormat.MP3) && !LameLibrary.isLoaded()) {
                 throw new IllegalStateException("LAME MP3 encoder is not available");
             }
 
@@ -347,8 +344,11 @@ public class ExportFrame extends JFrame {
                 }
             } else {
                 final int threadCount;
-                if (forceSingleThreaded) threadCount = 1;
-                else threadCount = Math.min(this.loadedSongs.size(), Runtime.getRuntime().availableProcessors());
+                if (this.threaded.isSelected() && ((OutputFormat) this.format.getSelectedItem()).isAudioFile()) {
+                    threadCount = Math.min(this.loadedSongs.size(), Runtime.getRuntime().availableProcessors());
+                } else {
+                    threadCount = 1;
+                }
                 ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadCount);
                 Queue<Runnable> uiQueue = new ConcurrentLinkedQueue<>();
 

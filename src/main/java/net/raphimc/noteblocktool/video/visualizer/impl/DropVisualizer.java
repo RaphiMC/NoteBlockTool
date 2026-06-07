@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.frames.visualizer;
+package net.raphimc.noteblocktool.video.visualizer.impl;
 
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
@@ -29,6 +29,8 @@ import net.raphimc.noteblocklib.model.note.Note;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
+import net.raphimc.noteblocktool.video.thingl.ExtendedThinGL;
+import net.raphimc.noteblocktool.video.visualizer.Visualizer;
 import net.raphimc.thingl.ThinGL;
 import net.raphimc.thingl.gl.renderer.impl.RendererText;
 import net.raphimc.thingl.gl.resource.image.texture.impl.Texture2D;
@@ -45,7 +47,7 @@ import java.util.EnumMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-public class DropRenderer {
+public class DropVisualizer extends Visualizer {
 
     private static final int TEXT_SIZE = 24;
     private static final int PIANO_KEY_COUNT = NbsDefinitions.KEY_COUNT;
@@ -61,7 +63,6 @@ public class DropRenderer {
     private static final int PRESSED_KEY_COLOR_ALPHA = 175;
     private static final long KEY_ANIMATION_DURATION = 250_000_000L;
 
-    private final SongRenderer songRenderer;
     private final Font robotoFont;
     private final Texture2D noteBlockTexture;
     private final Map<MinecraftInstrument, Color> instrumentColors;
@@ -71,16 +72,16 @@ public class DropRenderer {
     private final Color[] pianoKeyLastColors;
     private int renderedNotes;
 
-    public DropRenderer(final SongRenderer songRenderer) {
-        this.songRenderer = songRenderer;
+    public DropVisualizer(final SongRenderer songRenderer) {
+        super(songRenderer);
         try {
-            try (final InputStream stream = DropRenderer.class.getResourceAsStream("/fonts/Roboto-Regular.ttf")) {
+            try (final InputStream stream = DropVisualizer.class.getResourceAsStream("/fonts/Roboto-Regular.ttf")) {
                 if (stream == null) {
                     throw new IllegalStateException("Failed to find Roboto font");
                 }
                 this.robotoFont = new FreeTypeFont(stream.readAllBytes(), TEXT_SIZE);
             }
-            try (final InputStream stream = DropRenderer.class.getResourceAsStream("/textures/note_block.png")) {
+            try (final InputStream stream = DropVisualizer.class.getResourceAsStream("/textures/note_block.png")) {
                 if (stream == null) {
                     throw new IllegalStateException("Failed to find note block texture");
                 }
@@ -114,7 +115,7 @@ public class DropRenderer {
         this.instrumentColors.put(MinecraftInstrument.TRUMPET_OXIDIZED, Color.GREEN.darker(0.2F));
 
         this.customInstrumentColors = new IdentityHashMap<>();
-        final NbsCustomInstrument[] customInstruments = SongUtil.getUsedNbsCustomInstruments(this.songRenderer.getSong()).toArray(NbsCustomInstrument[]::new);
+        final NbsCustomInstrument[] customInstruments = SongUtil.getUsedNbsCustomInstruments(this.getSongRenderer().getSong()).toArray(NbsCustomInstrument[]::new);
         final float slice = 1F / (customInstruments.length + 1);
         for (int i = 0; i < customInstruments.length; i++) {
             final Color color1 = Color.fromHSB(slice * (i + 1), 0.8F, 0.8F);
@@ -127,6 +128,24 @@ public class DropRenderer {
         this.pianoKeyLastColors = new Color[PIANO_KEY_COUNT];
     }
 
+    @Override
+    public void render(final Matrix4fStack positionMatrix) {
+        this.renderedNotes = 0;
+        this.updatePianoKeyPositions();
+
+        ThinGL.renderer2D().filledRectangle(positionMatrix, 0, 0, ThinGL.windowInterface().getFramebufferWidth(), ThinGL.windowInterface().getFramebufferHeight(), Color.GRAY);
+        this.drawNotes(positionMatrix);
+        ThinGL.globalDrawBatch().draw();
+
+        positionMatrix.pushMatrix();
+        positionMatrix.translate(0, ThinGL.windowInterface().getFramebufferHeight() - (int) (ThinGL.windowInterface().getFramebufferHeight() / PIANO_HEIGHT_DIVIDER), 0);
+        this.drawPiano(positionMatrix);
+        positionMatrix.popMatrix();
+        this.drawDebugText(positionMatrix);
+        ThinGL.globalDrawBatch().draw();
+    }
+
+    @Override
     public void free() {
         if (this.robotoFont != null) {
             this.robotoFont.free();
@@ -136,22 +155,6 @@ public class DropRenderer {
         }
     }
 
-    public void render(final Matrix4fStack positionMatrix) {
-        final int height = ThinGL.windowInterface().getFramebufferHeight();
-        this.renderedNotes = 0;
-        this.updatePianoKeyPositions();
-
-        this.drawNotes(positionMatrix);
-        ThinGL.globalDrawBatch().draw();
-
-        positionMatrix.pushMatrix();
-        positionMatrix.translate(0, height - (int) (height / PIANO_HEIGHT_DIVIDER), 0);
-        this.drawPiano(positionMatrix);
-        positionMatrix.popMatrix();
-        this.drawDebugText(positionMatrix);
-        ThinGL.globalDrawBatch().draw();
-    }
-
     private void drawNotes(final Matrix4fStack positionMatrix) {
         final int width = ThinGL.windowInterface().getFramebufferWidth();
         final int height = ThinGL.windowInterface().getFramebufferHeight() - (int) (ThinGL.windowInterface().getFramebufferHeight() / PIANO_HEIGHT_DIVIDER);
@@ -159,13 +162,13 @@ public class DropRenderer {
         final float blackKeyWidth = whiteKeyWidth * BLACK_KEY_WIDTH_RATIO;
         final float noteSize = this.noteBlockTexture.getWidth() * Math.max(1, Math.round(width / 1920F));
 
-        final Song song = this.songRenderer.getSong();
+        final Song song = this.getSongRenderer().getSong();
         final int tickWindow = MathUtils.ceilInt(height / noteSize);
-        final int currentTick = this.songRenderer.getTick() - 1; // SongPlayer advances the tick immediately after playing the previous one
+        final int currentTick = this.getSongRenderer().getTick() - 1; // SongPlayer advances the tick immediately after playing the previous one
         final int endTick = currentTick + tickWindow;
-        final float ticksPerSecond = this.songRenderer.getCurrentTicksPerSecond();
-        final long lastTickTime = this.songRenderer.getLastTickTime();
-        final boolean paused = this.songRenderer.isPaused();
+        final float ticksPerSecond = this.getSongRenderer().getCurrentTicksPerSecond();
+        final long lastTickTime = this.getSongRenderer().getLastTickTime();
+        final boolean paused = this.getSongRenderer().isPaused();
         final long timeSinceLastTick = System.nanoTime() - lastTickTime;
         final float tickProgress = !paused ? MathUtils.clamp(timeSinceLastTick / (1_000_000_000F / ticksPerSecond), 0F, 1F) : 0F;
 
@@ -286,16 +289,16 @@ public class DropRenderer {
         ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "FPS: " + ThinGL.get().getFPS()), 5, textY);
         textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
 
-        final int seconds = (int) Math.ceil(this.songRenderer.getMillisecondPosition() / 1000F);
+        final int seconds = (int) Math.ceil(this.getSongRenderer().getMillisecondPosition() / 1000F);
         final String currentPosition = String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60);
-        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "Position: " + currentPosition + " / " + this.songRenderer.getSong().getHumanReadableLength()), 5, textY);
+        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "Position: " + currentPosition + " / " + this.getSongRenderer().getSong().getHumanReadableLength()), 5, textY);
         textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
 
-        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "Tempo: " + String.format("%.2f", this.songRenderer.getCurrentTicksPerSecond()) + " t/s"), 5, textY);
+        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "Tempo: " + String.format("%.2f", this.getSongRenderer().getCurrentTicksPerSecond()) + " t/s"), 5, textY);
         textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
 
-        if (this.songRenderer.isRunning()) {
-            for (String statusLine : this.songRenderer.getStatusLines()) {
+        if (this.getSongRenderer().isRunning()) {
+            for (String statusLine : this.getSongRenderer().getStatusLines()) {
                 ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, statusLine), 5, textY);
                 textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
             }

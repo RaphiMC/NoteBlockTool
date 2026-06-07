@@ -25,7 +25,11 @@ import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
 import net.raphimc.noteblocktool.audio.renderer.impl.RealtimeSongRenderer;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.NewLineLabel;
-import net.raphimc.noteblocktool.frames.visualizer.VisualizerWindow;
+import net.raphimc.noteblocktool.video.visualizer.VisualizerWindow;
+import net.raphimc.noteblocktool.video.visualizer.impl.DropVisualizer;
+import net.raphimc.noteblocktool.video.window.impl.AwtImpl;
+import net.raphimc.noteblocktool.video.window.impl.GlfwImpl;
+import org.lwjgl.system.Platform;
 
 import javax.swing.*;
 import java.awt.*;
@@ -187,21 +191,22 @@ public class SongPlayerFrame extends JFrame {
                 });
                 buttonPanel.add(this.openVisualizer);
                 this.openVisualizer.addActionListener(e -> {
-                    if (this.visualizerWindow != null) {
-                        this.openVisualizer.setText("Open Visualizer");
-                        this.visualizerWindow.close();
-                        this.visualizerWindow = null;
-                    } else {
+                    if (this.visualizerWindow == null) {
+                        this.visualizerWindow = new VisualizerWindow(Platform.get() != Platform.MACOSX ? GlfwImpl::new : AwtImpl::new);
+                    }
+                    if (!this.visualizerWindow.isOpen()) {
+                        this.visualizerWindow.getConfiguration().setWindowTitle("NoteBlockTool Song Visualizer - " + this.songRenderer.getSong().getTitleOrFileNameOr("No Title"));
+                        final SongRenderer finalSongRenderer = this.songRenderer;
+                        this.visualizerWindow.setVisualizer(() -> new DropVisualizer(finalSongRenderer));
                         try {
-                            this.visualizerWindow = new VisualizerWindow(this.songRenderer, () -> SwingUtilities.invokeLater(this::toFront), () -> SwingUtilities.invokeLater(() -> {
-                                this.openVisualizer.setText("Open Visualizer");
-                                this.visualizerWindow = null;
-                            }));
-                            this.openVisualizer.setText("Close Visualizer");
+                            this.visualizerWindow.open();
+                            this.toFront();
                         } catch (Throwable t) {
                             this.visualizerWindow = null;
                             JOptionPane.showMessageDialog(this, VISUALIZER_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
                         }
+                    } else {
+                        this.visualizerWindow.close();
                     }
                 });
             });
@@ -295,7 +300,6 @@ public class SongPlayerFrame extends JFrame {
     }
 
     private void tick() {
-        this.openVisualizer.setEnabled(this.songRenderer != null);
         if (this.songRenderer != null && this.songRenderer.isRunning()) {
             this.maxSounds.setEnabled(false);
             this.threaded.setEnabled(false);
@@ -324,6 +328,8 @@ public class SongPlayerFrame extends JFrame {
             this.progressLabel.setText(" ");
             this.statusLine.setText(" ");
         }
+        this.openVisualizer.setEnabled(this.songRenderer != null);
+        this.openVisualizer.setText(this.visualizerWindow != null && this.visualizerWindow.isOpen() ? "Close Visualizer" : "Open Visualizer");
     }
 
     private void closeSongPlayerAndVisualizer() {
