@@ -18,11 +18,11 @@
 package net.raphimc.noteblocktool.audio.renderer;
 
 import net.raphimc.audiomixer.LimitingAudioMixer;
-import net.raphimc.audiomixer.dsp.processor.spatial.GainPanProcessor;
 import net.raphimc.audiomixer.io.AudioIO;
+import net.raphimc.audiomixer.mixer.Mixer;
+import net.raphimc.audiomixer.mixer.MultithreadedMixer;
+import net.raphimc.audiomixer.processor.spatial.GainPanProcessor;
 import net.raphimc.audiomixer.source.audio.impl.BufferedAudioSource;
-import net.raphimc.audiomixer.source.mixer.MixerSource;
-import net.raphimc.audiomixer.source.mixer.ParallelMixerSource;
 import net.raphimc.audiomixer.util.FloatAudioFormat;
 import net.raphimc.audiomixer.util.buffer.AudioBuffer;
 import net.raphimc.audiomixer.util.buffer.AudioBufferBuilder;
@@ -46,7 +46,8 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
 
     private final Map<String, AudioBuffer> sounds = new HashMap<>();
     private final LimitingAudioMixer audioMixer;
-    private final MixerSource masterMixer;
+    private final Mixer masterMixer;
+    private final int maxSourceCount;
     private boolean running;
     private boolean timingJitter;
     private long lastTickTime;
@@ -62,16 +63,14 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
             throw new RuntimeException("Failed to load sound samples", e);
         }
         this.audioMixer = new LimitingAudioMixer(audioFormat);
-        if (!limited) {
-            this.audioMixer.getProcessors().remove(this.audioMixer.getLimiterProcessor());
-        }
+        this.audioMixer.getLimiterProcessor().setEnabled(limited);
         if (threaded) {
-            this.masterMixer = new ParallelMixerSource(Math.max(1, Runtime.getRuntime().availableProcessors() - 2));
+            this.masterMixer = new MultithreadedMixer();
             this.audioMixer.add(this.masterMixer);
         } else {
             this.masterMixer = this.audioMixer;
         }
-        this.masterMixer.setMaxSources(maxSounds);
+        this.maxSourceCount = maxSounds;
     }
 
     @Override
@@ -85,6 +84,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
                 throw new IllegalArgumentException("Unsupported instrument class: " + note.getInstrument().getClass().getName());
             }
         }
+        this.masterMixer.limitSourceCount(this.maxSourceCount);
     }
 
     private void playSound(final String sound, final float pitch, final float volume, final float panning) {
@@ -93,7 +93,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
         }
         final BufferedAudioSource source = new BufferedAudioSource(this.sounds.get(sound));
         source.setPitch(pitch);
-        source.getProcessors().add(new GainPanProcessor(volume, panning));
+        source.processors().add(new GainPanProcessor(volume, panning));
         this.masterMixer.add(source);
     }
 
@@ -180,16 +180,13 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
 
     public List<String> getStatusLines() {
         final List<String> statusLines = new ArrayList<>();
-        statusLines.add("Sounds: " + this.masterMixer.getMixedSources() + " / " + this.masterMixer.getMaxSources());
+        statusLines.add("Sounds: " + this.masterMixer.getMixedSourceCount() + " / " + this.maxSourceCount);
         return statusLines;
     }
 
     @Override
     public void close() {
         this.stop();
-        if (this.masterMixer instanceof ParallelMixerSource parallelMixer) {
-            parallelMixer.close();
-        }
     }
 
 }
