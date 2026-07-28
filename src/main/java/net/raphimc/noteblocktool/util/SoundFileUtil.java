@@ -52,24 +52,23 @@ public class SoundFileUtil {
             try {
                 final ByteBuffer dataBuffer = MemoryUtil.memAlloc(data.length).put(data).flip();
                 try (MemoryStack memoryStack = MemoryStack.stackPush()) {
-                    final IntBuffer channels = memoryStack.callocInt(1);
-                    final IntBuffer sampleRate = memoryStack.callocInt(1);
-                    final PointerBuffer samples = memoryStack.callocPointer(1);
+                    final IntBuffer channels = memoryStack.mallocInt(1);
+                    final IntBuffer sampleRate = memoryStack.mallocInt(1);
+                    final PointerBuffer samples = memoryStack.mallocPointer(1);
 
-                    final int samplesCount = STBVorbis.stb_vorbis_decode_memory(dataBuffer, channels, sampleRate, samples);
-                    if (samplesCount == -1) {
+                    final int frameCount = STBVorbis.stb_vorbis_decode_memory(dataBuffer, channels, sampleRate, samples);
+                    if (frameCount == -1) {
                         MemoryUtil.memFree(dataBuffer);
                         throw new RuntimeException("Failed to decode ogg file");
                     }
-
-                    final ByteBuffer samplesBuffer = samples.getByteBuffer(samplesCount * Short.BYTES);
-                    final byte[] samplesArray = new byte[samplesCount * Short.BYTES];
-                    samplesBuffer.get(samplesArray);
-
                     MemoryUtil.memFree(dataBuffer);
+
+                    final ByteBuffer samplesBuffer = samples.getByteBuffer(frameCount * channels.get(0) * Short.BYTES);
+                    final byte[] samplesArray = new byte[samplesBuffer.capacity()];
+                    samplesBuffer.get(samplesArray);
                     MemoryUtil.memFree(samplesBuffer);
 
-                    final AudioFormat audioFormat = new AudioFormat(sampleRate.get(), Short.SIZE, channels.get(), true, false);
+                    final AudioFormat audioFormat = new AudioFormat(sampleRate.get(0), Short.SIZE, channels.get(0), true, false);
                     return new AudioInputStream(new ByteArrayInputStream(samplesArray), audioFormat, samplesArray.length);
                 }
             } catch (Throwable e) { // Fallback if natives aren't available or if STB Vorbis fails to parse the file
