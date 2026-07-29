@@ -34,8 +34,9 @@ import net.raphimc.noteblocktool.video.visualizer.Visualizer;
 import net.raphimc.thingl.ThinGL;
 import net.raphimc.thingl.gl.renderer.impl.RendererText;
 import net.raphimc.thingl.gl.resource.image.texture.impl.Texture2D;
-import net.raphimc.thingl.resource.font.Font;
-import net.raphimc.thingl.resource.font.impl.FreeTypeFont;
+import net.raphimc.thingl.resource.font.face.impl.FreeTypeFontFace;
+import net.raphimc.thingl.resource.font.instance.FontInstance;
+import net.raphimc.thingl.resource.image.impl.AwtByteImage2D;
 import net.raphimc.thingl.text.TextRun;
 import net.raphimc.thingl.text.shaping.ShapedTextRun;
 import org.joml.Matrix4fStack;
@@ -63,7 +64,7 @@ public class DropVisualizer extends Visualizer {
     private static final int PRESSED_KEY_COLOR_ALPHA = 175;
     private static final long KEY_ANIMATION_DURATION = 250_000_000L;
 
-    private final Font robotoFont;
+    private final FontInstance robotoFont;
     private final Texture2D noteBlockTexture;
     private final Map<MinecraftInstrument, Color> instrumentColors;
     private final Map<NbsCustomInstrument, Pair<Color, Color>> customInstrumentColors;
@@ -79,13 +80,13 @@ public class DropVisualizer extends Visualizer {
                 if (stream == null) {
                     throw new IllegalStateException("Failed to find Roboto font");
                 }
-                this.robotoFont = new FreeTypeFont(stream.readAllBytes(), TEXT_SIZE);
+                this.robotoFont = new FreeTypeFontFace(stream.readAllBytes()).getInstance(TEXT_SIZE);
             }
             try (final InputStream stream = DropVisualizer.class.getResourceAsStream("/textures/note_block.png")) {
                 if (stream == null) {
                     throw new IllegalStateException("Failed to find note block texture");
                 }
-                this.noteBlockTexture = Texture2D.fromImage(stream.readAllBytes());
+                this.noteBlockTexture = Texture2D.fromImage(new AwtByteImage2D(stream.readAllBytes()));
                 this.noteBlockTexture.setFilter(GL11C.GL_NEAREST);
             }
         } catch (Throwable e) {
@@ -148,7 +149,7 @@ public class DropVisualizer extends Visualizer {
     @Override
     public void free() {
         if (this.robotoFont != null) {
-            this.robotoFont.free();
+            this.robotoFont.getFace().free();
         }
         if (this.noteBlockTexture != null) {
             this.noteBlockTexture.free();
@@ -216,12 +217,8 @@ public class DropVisualizer extends Visualizer {
             if (song.getTempoEvents().get(tick) != 0) {
                 final float bottomY = y + noteSize;
                 final float tps = song.getTempoEvents().get(tick);
-                final ShapedTextRun tempoText = TextRun.fromString(this.robotoFont, "Tempo: " + String.format("%.2f", tps) + " t/s").shape();
-
-                ThinGL.rendererText().pushGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 2000F);
+                final ShapedTextRun tempoText = TextRun.fromString(this.robotoFont.getScaledInstance(Math.round(ThinGL.windowInterface().getFramebufferWidth() / 85F)), "Tempo: " + String.format("%.2f", tps) + " t/s").shape();
                 ThinGL.rendererText().textRun(positionMatrix, tempoText, 10, bottomY, RendererText.VerticalOrigin.LOGICAL_BOTTOM, RendererText.HorizontalOrigin.VISUAL_LEFT);
-                ThinGL.rendererText().popGlobalScale();
-
                 ThinGL.renderer2D().filledRectangle(positionMatrix, 0, bottomY, width, bottomY + 1, Color.WHITE.withAlpha(100));
             }
         }
@@ -246,7 +243,7 @@ public class DropVisualizer extends Visualizer {
             final float colorProgress = progress < 0.5F ? 0 : (progress - 0.5F) * 2;
             final float pressOffset = height / KEY_PRESS_DEPTH_RATIO - height / KEY_PRESS_DEPTH_RATIO * (progress < 0.5F ? 1F - progress : progress);
             if (!this.isBlackKey(nbsKey)) {
-                final ShapedTextRun noteName = TextRun.fromString(this.robotoFont, this.getNoteName(nbsKey), Color.BLACK).shape();
+                final ShapedTextRun noteName = TextRun.fromString(this.robotoFont.getScaledInstance(Math.round(ThinGL.windowInterface().getFramebufferWidth() / 125F)), this.getNoteName(nbsKey), Color.BLACK).shape();
                 ThinGL.renderer2D().filledRectangle(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, Color.WHITE);
                 if (this.pianoKeyLastColors[nbsKey] != null) {
                     ThinGL.renderer2D().filledRectangle(positionMatrix, x + 1, pressOffset, x + whiteKeyWidth - 1, height, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
@@ -254,25 +251,17 @@ public class DropVisualizer extends Visualizer {
                 ThinGL.renderer2D().filledRectangle(positionMatrix, x, height - whiteKeyLineOffset + pressOffset - KEY_LINE_HEIGHT, x + whiteKeyWidth, height - whiteKeyLineOffset + pressOffset, Color.GRAY);
                 ThinGL.renderer2D().filledRectangle(positionMatrix, x, pressOffset, x + 1, height, Color.BLACK);
                 ThinGL.renderer2D().filledRectangle(positionMatrix, x + whiteKeyWidth - 1, pressOffset, x + whiteKeyWidth, height, Color.BLACK);
-
-                ThinGL.rendererText().pushGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 2745F); // 0,7
-                ThinGL.rendererText().textRun(positionMatrix, noteName, x + whiteKeyWidth / 2, height - whiteKeyLineOffset + pressOffset - KEY_LINE_HEIGHT - this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale(), RendererText.VerticalOrigin.VISUAL_TOP, RendererText.HorizontalOrigin.VISUAL_CENTER);
-                ThinGL.rendererText().popGlobalScale();
+                ThinGL.rendererText().textRun(positionMatrix, noteName, x + whiteKeyWidth / 2, height - whiteKeyLineOffset + pressOffset - KEY_LINE_HEIGHT - noteName.logicalBounds().lengthY(), RendererText.VerticalOrigin.VISUAL_TOP, RendererText.HorizontalOrigin.VISUAL_CENTER);
             } else {
                 positionMatrix.pushMatrix();
                 positionMatrix.translate(0, 0, 1);
-                final ShapedTextRun noteName = TextRun.fromString(this.robotoFont, this.getNoteName(nbsKey), Color.WHITE).shape();
-
+                final ShapedTextRun noteName = TextRun.fromString(this.robotoFont.getScaledInstance(Math.round(ThinGL.windowInterface().getFramebufferWidth() / 175F)), this.getNoteName(nbsKey), Color.WHITE).shape();
                 ThinGL.renderer2D().filledRectangle(positionMatrix, x, pressOffset - height / KEY_PRESS_DEPTH_RATIO / 2, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, Color.BLACK);
                 if (this.pianoKeyLastColors[nbsKey] != null) {
                     ThinGL.renderer2D().filledRectangle(positionMatrix, x, pressOffset - height / KEY_PRESS_DEPTH_RATIO / 2, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO, this.pianoKeyLastColors[nbsKey].withAlpha(Math.round(PRESSED_KEY_COLOR_ALPHA * (1 - colorProgress))));
                 }
                 ThinGL.renderer2D().filledRectangle(positionMatrix, x, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset - KEY_LINE_HEIGHT, x + blackKeyWidth, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset, Color.GRAY);
-
-                ThinGL.rendererText().pushGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 4000F); // 0,48
-                ThinGL.rendererText().textRun(positionMatrix, noteName, x + blackKeyWidth / 2, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset - KEY_LINE_HEIGHT - this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale(), RendererText.VerticalOrigin.VISUAL_TOP, RendererText.HorizontalOrigin.VISUAL_CENTER);
-                ThinGL.rendererText().popGlobalScale();
-
+                ThinGL.rendererText().textRun(positionMatrix, noteName, x + blackKeyWidth / 2, height * BLACK_KEY_HEIGHT_RATIO - blackKeyLineOffset + pressOffset - KEY_LINE_HEIGHT - noteName.logicalBounds().lengthY(), RendererText.VerticalOrigin.VISUAL_TOP, RendererText.HorizontalOrigin.VISUAL_CENTER);
                 positionMatrix.popMatrix();
             }
         }
@@ -283,30 +272,29 @@ public class DropVisualizer extends Visualizer {
 
     private void drawDebugText(final Matrix4fStack positionMatrix) {
         ThinGL.rendererText().beginGlobalBuffering();
-        ThinGL.rendererText().pushGlobalScale(ThinGL.windowInterface().getFramebufferWidth() / 1920F);
+        final FontInstance scaledFont = this.robotoFont.getScaledInstance(Math.round(ThinGL.windowInterface().getFramebufferWidth() / 90F));
 
         float textY = 5;
-        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "FPS: " + ThinGL.get().getFPS()), 5, textY);
-        textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
+        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(scaledFont, "FPS: " + ThinGL.get().getFPS()), 5, textY);
+        textY += scaledFont.getHeight();
 
         final int seconds = (int) Math.ceil(this.getSongRenderer().getMillisecondPosition() / 1000F);
         final String currentPosition = String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60);
-        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "Position: " + currentPosition + " / " + this.getSongRenderer().getSong().getHumanReadableLength()), 5, textY);
-        textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
+        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(scaledFont, "Position: " + currentPosition + " / " + this.getSongRenderer().getSong().getHumanReadableLength()), 5, textY);
+        textY += scaledFont.getHeight();
 
-        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "Tempo: " + String.format("%.2f", this.getSongRenderer().getCurrentTicksPerSecond()) + " t/s"), 5, textY);
-        textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
+        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(scaledFont, "Tempo: " + String.format("%.2f", this.getSongRenderer().getCurrentTicksPerSecond()) + " t/s"), 5, textY);
+        textY += scaledFont.getHeight();
 
         if (this.getSongRenderer().isRunning()) {
             for (String statusLine : this.getSongRenderer().getStatusLines()) {
-                ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, statusLine), 5, textY);
-                textY += this.robotoFont.getHeight() * ThinGL.rendererText().getGlobalScale();
+                ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(scaledFont, statusLine), 5, textY);
+                textY += scaledFont.getHeight();
             }
         }
 
-        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(this.robotoFont, "Rendered Notes: " + this.renderedNotes), 5, textY);
+        ThinGL.rendererText().textRun(positionMatrix, TextRun.fromString(scaledFont, "Rendered Notes: " + this.renderedNotes), 5, textY);
 
-        ThinGL.rendererText().popGlobalScale();
         ThinGL.rendererText().endBuffering();
     }
 

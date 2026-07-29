@@ -18,17 +18,16 @@ repositories {
 
 dependencies {
     includeInJar "net.raphimc:NoteBlockLib:3.2.1"
-    includeInJar "net.raphimc:audio-mixer:3.0.0-20260705.144546-4"
+    includeInJar "net.raphimc:audio-mixer:3.0.0-20260729.185729-5"
     includeInJar "org.jcraft:jorbis:0.0.17"
     includeInJar "javazoom:jlayer:1.0.1"
     includeInJar "com.formdev:flatlaf:3.7.2"
     includeInJar "net.lenni0451.commons:swing:1.9.2"
     includeInJar "net.java.dev.jna:jna:5.19.1"
-    includeInJar "net.raphimc:thingl:0.1.1-20260130.231704-6:java17"
+    includeInJar "net.raphimc:thingl:0.2.0-20260728.221330-13:java17"
     includeInJar "org.lwjgl:lwjgl:3.4.1"
     includeInJar "org.lwjgl:lwjgl-opengl:3.4.1"
     includeInJar "org.lwjgl:lwjgl-glfw:3.4.1"
-    includeInJar "org.lwjgl:lwjgl-stb:3.4.1"
     includeInJar "org.lwjgl:lwjgl-freetype:3.4.1"
     includeInJar("org.lwjglx:lwjgl3-awt:0.2.4") {
         exclude group: "org.lwjgl", module: "lwjgl"
@@ -40,7 +39,6 @@ dependencies {
         includeInJar "org.lwjgl:lwjgl:3.4.1:$it"
         includeInJar "org.lwjgl:lwjgl-opengl:3.4.1:$it"
         includeInJar "org.lwjgl:lwjgl-glfw:3.4.1:$it"
-        includeInJar "org.lwjgl:lwjgl-stb:3.4.1:$it"
         includeInJar "org.lwjgl:lwjgl-freetype:3.4.1:$it"
     }
 }

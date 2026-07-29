@@ -92,7 +92,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
             return;
         }
         final BufferedAudioSource source = new BufferedAudioSource(this.sounds.get(sound));
-        source.setPitch(pitch);
+        source.pitch().set(pitch);
         source.processors().add(new GainPanProcessor(volume, panning));
         this.masterMixer.add(source);
     }
@@ -116,12 +116,12 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
         final AudioBufferBuilder bufferBuilder = new AudioBufferBuilder(this.audioMixer.getAudioFormat(), expectedSampleCount);
         this.start();
         while (this.isRunning()) {
-            bufferBuilder.put(this.renderTick());
+            bufferBuilder.append(this.renderTick());
             if (Thread.currentThread().isInterrupted()) {
                 throw new InterruptedException();
             }
         }
-        bufferBuilder.put(this.audioMixer.renderMillis(750F));
+        bufferBuilder.append(this.audioMixer.renderMillis(750F));
         return bufferBuilder.build();
     }
 

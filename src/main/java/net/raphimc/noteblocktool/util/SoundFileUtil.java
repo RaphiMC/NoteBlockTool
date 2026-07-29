@@ -19,21 +19,13 @@ package net.raphimc.noteblocktool.util;
 
 import net.raphimc.audiomixer.io.mp3.Mp3InputStream;
 import net.raphimc.audiomixer.io.ogg.OggVorbisInputStream;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.stb.STBVorbis;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.MemoryUtil;
 
-import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.util.Arrays;
 
 public class SoundFileUtil {
@@ -48,34 +40,7 @@ public class SoundFileUtil {
         bis.read(magic);
         bis.reset();
         if (Arrays.equals(magic, 0, OGG_MAGIC.length, OGG_MAGIC, 0, OGG_MAGIC.length)) {
-            final byte[] data = IOUtil.readFully(bis);
-            try {
-                final ByteBuffer dataBuffer = MemoryUtil.memAlloc(data.length).put(data).flip();
-                try (MemoryStack memoryStack = MemoryStack.stackPush()) {
-                    final IntBuffer channels = memoryStack.mallocInt(1);
-                    final IntBuffer sampleRate = memoryStack.mallocInt(1);
-                    final PointerBuffer samples = memoryStack.mallocPointer(1);
-
-                    final int frameCount = STBVorbis.stb_vorbis_decode_memory(dataBuffer, channels, sampleRate, samples);
-                    if (frameCount == -1) {
-                        MemoryUtil.memFree(dataBuffer);
-                        throw new RuntimeException("Failed to decode ogg file");
-                    }
-                    MemoryUtil.memFree(dataBuffer);
-
-                    final ByteBuffer samplesBuffer = samples.getByteBuffer(frameCount * channels.get(0) * Short.BYTES);
-                    final byte[] samplesArray = new byte[samplesBuffer.capacity()];
-                    samplesBuffer.get(samplesArray);
-                    MemoryUtil.memFree(samplesBuffer);
-
-                    final AudioFormat audioFormat = new AudioFormat(sampleRate.get(0), Short.SIZE, channels.get(0), true, false);
-                    return new AudioInputStream(new ByteArrayInputStream(samplesArray), audioFormat, samplesArray.length);
-                }
-            } catch (Throwable e) { // Fallback if natives aren't available or if STB Vorbis fails to parse the file
-                System.err.println("Failed to decode ogg file using STB Vorbis, falling back to JOrbis");
-                e.printStackTrace();
-                return OggVorbisInputStream.createAudioInputStream(new ByteArrayInputStream(data));
-            }
+            return OggVorbisInputStream.createAudioInputStream(bis);
         } else if (Arrays.equals(magic, 0, TAGGED_MP3_MAGIC.length, TAGGED_MP3_MAGIC, 0, TAGGED_MP3_MAGIC.length)) {
             return Mp3InputStream.createAudioInputStream(bis);
         } else if (magic[0] == (byte) 0xFF && (magic[1] & 0xE0) == 0xE0 && ((magic[1] >> 3) & 0x03) == 0x01) { // Untagged MP3
