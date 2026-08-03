@@ -18,21 +18,27 @@
 package net.raphimc.noteblocktool.audio.renderer;
 
 import net.raphimc.audiomixer.LimitingAudioMixer;
+import net.raphimc.audiomixer.automation.finite.FiniteAutomation;
+import net.raphimc.audiomixer.automation.finite.ramp.impl.LinearRampAutomation;
 import net.raphimc.audiomixer.io.AudioIO;
 import net.raphimc.audiomixer.mixer.Mixer;
 import net.raphimc.audiomixer.mixer.MultithreadedMixer;
+import net.raphimc.audiomixer.processor.dynamics.GainProcessor;
 import net.raphimc.audiomixer.processor.spatial.GainPanProcessor;
+import net.raphimc.audiomixer.processor.spatial.PanProcessor;
 import net.raphimc.audiomixer.source.audio.impl.BufferedAudioSource;
 import net.raphimc.audiomixer.util.FloatAudioFormat;
 import net.raphimc.audiomixer.util.buffer.AudioBuffer;
 import net.raphimc.audiomixer.util.buffer.AudioBufferBuilder;
 import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
+import net.raphimc.noteblocklib.format.nbs.model.event.NbsSoundStopperEvent;
+import net.raphimc.noteblocklib.model.event.Event;
 import net.raphimc.noteblocklib.model.note.Note;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.player.SongPlayer;
 import net.raphimc.noteblocktool.audio.SoundMap;
-import net.raphimc.noteblocktool.util.SoundFileUtil;
+import net.raphimc.noteblocktool.util.AudioFileUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -57,7 +63,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
         this.setCustomScheduler(null);
         try {
             for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(song).entrySet()) {
-                this.sounds.put(entry.getKey(), AudioIO.read(SoundFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), audioFormat.withChannels(1)));
+                this.sounds.put(entry.getKey(), AudioIO.read(AudioFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), audioFormat.withChannels(1)));
             }
         } catch (Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
@@ -76,25 +82,36 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     @Override
     protected void playNotes(final List<Note> notes) {
         for (Note note : notes) {
+            final String sound;
             if (note.getInstrument() instanceof MinecraftInstrument instrument) {
-                this.playSound(SoundMap.INSTRUMENT_SOUNDS.get(instrument), note.getPitch(), note.getVolume(), note.getPanning());
+                sound = SoundMap.INSTRUMENT_SOUNDS.get(instrument);
             } else if (note.getInstrument() instanceof NbsCustomInstrument instrument) {
-                this.playSound(instrument.getSoundFilePathOr("").replace(File.separatorChar, '/'), note.getPitch(), note.getVolume(), note.getPanning());
+                sound = instrument.getSoundFilePathOr("").replace(File.separatorChar, '/');
             } else {
                 throw new IllegalArgumentException("Unsupported instrument class: " + note.getInstrument().getClass().getName());
             }
+            if (note.getVolume() > 0F && this.sounds.containsKey(sound)) {
+                this.masterMixer.add(new NoteAudioSource(this.sounds.get(sound), note));
+            }
         }
+        this.handleEvents(this.getSong().getEvents().getOrEmpty(this.getTick()));
         this.masterMixer.limitSourceCount(this.maxSourceCount);
     }
 
-    private void playSound(final String sound, final float pitch, final float volume, final float panning) {
-        if (volume <= 0F || !this.sounds.containsKey(sound)) {
-            return;
+    private void handleEvents(final List<Event> events) {
+        for (Event event : events) {
+            if (event instanceof NbsSoundStopperEvent soundStopperEvent) {
+                this.masterMixer.forEach(source -> {
+                    if (source instanceof NoteAudioSource noteAudioSource && soundStopperEvent.shouldStop(noteAudioSource.note)) {
+                        final GainProcessor gainProcessor = new GainProcessor();
+                        source.processors().add(gainProcessor);
+                        final FiniteAutomation automation = new LinearRampAutomation(gainProcessor.gain(), 0F, 100F);
+                        automation.finishListeners().add(ignored1 -> this.audioMixer.preRenderActions().add(ignored2 -> this.masterMixer.remove(source)));
+                        source.automations().add(automation);
+                    }
+                });
+            }
         }
-        final BufferedAudioSource source = new BufferedAudioSource(this.sounds.get(sound));
-        source.pitch().set(pitch);
-        source.processors().add(new GainPanProcessor(volume, panning));
-        this.masterMixer.add(source);
     }
 
     public AudioBuffer renderTick() {
@@ -187,6 +204,25 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     @Override
     public void close() {
         this.stop();
+    }
+
+    private static class NoteAudioSource extends BufferedAudioSource {
+
+        private final Note note;
+
+        public NoteAudioSource(final AudioBuffer buffer, final Note note) {
+            super(buffer);
+            this.note = note;
+            this.pitch().set(note.getPitch());
+            if (note.getPanning() != 0F && note.getVolume() != 1F) {
+                this.processors().add(new GainPanProcessor(note.getVolume(), note.getPanning()));
+            } else if (note.getVolume() != 1F) {
+                this.processors().add(new GainProcessor(note.getVolume()));
+            } else if (note.getPanning() != 0F) {
+                this.processors().add(new PanProcessor(note.getPanning()));
+            }
+        }
+
     }
 
 }

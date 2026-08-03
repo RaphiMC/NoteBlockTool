@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-public class SoundFileUtil {
+public class AudioFileUtil {
 
     private static final byte[] OGG_MAGIC = new byte[]{(byte) 'O', (byte) 'g', (byte) 'g', (byte) 'S'};
     private static final byte[] TAGGED_MP3_MAGIC = new byte[]{(byte) 'I', (byte) 'D', (byte) '3'};
