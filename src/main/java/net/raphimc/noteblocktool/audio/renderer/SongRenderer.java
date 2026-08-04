@@ -94,11 +94,11 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
                 this.masterMixer.add(new NoteAudioSource(this.sounds.get(sound), note));
             }
         }
-        this.handleEvents(this.getSong().getEvents().getOrEmpty(this.getTick()));
         this.masterMixer.limitSourceCount(this.maxSourceCount);
     }
 
-    private void handleEvents(final List<Event> events) {
+    @Override
+    protected void handleEvents(final List<Event> events) {
         for (Event event : events) {
             if (event instanceof NbsSoundStopperEvent soundStopperEvent) {
                 this.masterMixer.forEach(source -> {
