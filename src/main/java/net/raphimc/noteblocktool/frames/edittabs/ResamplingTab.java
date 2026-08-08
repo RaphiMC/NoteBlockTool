@@ -23,8 +23,12 @@ import net.raphimc.noteblocklib.util.SongResampler;
 import net.raphimc.noteblocktool.elements.formatter.DoubleFormatterFactory;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.BorderFactory;
+import javax.swing.JCheckBox;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
+import java.awt.GridBagLayout;
 import java.util.List;
 
 public class ResamplingTab extends EditTab {
@@ -38,8 +42,8 @@ public class ResamplingTab extends EditTab {
     }
 
     @Override
-    protected void initComponents(JPanel center) {
-        JPanel resampling = new JPanel();
+    protected void initComponents(final JPanel center) {
+        final JPanel resampling = new JPanel();
         resampling.setLayout(new GridBagLayout());
         resampling.setBorder(BorderFactory.createTitledBorder("Change tempo"));
         center.add(resampling);
@@ -52,7 +56,7 @@ public class ResamplingTab extends EditTab {
             ((JSpinner.DefaultEditor) spinner.getEditor()).getTextField().setFormatterFactory(new DoubleFormatterFactory(" TPS"));
         });
 
-        JPanel nbsTempoChanger = new JPanel();
+        final JPanel nbsTempoChanger = new JPanel();
         nbsTempoChanger.setLayout(new GridBagLayout());
         nbsTempoChanger.setBorder(BorderFactory.createTitledBorder("NBS tempo changer"));
         center.add(nbsTempoChanger);

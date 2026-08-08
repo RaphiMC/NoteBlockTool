@@ -23,8 +23,10 @@ import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import java.awt.BorderLayout;
 import java.util.List;
 
 public abstract class EditTab extends JPanel {
@@ -38,7 +40,7 @@ public abstract class EditTab extends JPanel {
         this.songs = songs;
 
         this.setLayout(new BorderLayout());
-        JScrollPane scrollPane = new FastScrollPane().setDefaultBorder();
+        final JScrollPane scrollPane = new FastScrollPane().setDefaultBorder();
         this.center = new ScrollPaneSizedPanel(scrollPane);
         this.center.setLayout(new VerticalLayout(5, 5));
         scrollPane.setViewportView(this.center);

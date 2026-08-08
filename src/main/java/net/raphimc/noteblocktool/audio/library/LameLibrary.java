@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressWarnings({"checkstyle:ConstantName", "checkstyle:ParameterName", "checkstyle:AbbreviationAsWordInName"})
 public interface LameLibrary extends Library {
 
     LameLibrary INSTANCE = loadNative();
@@ -42,7 +43,7 @@ public interface LameLibrary extends Library {
             final Map<String, Object> options = new HashMap<>();
             options.put(Library.OPTION_STRING_ENCODING, StandardCharsets.ISO_8859_1.name());
             return Native.load("mp3lame", LameLibrary.class, options);
-        } catch (Throwable ignored) {
+        } catch (final Throwable ignored) {
         }
         return null;
     }

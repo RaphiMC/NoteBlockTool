@@ -19,7 +19,9 @@ package net.raphimc.noteblocktool.elements.table.instrument;
 
 import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
 
-import javax.swing.*;
+import javax.swing.DefaultCellEditor;
+import javax.swing.JComboBox;
+import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 
 public class InstrumentsTable extends JTable {
@@ -39,10 +41,7 @@ public class InstrumentsTable extends JTable {
     }
 
     public void addRow(final String original, final MinecraftInstrument instrument) {
-        ((DefaultTableModel) this.getModel()).addRow(new Object[]{
-                original,
-                instrument
-        });
+        ((DefaultTableModel) this.getModel()).addRow(new Object[]{original, instrument});
     }
 
     @Override

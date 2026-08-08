@@ -21,7 +21,7 @@ import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
-import net.raphimc.noteblocktool.util.IOUtil;
+import net.raphimc.noteblocktool.util.IoUtil;
 
 import java.io.File;
 import java.net.URL;
@@ -30,10 +30,13 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SoundMap {
+public final class SoundMap {
 
     public static final Map<MinecraftInstrument, String> INSTRUMENT_SOUNDS = new EnumMap<>(MinecraftInstrument.class);
     private static final Map<String, URL> ALL_SOUND_LOCATIONS = new HashMap<>();
+
+    private SoundMap() {
+    }
 
     static {
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.HARP, "harp2.ogg");
@@ -59,7 +62,7 @@ public class SoundMap {
 
         try {
             SoundMap.reload(new File(System.getProperty("user.home"), "Minecraft Note Block Studio/Data/Sounds"));
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             System.err.println("Failed to load custom sounds from Minecraft NoteBlock Studio folder");
             t.printStackTrace();
             reload(null);
@@ -76,17 +79,19 @@ public class SoundMap {
             try {
                 Files.walk(customSoundsFolder.toPath()).forEach(path -> {
                     try {
-                        if (Files.isDirectory(path)) return;
+                        if (Files.isDirectory(path)) {
+                            return;
+                        }
 
                         final String fileName = customSoundsFolder.toPath().relativize(path).toString();
                         if (fileName.endsWith(".ogg") || fileName.endsWith(".mp3") || fileName.endsWith(".wav")) {
                             ALL_SOUND_LOCATIONS.put(fileName.replace(File.separatorChar, '/'), path.toUri().toURL());
                         }
-                    } catch (Throwable e) {
+                    } catch (final Throwable e) {
                         throw new RuntimeException("Error while loading custom sound sample", e);
                     }
                 });
-            } catch (Throwable e) {
+            } catch (final Throwable e) {
                 throw new RuntimeException("Failed to load custom sound samples", e);
             }
         }
@@ -98,17 +103,17 @@ public class SoundMap {
             for (MinecraftInstrument instrument : SongUtil.getUsedVanillaInstruments(song)) {
                 final String sound = INSTRUMENT_SOUNDS.get(instrument);
                 if (sound != null && ALL_SOUND_LOCATIONS.containsKey(sound)) {
-                    soundData.put(sound, IOUtil.readFully(ALL_SOUND_LOCATIONS.get(sound).openStream()));
+                    soundData.put(sound, IoUtil.readFully(ALL_SOUND_LOCATIONS.get(sound).openStream()));
                 }
             }
             for (NbsCustomInstrument customInstrument : SongUtil.getUsedNbsCustomInstruments(song)) {
                 final String fileName = customInstrument.getSoundFilePathOr("").replace(File.separatorChar, '/');
                 if (ALL_SOUND_LOCATIONS.containsKey(fileName)) {
-                    soundData.put(fileName, IOUtil.readFully(ALL_SOUND_LOCATIONS.get(fileName).openStream()));
+                    soundData.put(fileName, IoUtil.readFully(ALL_SOUND_LOCATIONS.get(fileName).openStream()));
                 }
             }
             return soundData;
-        } catch (Throwable e) {
+        } catch (final Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
         }
     }

@@ -23,8 +23,13 @@ import net.raphimc.noteblocktool.elements.formatter.IntFormatterFactory;
 import net.raphimc.noteblocktool.frames.ListFrame;
 import net.raphimc.noteblocktool.util.MinecraftOctaveClamp;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.BorderFactory;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
+import java.awt.GridBagLayout;
 import java.util.List;
 
 public class NotesTab extends EditTab {
@@ -38,8 +43,8 @@ public class NotesTab extends EditTab {
     }
 
     @Override
-    protected void initComponents(JPanel center) {
-        JPanel octaveClamp = new JPanel();
+    protected void initComponents(final JPanel center) {
+        final JPanel octaveClamp = new JPanel();
         octaveClamp.setLayout(new GridBagLayout());
         octaveClamp.setBorder(BorderFactory.createTitledBorder("Minecraft Octave Clamp"));
         center.add(octaveClamp);
@@ -47,13 +52,13 @@ public class NotesTab extends EditTab {
             this.octaveClamp = comboBox;
         });
         GBC.create(octaveClamp).grid(0, 1).insets(5, 5, 5, 5).width(2).weightx(1).fill(GBC.HORIZONTAL).add(html(
-                "<b>NONE:</b> Don't change the key of the note.",
-                "<b>INSTRUMENT_SHIFT:</b> \"Transposes\" the key of the note by shifting the instrument to a higher or lower sounding one. This often sounds the best of the three methods as it keeps the musical key the same and only changes the instrument.",
-                "<b>TRANSPOSE:</b> Transposes the key of the note to fall within minecraft octave range. Any key below 33 will be transposed up an octave, and any key above 57 will be transposed down an octave.",
-                "<b>CLAMP:</b> Clamps the key of the note to fall within minecraft octave range. Any key below 33 will be set to 33, and any key above 57 will be set to 57."
+            "<b>NONE:</b> Don't change the key of the note.",
+            "<b>INSTRUMENT_SHIFT:</b> \"Transposes\" the key of the note by shifting the instrument to a higher or lower sounding one. This often sounds the best of the three methods as it keeps the musical key the same and only changes the instrument.",
+            "<b>TRANSPOSE:</b> Transposes the key of the note to fall within minecraft octave range. Any key below 33 will be transposed up an octave, and any key above 57 will be transposed down an octave.",
+            "<b>CLAMP:</b> Clamps the key of the note to fall within minecraft octave range. Any key below 33 will be set to 33, and any key above 57 will be set to 57."
         ));
 
-        JPanel volume = new JPanel();
+        final JPanel volume = new JPanel();
         volume.setLayout(new GridBagLayout());
         volume.setBorder(BorderFactory.createTitledBorder("Volume"));
         center.add(volume);
@@ -63,7 +68,7 @@ public class NotesTab extends EditTab {
             ((JSpinner.DefaultEditor) spinner.getEditor()).getTextField().setFormatterFactory(new IntFormatterFactory("%"));
         });
 
-        JPanel removeDoubleNotes = new JPanel();
+        final JPanel removeDoubleNotes = new JPanel();
         removeDoubleNotes.setLayout(new GridBagLayout());
         removeDoubleNotes.setBorder(BorderFactory.createTitledBorder("Deduplication"));
         center.add(removeDoubleNotes);

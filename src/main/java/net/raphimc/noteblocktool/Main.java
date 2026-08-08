@@ -20,11 +20,15 @@ package net.raphimc.noteblocktool;
 import com.formdev.flatlaf.FlatDarkLaf;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
-import javax.swing.*;
+import javax.swing.ToolTipManager;
+import javax.swing.UIManager;
 
-public class Main {
+public final class Main {
 
-    public static void main(String[] args) {
+    private Main() {
+    }
+
+    public static void main(final String[] args) {
         FlatDarkLaf.setup();
         UIManager.getLookAndFeelDefaults().put("TextComponent.arc", 5);
         UIManager.getLookAndFeelDefaults().put("Button.arc", 5);

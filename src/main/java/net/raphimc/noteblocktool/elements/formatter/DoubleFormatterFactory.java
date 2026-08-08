@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.elements.formatter;
 
-import javax.swing.*;
+import javax.swing.JFormattedTextField;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 
@@ -29,7 +29,6 @@ public class DoubleFormatterFactory extends JFormattedTextField.AbstractFormatte
         DECIMAL_FORMAT.setGroupingUsed(false);
     }
 
-
     private final String prefix;
 
     public DoubleFormatterFactory(final String prefix) {
@@ -37,21 +36,21 @@ public class DoubleFormatterFactory extends JFormattedTextField.AbstractFormatte
     }
 
     @Override
-    public JFormattedTextField.AbstractFormatter getFormatter(JFormattedTextField tf) {
+    public JFormattedTextField.AbstractFormatter getFormatter(final JFormattedTextField tf) {
         return new JFormattedTextField.AbstractFormatter() {
             @Override
             public Object stringToValue(String text) throws ParseException {
                 try {
-                    text = text.replace(prefix, "");
+                    text = text.replace(DoubleFormatterFactory.this.prefix, "");
                     return Double.parseDouble(text);
-                } catch (Throwable t) {
+                } catch (final Throwable t) {
                     throw new ParseException("Invalid number", 0);
                 }
             }
 
             @Override
-            public String valueToString(Object value) throws ParseException {
-                return DECIMAL_FORMAT.format(value) + prefix;
+            public String valueToString(final Object value) {
+                return DECIMAL_FORMAT.format(value) + DoubleFormatterFactory.this.prefix;
             }
         };
     }

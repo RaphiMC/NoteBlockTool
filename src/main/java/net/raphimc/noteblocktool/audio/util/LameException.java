@@ -19,14 +19,14 @@ package net.raphimc.noteblocktool.audio.util;
 
 public class LameException extends RuntimeException {
 
+    private final int errorCode;
+
     public static int check(final int result, final String message) {
         if (result < 0) {
             throw new LameException(result, message);
         }
         return result;
     }
-
-    private final int errorCode;
 
     public LameException(final int errorCode, final String message) {
         super(message + " (LAME error code: " + errorCode + ")");

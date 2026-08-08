@@ -31,13 +31,30 @@ import net.raphimc.noteblocktool.video.window.impl.AwtImpl;
 import net.raphimc.noteblocktool.video.window.impl.GlfwImpl;
 import org.lwjgl.system.Platform;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JSlider;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import java.awt.BorderLayout;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.text.DecimalFormat;
 
-public class SongPlayerFrame extends JFrame {
+public final class SongPlayerFrame extends JFrame {
 
     private static final String VISUALIZER_UNAVAILABLE_MESSAGE = "An error occurred while initializing the visualizer window.\nPlease make sure that your system supports at least OpenGL 4.1.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
@@ -48,28 +65,6 @@ public class SongPlayerFrame extends JFrame {
     private static boolean lastTimingJitter = false;
     private static int lastMaxSounds = 4096;
     private static boolean lastThreaded = false;
-
-    public static void open(final Song song) {
-        if (instance != null && instance.isVisible()) {
-            lastPosition = instance.getLocation();
-            lastVolume = instance.volume.getValue();
-            lastTimingJitter = instance.timingJitter.isSelected();
-            lastMaxSounds = (int) instance.maxSounds.getValue();
-            lastThreaded = instance.threaded.isSelected();
-            instance.dispose();
-        }
-        SwingUtilities.invokeLater(() -> {
-            instance = new SongPlayerFrame(song);
-            if (lastPosition != null) instance.setLocation(lastPosition);
-            instance.volume.setValue(lastVolume);
-            instance.timingJitter.setSelected(lastTimingJitter);
-            instance.maxSounds.setValue(lastMaxSounds);
-            instance.threaded.setSelected(lastThreaded);
-            instance.playStop.doClick(0);
-            instance.setVisible(true);
-        });
-    }
-
 
     private final Song song;
     private final Timer updateTimer;
@@ -87,6 +82,29 @@ public class SongPlayerFrame extends JFrame {
     private int currentMaxSounds;
     private boolean currentThreaded;
     private VisualizerWindow visualizerWindow;
+
+    public static void open(final Song song) {
+        if (instance != null && instance.isVisible()) {
+            lastPosition = instance.getLocation();
+            lastVolume = instance.volume.getValue();
+            lastTimingJitter = instance.timingJitter.isSelected();
+            lastMaxSounds = (int) instance.maxSounds.getValue();
+            lastThreaded = instance.threaded.isSelected();
+            instance.dispose();
+        }
+        SwingUtilities.invokeLater(() -> {
+            instance = new SongPlayerFrame(song);
+            if (lastPosition != null) {
+                instance.setLocation(lastPosition);
+            }
+            instance.volume.setValue(lastVolume);
+            instance.timingJitter.setSelected(lastTimingJitter);
+            instance.maxSounds.setValue(lastMaxSounds);
+            instance.threaded.setSelected(lastThreaded);
+            instance.playStop.doClick(0);
+            instance.setVisible(true);
+        });
+    }
 
     private SongPlayerFrame(final Song song) {
         this.song = song;
@@ -201,7 +219,7 @@ public class SongPlayerFrame extends JFrame {
                         try {
                             this.visualizerWindow.open();
                             this.toFront();
-                        } catch (Throwable t) {
+                        } catch (final Throwable t) {
                             this.visualizerWindow = null;
                             JOptionPane.showMessageDialog(this, VISUALIZER_UNAVAILABLE_MESSAGE, "Error", JOptionPane.ERROR_MESSAGE);
                         }
@@ -214,7 +232,7 @@ public class SongPlayerFrame extends JFrame {
             GBC.create(southPanel).nextRow().insets(5, 5, 5, 5).weightx(1).width(2).fill(GBC.HORIZONTAL).add(new JPanel(), controls -> {
                 controls.setLayout(new GridLayout(1, 2, 5, 5));
                 {
-                    JPanel playbackPanel = new JPanel(new GridBagLayout());
+                    final JPanel playbackPanel = new JPanel(new GridBagLayout());
                     playbackPanel.setBorder(BorderFactory.createTitledBorder("Playback"));
                     controls.add(playbackPanel);
 
@@ -245,7 +263,7 @@ public class SongPlayerFrame extends JFrame {
                     GBC.fillVerticalSpace(playbackPanel);
                 }
                 {
-                    JPanel rendererPanel = new JPanel(new GridBagLayout());
+                    final JPanel rendererPanel = new JPanel(new GridBagLayout());
                     rendererPanel.setBorder(BorderFactory.createTitledBorder("Renderer"));
                     controls.add(rendererPanel);
 
@@ -286,13 +304,13 @@ public class SongPlayerFrame extends JFrame {
     private void initFrameHandler() {
         this.addWindowListener(new WindowAdapter() {
             @Override
-            public void windowClosing(WindowEvent e) {
+            public void windowClosing(final WindowEvent e) {
                 SongPlayerFrame.this.dispose();
                 lastPosition = SongPlayerFrame.this.getLocation();
             }
 
             @Override
-            public void windowClosed(WindowEvent e) {
+            public void windowClosed(final WindowEvent e) {
                 SongPlayerFrame.this.updateTimer.stop();
                 SongPlayerFrame.this.closeSongPlayerAndVisualizer();
             }
@@ -342,6 +360,5 @@ public class SongPlayerFrame extends JFrame {
             this.songRenderer = null;
         }
     }
-
 
 }

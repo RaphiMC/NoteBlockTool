@@ -34,7 +34,7 @@ public class RealtimeSongRenderer extends SongRenderer {
         try {
             this.sourceDataLineWriter = new SourceDataLineWriter(AudioSystem.getSourceDataLine(audioFormat.toJavaPcmAudioFormat(Short.SIZE)), 50, this::renderTick);
             this.sourceDataLineWriter.start();
-        } catch (Throwable e) {
+        } catch (final Throwable e) {
             throw new RuntimeException("Failed to open SourceDataLine", e);
         }
     }

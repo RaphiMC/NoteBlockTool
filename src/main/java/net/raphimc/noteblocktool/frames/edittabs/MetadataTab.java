@@ -24,8 +24,13 @@ import net.raphimc.noteblocklib.format.nbs.model.NbsSong;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
+import java.awt.GridBagLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -41,10 +46,10 @@ public class MetadataTab extends EditTab {
     }
 
     @Override
-    protected void initComponents(JPanel center) {
+    protected void initComponents(final JPanel center) {
         center.setLayout(new GridBagLayout());
 
-        Song song = this.songs.get(0).song();
+        final Song song = this.songs.get(0).song();
         if (song instanceof NbsSong nbsSong) {
             this.addString(center, "Title", () -> nbsSong.getTitleOr(""), nbsSong::setTitle);
             this.addString(center, "Author", () -> nbsSong.getAuthorOr(""), nbsSong::setAuthor);

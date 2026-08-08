@@ -17,8 +17,10 @@
  */
 package net.raphimc.noteblocktool.elements;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JList;
+import java.awt.Component;
 
 public class VerticalFileChooser extends JFileChooser {
 

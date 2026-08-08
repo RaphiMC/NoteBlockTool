@@ -100,7 +100,7 @@ public abstract class Window {
         for (Runnable listener : this.openListener) {
             try {
                 listener.run();
-            } catch (Throwable e) {
+            } catch (final Throwable e) {
                 ThinGL.LOGGER.error("Exception while invoking window open listener", e);
             }
         }
@@ -110,7 +110,7 @@ public abstract class Window {
         for (Runnable listener : this.closeListener) {
             try {
                 listener.run();
-            } catch (Throwable e) {
+            } catch (final Throwable e) {
                 ThinGL.LOGGER.error("Exception while invoking window close listener", e);
             }
         }

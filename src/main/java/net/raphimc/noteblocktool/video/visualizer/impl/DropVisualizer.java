@@ -76,20 +76,20 @@ public class DropVisualizer extends Visualizer {
     public DropVisualizer(final SongRenderer songRenderer) {
         super(songRenderer);
         try {
-            try (final InputStream stream = DropVisualizer.class.getResourceAsStream("/fonts/Roboto-Regular.ttf")) {
+            try (InputStream stream = DropVisualizer.class.getResourceAsStream("/fonts/Roboto-Regular.ttf")) {
                 if (stream == null) {
                     throw new IllegalStateException("Failed to find Roboto font");
                 }
                 this.robotoFont = new FreeTypeFontFace(stream.readAllBytes()).getInstance(TEXT_SIZE);
             }
-            try (final InputStream stream = DropVisualizer.class.getResourceAsStream("/textures/note_block.png")) {
+            try (InputStream stream = DropVisualizer.class.getResourceAsStream("/textures/note_block.png")) {
                 if (stream == null) {
                     throw new IllegalStateException("Failed to find note block texture");
                 }
                 this.noteBlockTexture = Texture2D.fromImage(new AwtByteImage2D(stream.readAllBytes()));
                 this.noteBlockTexture.setFilter(GL11C.GL_NEAREST);
             }
-        } catch (Throwable e) {
+        } catch (final Throwable e) {
             throw new RuntimeException(e);
         }
 

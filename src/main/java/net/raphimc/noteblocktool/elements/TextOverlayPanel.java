@@ -19,7 +19,9 @@ package net.raphimc.noteblocktool.elements;
 
 import net.lenni0451.commons.swing.components.OverlayPanel;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
 
 public class TextOverlayPanel extends OverlayPanel {
 
@@ -33,15 +35,17 @@ public class TextOverlayPanel extends OverlayPanel {
     }
 
     @Override
-    protected void paintOverlay(Graphics g) {
+    protected void paintOverlay(final Graphics g) {
         g.setColor(Color.WHITE);
         final FontMetrics metrics = g.getFontMetrics();
         final String[] lines = this.text.split("\n");
         int y = ((this.getHeight() - metrics.getHeight()) / 2) + metrics.getAscent();
         for (int i = 0; i < lines.length; i++) {
-            if (i == 1) g.setColor(Color.GRAY);
-            String line = lines[i];
-            int x = (this.getWidth() - metrics.stringWidth(line)) / 2;
+            if (i == 1) {
+                g.setColor(Color.GRAY);
+            }
+            final String line = lines[i];
+            final int x = (this.getWidth() - metrics.stringWidth(line)) / 2;
             g.drawString(line, x, y);
             y += metrics.getHeight();
         }

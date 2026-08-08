@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.elements;
 
-import javax.swing.*;
+import javax.swing.JLabel;
 
 public class NewLineLabel extends JLabel {
 

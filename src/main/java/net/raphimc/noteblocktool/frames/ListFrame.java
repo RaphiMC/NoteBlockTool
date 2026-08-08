@@ -31,15 +31,34 @@ import net.raphimc.noteblocktool.elements.table.song.SongsTableDropTargetListene
 import net.raphimc.noteblocktool.elements.table.song.SongsTableModel;
 import net.raphimc.noteblocktool.util.filefilter.NoteBlockFileFilter;
 
-import javax.swing.*;
+import javax.swing.Box;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.GridBagLayout;
+import java.awt.Point;
 import java.awt.dnd.DropTarget;
-import java.awt.event.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 
@@ -79,7 +98,7 @@ public class ListFrame extends JFrame {
         this.table.getSelectionModel().addListSelectionListener(e -> this.refreshButtons());
         this.table.addKeyListener(new KeyAdapter() {
             @Override
-            public void keyPressed(KeyEvent e) {
+            public void keyPressed(final KeyEvent e) {
                 final boolean isDeleteKey = e.getKeyCode() == KeyEvent.VK_DELETE;
                 final boolean isMacOsDeleteKeyBind = e.getKeyCode() == KeyEvent.VK_BACK_SPACE && (e.getModifiersEx() & InputEvent.META_DOWN_MASK) != 0;
                 if (isDeleteKey || isMacOsDeleteKeyBind) {
@@ -89,7 +108,7 @@ public class ListFrame extends JFrame {
         });
         this.table.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void mouseClicked(final MouseEvent e) {
                 if (e.getClickCount() == 2 && ListFrame.this.playButton.isEnabled()) {
                     ListFrame.this.playButton.doClick(0);
                 }
@@ -130,7 +149,7 @@ public class ListFrame extends JFrame {
                 if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                     try {
                         SoundMap.reload(fileChooser.getSelectedFile());
-                    } catch (Throwable t) {
+                    } catch (final Throwable t) {
                         t.printStackTrace();
                         JOptionPane.showMessageDialog(this, "Failed to load custom sounds:\n" + t.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                     }
@@ -154,7 +173,7 @@ public class ListFrame extends JFrame {
         GBC.create(buttonPanel).gridx(6).insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.exportButton, () -> {
             this.exportButton.addActionListener(e -> {
                 this.setEnabled(false);
-                List<LoadedSong> songs = new ArrayList<>();
+                final List<LoadedSong> songs = new ArrayList<>();
                 for (int row : this.table.getSelectedRows()) {
                     songs.add((LoadedSong) this.table.getValueAt(row, 0));
                 }
@@ -168,7 +187,7 @@ public class ListFrame extends JFrame {
         final JPopupMenu contextMenu = new JPopupMenu();
         contextMenu.addPopupMenuListener(new PopupMenuListener() {
             @Override
-            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+            public void popupMenuWillBecomeVisible(final PopupMenuEvent e) {
                 final Point mousePosition = contextMenu.getInvoker().getMousePosition();
                 if (mousePosition == null) {
                     return;
@@ -181,11 +200,11 @@ public class ListFrame extends JFrame {
             }
 
             @Override
-            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+            public void popupMenuWillBecomeInvisible(final PopupMenuEvent e) {
             }
 
             @Override
-            public void popupMenuCanceled(PopupMenuEvent e) {
+            public void popupMenuCanceled(final PopupMenuEvent e) {
             }
         });
 
@@ -247,7 +266,7 @@ public class ListFrame extends JFrame {
                             }
                             this.textOverlayPanel.setText(text.toString());
                         });
-                    } catch (Throwable t) {
+                    } catch (final Throwable t) {
                         t.printStackTrace();
                         failedFiles.put(file, t);
                     }
@@ -262,7 +281,7 @@ public class ListFrame extends JFrame {
             if (!failedFiles.isEmpty()) {
                 final String message;
                 if (failedFiles.size() == 1) {
-                    Map.Entry<File, Throwable> entry = failedFiles.entrySet().iterator().next();
+                    final Map.Entry<File, Throwable> entry = failedFiles.entrySet().iterator().next();
                     message = "Failed to load song:\n" + entry.getKey().getAbsolutePath() + "\n" + entry.getValue().getMessage();
                 } else {
                     message = "Failed to load " + failedFiles.size() + " songs";
@@ -278,7 +297,7 @@ public class ListFrame extends JFrame {
         } else {
             try {
                 SwingUtilities.invokeAndWait(task);
-            } catch (Throwable t) {
+            } catch (final Throwable t) {
                 throw new RuntimeException("Failed to run task", t);
             }
         }

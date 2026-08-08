@@ -65,7 +65,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
             for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(song).entrySet()) {
                 this.sounds.put(entry.getKey(), AudioIO.read(AudioFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), audioFormat.withChannels(1)));
             }
-        } catch (Throwable e) {
+        } catch (final Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
         }
         this.audioMixer = new LimitingAudioMixer(audioFormat);
@@ -206,11 +206,11 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
         this.stop();
     }
 
-    private static class NoteAudioSource extends BufferedAudioSource {
+    private static final class NoteAudioSource extends BufferedAudioSource {
 
         private final Note note;
 
-        public NoteAudioSource(final AudioBuffer buffer, final Note note) {
+        private NoteAudioSource(final AudioBuffer buffer, final Note note) {
             super(buffer);
             this.note = note;
             this.pitch().set(note.getPitch());

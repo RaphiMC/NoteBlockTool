@@ -24,8 +24,12 @@ import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.table.instrument.InstrumentsTable;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
-import javax.swing.*;
-import java.util.*;
+import javax.swing.JPanel;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class InstrumentsTab extends EditTab {
 
@@ -37,32 +41,36 @@ public class InstrumentsTab extends EditTab {
     }
 
     @Override
-    protected void initComponents(JPanel center) {
+    protected void initComponents(final JPanel center) {
         this.removeAll();
 
         this.table = new InstrumentsTable(true);
         this.add(new FastScrollPane(this.table));
         this.usedInstruments = this.songs.stream()
-                .map(song -> SongUtil.getUsedVanillaInstruments(song.song()))
-                .reduce(EnumSet.noneOf(MinecraftInstrument.class), (a, b) -> {
-                    a.addAll(b);
-                    return a;
-                });
-        for (MinecraftInstrument instrument : this.usedInstruments) this.table.addRow(instrument.name(), instrument);
+            .map(song -> SongUtil.getUsedVanillaInstruments(song.song()))
+            .reduce(EnumSet.noneOf(MinecraftInstrument.class), (a, b) -> {
+                a.addAll(b);
+                return a;
+            });
+        for (MinecraftInstrument instrument : this.usedInstruments) {
+            this.table.addRow(instrument.name(), instrument);
+        }
     }
 
     @Override
     public void apply(final Song song) {
-        Map<MinecraftInstrument, MinecraftInstrument> replacements = new HashMap<>();
+        final Map<MinecraftInstrument, MinecraftInstrument> replacements = new HashMap<>();
         int i = 0;
         for (MinecraftInstrument instrument : this.usedInstruments) {
-            MinecraftInstrument replacement = (MinecraftInstrument) this.table.getValueAt(i, 1);
+            final MinecraftInstrument replacement = (MinecraftInstrument) this.table.getValueAt(i, 1);
             replacements.put(instrument, replacement);
             i++;
         }
         song.getNotes().forEach(note -> {
-            MinecraftInstrument replacement = replacements.get(note.getInstrument());
-            if (replacement != null) note.setInstrument(replacement);
+            final MinecraftInstrument replacement = replacements.get(note.getInstrument());
+            if (replacement != null) {
+                note.setInstrument(replacement);
+            }
         });
         song.getNotes().removeIf(note -> replacements.containsKey(note.getInstrument()) && replacements.get(note.getInstrument()) == null);
     }

@@ -20,7 +20,9 @@ package net.raphimc.noteblocktool.elements.table.song;
 import net.raphimc.noteblocklib.util.SongUtil;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
-import javax.swing.*;
+import javax.swing.JTable;
+import javax.swing.RowSorter;
+import javax.swing.SortOrder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
@@ -54,13 +56,13 @@ public class SongsTable extends JTable {
     public void addRow(final ListFrame.LoadedSong song) {
         final DefaultTableModel model = (DefaultTableModel) this.getModel();
         model.addRow(new Object[]{
-                song,
-                song.song().getTitleOrFileNameOr("No Title"),
-                song.song().getAuthorOr("Unknown"),
-                song.song().getHumanReadableLength(),
-                song.song().getNotes().getNoteCount(),
-                song.song().getTempoEvents().getHumanReadableTempoRange(),
-                this.isSchematicCompatible(song)
+            song,
+            song.song().getTitleOrFileNameOr("No Title"),
+            song.song().getAuthorOr("Unknown"),
+            song.song().getHumanReadableLength(),
+            song.song().getNotes().getNoteCount(),
+            song.song().getTempoEvents().getHumanReadableTempoRange(),
+            this.isSchematicCompatible(song)
         });
     }
 
@@ -118,7 +120,7 @@ public class SongsTable extends JTable {
         return result;
     }
 
-    private static class CompatibilityResult {
+    private static final class CompatibilityResult {
 
         private final List<String> reasons = new ArrayList<>();
 

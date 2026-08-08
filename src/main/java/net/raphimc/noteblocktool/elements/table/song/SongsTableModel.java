@@ -26,7 +26,7 @@ public class SongsTableModel extends DefaultTableModel {
     }
 
     @Override
-    public boolean isCellEditable(int row, int column) {
+    public boolean isCellEditable(final int row, final int column) {
         return false;
     }
 

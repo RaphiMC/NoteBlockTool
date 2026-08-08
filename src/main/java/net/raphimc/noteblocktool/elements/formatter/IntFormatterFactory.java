@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.elements.formatter;
 
-import javax.swing.*;
+import javax.swing.JFormattedTextField;
 import java.text.ParseException;
 
 public class IntFormatterFactory extends JFormattedTextField.AbstractFormatterFactory {
@@ -29,21 +29,21 @@ public class IntFormatterFactory extends JFormattedTextField.AbstractFormatterFa
     }
 
     @Override
-    public JFormattedTextField.AbstractFormatter getFormatter(JFormattedTextField tf) {
+    public JFormattedTextField.AbstractFormatter getFormatter(final JFormattedTextField tf) {
         return new JFormattedTextField.AbstractFormatter() {
             @Override
             public Object stringToValue(String text) throws ParseException {
                 try {
-                    text = text.replace(prefix, "");
+                    text = text.replace(IntFormatterFactory.this.prefix, "");
                     return Integer.parseInt(text);
-                } catch (Throwable t) {
+                } catch (final Throwable t) {
                     throw new ParseException("Invalid number", 0);
                 }
             }
 
             @Override
-            public String valueToString(Object value) throws ParseException {
-                return value + prefix;
+            public String valueToString(final Object value) throws ParseException {
+                return value + IntFormatterFactory.this.prefix;
             }
         };
     }

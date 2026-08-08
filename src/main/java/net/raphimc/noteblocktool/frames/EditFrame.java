@@ -19,10 +19,21 @@ package net.raphimc.noteblocktool.frames;
 
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.util.SongUtil;
-import net.raphimc.noteblocktool.frames.edittabs.*;
+import net.raphimc.noteblocktool.frames.edittabs.CustomInstrumentsTab;
+import net.raphimc.noteblocktool.frames.edittabs.EditTab;
+import net.raphimc.noteblocktool.frames.edittabs.InstrumentsTab;
+import net.raphimc.noteblocktool.frames.edittabs.MetadataTab;
+import net.raphimc.noteblocktool.frames.edittabs.NotesTab;
+import net.raphimc.noteblocktool.frames.edittabs.ResamplingTab;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -53,12 +64,12 @@ public class EditFrame extends JFrame {
     }
 
     private void initComponents() {
-        JPanel root = new JPanel();
+        final JPanel root = new JPanel();
         root.setLayout(new BorderLayout());
         this.setContentPane(root);
 
         { //Center Panel
-            JTabbedPane tabs = new JTabbedPane();
+            final JTabbedPane tabs = new JTabbedPane();
             root.add(tabs, BorderLayout.CENTER);
 
             this.notesTab = new NotesTab(this.songs);
@@ -72,26 +83,26 @@ public class EditFrame extends JFrame {
             tabs.addTab(this.customInstrumentsTab.getTitle(), this.customInstrumentsTab);
             tabs.addTab(this.metadataTab.getTitle(), this.metadataTab);
             if (this.songs.size() != 1) {
-                int metadataTabIndex = tabs.indexOfTab(this.metadataTab.getTitle());
+                final int metadataTabIndex = tabs.indexOfTab(this.metadataTab.getTitle());
                 tabs.setEnabledAt(metadataTabIndex, false);
                 tabs.setToolTipTextAt(metadataTabIndex, "This tab is only available when editing a single song");
             }
             if (this.songs.size() != 1 || SongUtil.getUsedNbsCustomInstruments(this.songs.get(0).song()).isEmpty()) {
-                int customInstrumentsTabIndex = tabs.indexOfTab(this.customInstrumentsTab.getTitle());
+                final int customInstrumentsTabIndex = tabs.indexOfTab(this.customInstrumentsTab.getTitle());
                 tabs.removeTabAt(customInstrumentsTabIndex);
                 this.customInstrumentsTab = null;
             }
             for (int i = 0; i < tabs.getTabCount(); i++) {
-                EditTab tab = (EditTab) tabs.getComponentAt(i);
+                final EditTab tab = (EditTab) tabs.getComponentAt(i);
                 tab.init();
             }
         }
         { //South Panel
-            JPanel south = new JPanel();
+            final JPanel south = new JPanel();
             south.setLayout(new FlowLayout(FlowLayout.RIGHT));
             this.add(south, BorderLayout.SOUTH);
 
-            JButton apply = new JButton("Save");
+            final JButton apply = new JButton("Save");
             apply.addActionListener(e -> {
                 for (ListFrame.LoadedSong loadedSong : this.songs) {
                     final Song song = loadedSong.song();
@@ -104,10 +115,12 @@ public class EditFrame extends JFrame {
                     this.metadataTab.apply(song);
                 }
                 JOptionPane.showMessageDialog(this, "Saved all changes", "Saved", JOptionPane.INFORMATION_MESSAGE);
-                for (ListFrame.LoadedSong song : this.songs) this.songRefreshConsumer.accept(song);
+                for (ListFrame.LoadedSong song : this.songs) {
+                    this.songRefreshConsumer.accept(song);
+                }
             });
             south.add(apply);
-            JButton preview = new JButton("Preview");
+            final JButton preview = new JButton("Preview");
             preview.addActionListener(e -> {
                 final Song song = this.songs.get(0).song().copy();
                 this.resamplingTab.apply(song);

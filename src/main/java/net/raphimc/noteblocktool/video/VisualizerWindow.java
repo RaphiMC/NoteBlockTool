@@ -42,9 +42,9 @@ public class VisualizerWindow {
         this.closeCallback = closeCallback;
 
         final ApplicationRunner.Configuration configuration = new ApplicationRunner.Configuration()
-                .setWindowTitle("NoteBlockTool Song Visualizer - " + songRenderer.getSong().getTitleOrFileNameOr("No Title"));
+            .setWindowTitle("NoteBlockTool Song Visualizer - " + songRenderer.getSong().getTitleOrFileNameOr("No Title"));
         if (Platform.get() != Platform.MACOSX) {
-            this.window = new GLFWWindow(configuration);
+            this.window = new GlfwWindow(configuration);
         } else {
             this.window = new AwtWindow(configuration);
         }
@@ -68,7 +68,7 @@ public class VisualizerWindow {
         this.dropVisualizer.render(positionMatrix);
     }
 
-    private void freeGL() {
+    private void freeGl() {
         this.dropVisualizer.free();
         this.dropVisualizer = null;
     }
@@ -79,9 +79,9 @@ public class VisualizerWindow {
         }
     }
 
-    private class GLFWWindow extends GLFWApplicationRunner {
+    private final class GlfwWindow extends GLFWApplicationRunner {
 
-        public GLFWWindow(final Configuration configuration) {
+        private GlfwWindow(final Configuration configuration) {
             super(configuration);
         }
 
@@ -98,15 +98,15 @@ public class VisualizerWindow {
 
         @Override
         protected void freeGL() {
-            VisualizerWindow.this.freeGL();
+            VisualizerWindow.this.freeGl();
             super.freeGL();
         }
 
     }
 
-    private class AwtWindow extends AwtApplicationRunner {
+    private final class AwtWindow extends AwtApplicationRunner {
 
-        public AwtWindow(final Configuration configuration) {
+        private AwtWindow(final Configuration configuration) {
             super(configuration);
         }
 
@@ -135,7 +135,7 @@ public class VisualizerWindow {
 
         @Override
         protected void freeGL() {
-            VisualizerWindow.this.freeGL();
+            VisualizerWindow.this.freeGl();
             super.freeGL();
         }
 

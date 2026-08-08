@@ -19,10 +19,15 @@ package net.raphimc.noteblocktool.elements.table.song;
 
 import net.raphimc.noteblocktool.elements.TextOverlayPanel;
 
-import javax.swing.*;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
-import java.awt.dnd.*;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTargetDragEvent;
+import java.awt.dnd.DropTargetDropEvent;
+import java.awt.dnd.DropTargetEvent;
+import java.awt.dnd.DropTargetListener;
 import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
@@ -56,7 +61,7 @@ public class SongsTableDropTargetListener implements DropTargetListener {
     }
 
     @Override
-    public void dragEnter(DropTargetDragEvent event) {
+    public void dragEnter(final DropTargetDragEvent event) {
         if (this.isSupported(event.getTransferable())) {
             event.acceptDrag(DnDConstants.ACTION_COPY);
             this.showOverlay();
@@ -66,7 +71,7 @@ public class SongsTableDropTargetListener implements DropTargetListener {
     }
 
     @Override
-    public void dragOver(DropTargetDragEvent event) {
+    public void dragOver(final DropTargetDragEvent event) {
         if (this.isSupported(event.getTransferable())) {
             event.acceptDrag(DnDConstants.ACTION_COPY);
         } else {
@@ -75,7 +80,7 @@ public class SongsTableDropTargetListener implements DropTargetListener {
     }
 
     @Override
-    public void dropActionChanged(DropTargetDragEvent event) {
+    public void dropActionChanged(final DropTargetDragEvent event) {
         if (this.isSupported(event.getTransferable())) {
             event.acceptDrag(DnDConstants.ACTION_COPY);
         } else {
@@ -84,12 +89,12 @@ public class SongsTableDropTargetListener implements DropTargetListener {
     }
 
     @Override
-    public void dragExit(DropTargetEvent event) {
+    public void dragExit(final DropTargetEvent event) {
         this.hideOverlay();
     }
 
     @Override
-    public void drop(DropTargetDropEvent event) {
+    public void drop(final DropTargetDropEvent event) {
         this.hideOverlay();
         if (!this.isSupported(event.getTransferable())) {
             event.rejectDrop();
@@ -100,7 +105,7 @@ public class SongsTableDropTargetListener implements DropTargetListener {
         try {
             final List<File> files = (List<File>) event.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
             this.fileConsumer.accept(files.toArray(new File[0]));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
         event.dropComplete(true);

@@ -17,9 +17,11 @@
  */
 package net.raphimc.noteblocktool.elements;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
 import javax.swing.border.Border;
-import java.awt.*;
+import java.awt.Component;
 
 public class FastScrollPane extends JScrollPane {
 
@@ -47,7 +49,7 @@ public class FastScrollPane extends JScrollPane {
 
     @Override
     public JScrollBar createVerticalScrollBar() {
-        JScrollBar scrollBar = super.createVerticalScrollBar();
+        final JScrollBar scrollBar = super.createVerticalScrollBar();
         scrollBar.setUnitIncrement(16);
         scrollBar.setBlockIncrement(16);
         return scrollBar;
@@ -55,7 +57,7 @@ public class FastScrollPane extends JScrollPane {
 
     @Override
     public JScrollBar createHorizontalScrollBar() {
-        JScrollBar scrollBar = super.createHorizontalScrollBar();
+        final JScrollBar scrollBar = super.createHorizontalScrollBar();
         scrollBar.setUnitIncrement(16);
         scrollBar.setBlockIncrement(16);
         return scrollBar;

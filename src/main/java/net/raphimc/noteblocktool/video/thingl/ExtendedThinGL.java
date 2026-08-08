@@ -21,6 +21,7 @@ import net.raphimc.thingl.ThinGL;
 import net.raphimc.thingl.gl.renderer.impl.Renderer2D;
 import net.raphimc.thingl.implementation.window.WindowInterface;
 
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public class ExtendedThinGL extends ThinGL {
 
     public static ExtendedThinGL get() {

@@ -28,10 +28,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-public class AudioFileUtil {
+public final class AudioFileUtil {
 
     private static final byte[] OGG_MAGIC = new byte[]{(byte) 'O', (byte) 'g', (byte) 'g', (byte) 'S'};
     private static final byte[] TAGGED_MP3_MAGIC = new byte[]{(byte) 'I', (byte) 'D', (byte) '3'};
+
+    private AudioFileUtil() {
+    }
 
     public static AudioInputStream readAudioFile(final InputStream inputStream) throws UnsupportedAudioFileException, IOException {
         final BufferedInputStream bis = new BufferedInputStream(inputStream);

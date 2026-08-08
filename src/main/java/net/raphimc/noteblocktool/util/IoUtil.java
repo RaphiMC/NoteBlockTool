@@ -17,16 +17,17 @@
  */
 package net.raphimc.noteblocktool.util;
 
-import com.google.common.io.ByteStreams;
-
 import java.io.IOException;
 import java.io.InputStream;
 
-public class IOUtil {
+public final class IoUtil {
+
+    private IoUtil() {
+    }
 
     public static byte[] readFully(final InputStream inputStream) throws IOException {
         try (inputStream) {
-            return ByteStreams.toByteArray(inputStream);
+            return inputStream.readAllBytes();
         }
     }
 

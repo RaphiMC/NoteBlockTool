@@ -25,7 +25,7 @@ import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.table.instrument.InstrumentsTable;
 import net.raphimc.noteblocktool.frames.ListFrame;
 
-import javax.swing.*;
+import javax.swing.JPanel;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +41,7 @@ public class CustomInstrumentsTab extends EditTab {
     }
 
     @Override
-    protected void initComponents(JPanel center) {
+    protected void initComponents(final JPanel center) {
         this.removeAll();
 
         this.table = new InstrumentsTable(true);
@@ -54,16 +54,18 @@ public class CustomInstrumentsTab extends EditTab {
 
     @Override
     public void apply(final Song song) {
-        Map<NbsCustomInstrument, MinecraftInstrument> replacements = new HashMap<>();
+        final Map<NbsCustomInstrument, MinecraftInstrument> replacements = new HashMap<>();
         int i = 0;
         for (NbsCustomInstrument customInstrument : this.usedInstruments) {
-            MinecraftInstrument replacement = (MinecraftInstrument) this.table.getValueAt(i, 1);
+            final MinecraftInstrument replacement = (MinecraftInstrument) this.table.getValueAt(i, 1);
             replacements.put(customInstrument, replacement);
             i++;
         }
         song.getNotes().forEach(note -> {
-            MinecraftInstrument replacement = replacements.get(note.getInstrument());
-            if (replacement != null) note.setInstrument(replacement);
+            final MinecraftInstrument replacement = replacements.get(note.getInstrument());
+            if (replacement != null) {
+                note.setInstrument(replacement);
+            }
         });
     }
 
