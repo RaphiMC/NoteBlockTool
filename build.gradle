@@ -26,10 +26,10 @@ dependencies {
     includeInJar "com.formdev:flatlaf:3.7.2"
     includeInJar "net.lenni0451.commons:swing:1.9.2"
     includeInJar "net.raphimc:thingl:0.2.0-20260728.221330-13:java17"
-    includeInJar "org.lwjgl:lwjgl:3.4.1"
-    includeInJar "org.lwjgl:lwjgl-opengl:3.4.1"
-    includeInJar "org.lwjgl:lwjgl-glfw:3.4.1"
-    includeInJar "org.lwjgl:lwjgl-freetype:3.4.1"
+    includeInJar "org.lwjgl:lwjgl:3.4.2"
+    includeInJar "org.lwjgl:lwjgl-opengl:3.4.2"
+    includeInJar "org.lwjgl:lwjgl-glfw:3.4.2"
+    includeInJar "org.lwjgl:lwjgl-freetype:3.4.2"
     includeInJar("org.lwjglx:lwjgl3-awt:0.2.4") {
         exclude group: "org.lwjgl", module: "lwjgl"
         exclude group: "org.lwjgl", module: "lwjgl-opengl"
@@ -37,10 +37,10 @@ dependencies {
     }
 
     ["natives-windows", "natives-windows-arm64", "natives-linux", "natives-linux-arm64", "natives-macos", "natives-macos-arm64"].each {
-        includeInJar "org.lwjgl:lwjgl:3.4.1:$it"
-        includeInJar "org.lwjgl:lwjgl-opengl:3.4.1:$it"
-        includeInJar "org.lwjgl:lwjgl-glfw:3.4.1:$it"
-        includeInJar "org.lwjgl:lwjgl-freetype:3.4.1:$it"
+        includeInJar "org.lwjgl:lwjgl:3.4.2:$it"
+        includeInJar "org.lwjgl:lwjgl-opengl:3.4.2:$it"
+        includeInJar "org.lwjgl:lwjgl-glfw:3.4.2:$it"
+        includeInJar "org.lwjgl:lwjgl-freetype:3.4.2:$it"
     }
 }
 
