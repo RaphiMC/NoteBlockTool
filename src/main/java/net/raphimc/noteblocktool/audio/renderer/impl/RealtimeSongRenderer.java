@@ -17,7 +17,7 @@
  */
 package net.raphimc.noteblocktool.audio.renderer.impl;
 
-import net.raphimc.audiomixer.util.FloatAudioFormat;
+import net.raphimc.audiomixer.util.AudioFormat;
 import net.raphimc.audiomixer.util.SourceDataLineWriter;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
@@ -29,10 +29,11 @@ public class RealtimeSongRenderer extends SongRenderer {
 
     private final SourceDataLineWriter sourceDataLineWriter;
 
-    public RealtimeSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final FloatAudioFormat audioFormat) {
+    public RealtimeSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final AudioFormat audioFormat) {
         super(song, maxSounds, limited, threaded, audioFormat);
         try {
-            this.sourceDataLineWriter = new SourceDataLineWriter(AudioSystem.getSourceDataLine(audioFormat.toJavaPcmAudioFormat(Short.SIZE)), 50, this::renderTick);
+            final javax.sound.sampled.AudioFormat javaAudioFormat = new javax.sound.sampled.AudioFormat(audioFormat.sampleRate(), Short.SIZE, audioFormat.channels(), true, false);
+            this.sourceDataLineWriter = new SourceDataLineWriter(AudioSystem.getSourceDataLine(javaAudioFormat), 50, this::renderTick);
             this.sourceDataLineWriter.start();
         } catch (final Throwable e) {
             throw new RuntimeException("Failed to open SourceDataLine", e);

@@ -17,29 +17,29 @@
  */
 package net.raphimc.noteblocktool.frames;
 
-import com.sun.jna.Pointer;
+import de.sciss.jump3r.mp3.VbrMode;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
-import net.lenni0451.commons.math.MathUtils;
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
-import net.raphimc.audiomixer.io.AudioIO;
-import net.raphimc.audiomixer.util.FloatAudioFormat;
+import net.raphimc.audiomixer.io.AudioOutputStream;
+import net.raphimc.audiomixer.io.mp3.Mp3AudioOutputStream;
+import net.raphimc.audiomixer.io.wav.WavPcmAudioOutputStream;
+import net.raphimc.audiomixer.util.AudioFormat;
+import net.raphimc.audiomixer.util.PcmAudioFormat;
+import net.raphimc.audiomixer.util.PcmSampleEncoding;
 import net.raphimc.audiomixer.util.buffer.AudioBuffer;
+import net.raphimc.audiomixer.util.io.seekable.SeekableBufferedOutputStream;
+import net.raphimc.audiomixer.util.io.seekable.SeekableFileOutputStream;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.model.song.Song;
-import net.raphimc.noteblocktool.audio.library.LameLibrary;
 import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
 import net.raphimc.noteblocktool.audio.renderer.impl.ProgressSongRenderer;
-import net.raphimc.noteblocktool.audio.util.LameException;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
 
-import javax.sound.sampled.AudioFileFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -61,6 +61,7 @@ import java.awt.Color;
 import java.awt.GridBagLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -84,8 +85,10 @@ public class ExportFrame extends JFrame {
     private final JPanel audioFilePanel = new JPanel(new GridBagLayout());
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
     private final JComboBox<Channels> channels = new JComboBox<>(Channels.values());
-    private final JLabel wavBitDepthLabel = new JLabel("WAV Bit Depth:");
-    private final JComboBox<WavBitDepth> wavBitDepth = new JComboBox<>(WavBitDepth.values());
+    private final JLabel wavEncodingLabel = new JLabel("WAV Encoding:");
+    private final JComboBox<WavSampleEncoding> wavEncoding = new JComboBox<>(WavSampleEncoding.values());
+    private final JLabel mp3EncodingLabel = new JLabel("MP3 Encoding:");
+    private final JComboBox<Mp3Encoding> mp3Encoding = new JComboBox<>(Mp3Encoding.values());
     private final JLabel mp3QualityLabel = new JLabel("MP3 Quality:");
     private final JSlider mp3Quality = new JSlider(0, 100, 60);
 
@@ -151,9 +154,13 @@ public class ExportFrame extends JFrame {
                 GBC.create(audioFilePanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.channels, channels -> {
                     channels.setSelectedItem(Channels.STEREO);
                 });
-                GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.wavBitDepthLabel);
-                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.wavBitDepth, wavBitDepth -> {
-                    wavBitDepth.setSelectedItem(WavBitDepth.PCM16);
+                GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.wavEncodingLabel);
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.wavEncoding, wavBitDepth -> {
+                    wavBitDepth.setSelectedItem(WavSampleEncoding.S16_LE);
+                });
+                GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.mp3EncodingLabel);
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.mp3Encoding, mp3Encoding -> {
+                    mp3Encoding.setSelectedItem(Mp3Encoding.VBR);
                 });
                 GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.mp3QualityLabel);
                 GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.mp3Quality, mp3Quality -> {
@@ -215,8 +222,10 @@ public class ExportFrame extends JFrame {
             this.rendererPanel.setVisible(outputFormat.isAudioFile());
             this.progressPanel.setVisible(false);
 
-            this.wavBitDepthLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
-            this.wavBitDepth.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
+            this.wavEncodingLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
+            this.wavEncoding.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
+            this.mp3EncodingLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
+            this.mp3Encoding.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
             this.mp3QualityLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
             this.mp3Quality.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
         } else {
@@ -311,10 +320,6 @@ public class ExportFrame extends JFrame {
 
     private void doExport(final File outFile) {
         try {
-            if (this.format.getSelectedItem().equals(OutputFormat.MP3) && !LameLibrary.isLoaded()) {
-                throw new IllegalStateException("LAME MP3 encoder is not available");
-            }
-
             final Map<ListFrame.LoadedSong, JPanel> songPanels = new ConcurrentHashMap<>();
             SwingUtilities.invokeAndWait(() -> {
                 for (ListFrame.LoadedSong song : this.loadedSongs) {
@@ -330,12 +335,9 @@ public class ExportFrame extends JFrame {
                 this.progressPanel.revalidate();
                 this.progressPanel.repaint();
             });
-            @SuppressWarnings("checkstyle:RequireThis")
-            final Function<JProgressBar, FloatConsumer> progressConsumer = progressBar -> progress -> SwingUtilities.invokeLater(() -> {
+            @SuppressWarnings("checkstyle:RequireThis") final Function<JProgressBar, FloatConsumer> progressConsumer = progressBar -> progress -> SwingUtilities.invokeLater(() -> {
                 final int value = (int) progress;
-                if (value == 200) {
-                    progressBar.setString("Encoding MP3...");
-                } else if (value > 100) {
+                if (value > 100) {
                     progressBar.setString("Writing file...");
                 } else {
                     progressBar.setValue(value);
@@ -449,7 +451,7 @@ public class ExportFrame extends JFrame {
         if (outputFormat.isSongFile()) {
             this.writeSong(song, file, outputFormat.getSongFormat());
         } else if (outputFormat.isAudioFile()) {
-            final FloatAudioFormat audioFormat = new FloatAudioFormat(((Number) this.sampleRate.getValue()).floatValue(), ((Channels) this.channels.getSelectedItem()).getChannels());
+            final AudioFormat audioFormat = new AudioFormat(((Number) this.sampleRate.getValue()).floatValue(), ((Channels) this.channels.getSelectedItem()).channels());
             final SongRenderer songRenderer = new ProgressSongRenderer(song.song(), (int) this.maxSounds.getValue(), !this.globalNormalization.isSelected(), this.threaded.isSelected(), audioFormat, progressConsumer);
             songRenderer.setMasterVolume(this.volume.getValue());
             songRenderer.setTimingJitter(this.timingJitter.isSelected());
@@ -462,61 +464,23 @@ public class ExportFrame extends JFrame {
             if (this.globalNormalization.isSelected()) {
                 buffer.limitToUnitRange();
             }
+            final AudioOutputStream audioOutputStream;
             if (outputFormat.equals(OutputFormat.WAV)) {
-                progressConsumer.accept(101F);
-                final AudioInputStream audioInputStream = AudioIO.createAudioInputStream(buffer.samples(), buffer.format().toJavaPcmAudioFormat(((WavBitDepth) this.wavBitDepth.getSelectedItem()).getBitDepth()));
-                AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, file);
-                audioInputStream.close();
+                audioOutputStream = new WavPcmAudioOutputStream(new BufferedOutputStream(new FileOutputStream(file), 1024 * 1024), new PcmAudioFormat(buffer.format(), ((WavSampleEncoding) this.wavEncoding.getSelectedItem()).encoding()), buffer.sampleCount());
             } else if (outputFormat.equals(OutputFormat.MP3)) {
-                progressConsumer.accept(200F);
-                final Pointer lame = LameLibrary.INSTANCE.lame_init();
-                if (lame == null) {
-                    throw new IllegalStateException("Failed to create LAME instance");
-                }
-                LameException.check(LameLibrary.INSTANCE.lame_set_in_samplerate(lame, (int) buffer.format().sampleRate()), "Failed to set sample rate");
-                LameException.check(LameLibrary.INSTANCE.lame_set_num_channels(lame, buffer.format().channels()), "Failed to set channels");
-                LameException.check(LameLibrary.INSTANCE.lame_set_VBR(lame, LameLibrary.vbr_default), "Failed to set VBR mode");
-                LameException.check(LameLibrary.INSTANCE.lame_set_VBR_quality(lame, (1F - (this.mp3Quality.getValue() / 100F)) * 9F), "Failed to set VBR quality");
-                LameLibrary.INSTANCE.id3tag_init(lame);
-                LameLibrary.INSTANCE.lame_set_write_id3tag_automatic(lame, false);
-                if (songRenderer.getSong().getTitle() != null) {
-                    LameLibrary.INSTANCE.id3tag_set_title(lame, songRenderer.getSong().getTitle());
-                }
-                if (songRenderer.getSong().getAuthor() != null) {
-                    LameLibrary.INSTANCE.id3tag_set_artist(lame, songRenderer.getSong().getAuthor());
-                }
-                if (songRenderer.getSong().getDescription() != null) {
-                    LameLibrary.INSTANCE.id3tag_set_comment(lame, songRenderer.getSong().getDescription());
-                }
-                LameException.check(LameLibrary.INSTANCE.id3tag_set_fieldvalue(lame, "TXXX=Renderer=NoteBlockTool"), "Failed to set custom ID3 tag");
-                LameException.check(LameLibrary.INSTANCE.lame_init_params(lame), "Failed to initialize LAME instance");
-
-                final byte[] data = new byte[MathUtils.ceilInt(1.25F * buffer.getFrameCount() + 7200)];
-                final int dataLength = LameException.check(switch (buffer.format().channels()) {
-                    case 1 -> LameLibrary.INSTANCE.lame_encode_buffer_ieee_float(lame, buffer.samples(), null, buffer.getFrameCount(), data, data.length);
-                    case 2 -> LameLibrary.INSTANCE.lame_encode_buffer_interleaved_ieee_float(lame, buffer.samples(), buffer.getFrameCount(), data, data.length);
-                    default -> throw new UnsupportedOperationException("Unsupported channel count: " + buffer.format().channels());
-                }, "Failed to encode buffer");
-                final byte[] trailer = new byte[7200];
-                final int trailerLength = LameException.check(LameLibrary.INSTANCE.lame_encode_flush(lame, trailer, trailer.length), "Failed to flush encoder");
-                final byte[] lameTagFrame = new byte[LameLibrary.INSTANCE.lame_get_lametag_frame(lame, null, 0)];
-                final int lameTagFrameLength = LameException.check(LameLibrary.INSTANCE.lame_get_lametag_frame(lame, lameTagFrame, lameTagFrame.length), "Failed to get LAME tag frame");
-                final byte[] id3v1Tag = new byte[LameLibrary.INSTANCE.lame_get_id3v1_tag(lame, null, 0)];
-                final int id3v1TagLength = LameException.check(LameLibrary.INSTANCE.lame_get_id3v1_tag(lame, id3v1Tag, id3v1Tag.length), "Failed to get ID3v1 tag");
-                final byte[] id3v2Tag = new byte[LameLibrary.INSTANCE.lame_get_id3v2_tag(lame, null, 0)];
-                final int id3v2TagLength = LameException.check(LameLibrary.INSTANCE.lame_get_id3v2_tag(lame, id3v2Tag, id3v2Tag.length), "Failed to get ID3v2 tag");
-                LameException.check(LameLibrary.INSTANCE.lame_close(lame), "Failed to close LAME instance");
-
-                progressConsumer.accept(101F);
-                System.arraycopy(lameTagFrame, 0, data, 0, lameTagFrameLength);
-                try (FileOutputStream fos = new FileOutputStream(file)) {
-                    fos.write(id3v2Tag, 0, id3v2TagLength);
-                    fos.write(data, 0, dataLength);
-                    fos.write(trailer, 0, trailerLength);
-                    fos.write(id3v1Tag, 0, id3v1TagLength);
-                }
+                final Mp3AudioOutputStream.Id3Metadata id3Metadata = new Mp3AudioOutputStream.Id3Metadata()
+                    .withTitle(songRenderer.getSong().getTitle())
+                    .withArtist(songRenderer.getSong().getAuthor())
+                    .withComment(songRenderer.getSong().getDescription());
+                audioOutputStream = new Mp3AudioOutputStream(new SeekableBufferedOutputStream(new SeekableFileOutputStream(file), 1024 * 1024), buffer.format(), this.mp3Quality.getValue() / 100F, ((Mp3Encoding) this.mp3Encoding.getSelectedItem()).mode(), id3Metadata);
             } else {
                 throw new UnsupportedOperationException("Unsupported output format: " + this.format.getSelectedIndex());
+            }
+            progressConsumer.accept(101F);
+            try {
+                audioOutputStream.write(buffer.samples());
+            } finally {
+                audioOutputStream.close();
             }
         } else {
             throw new UnsupportedOperationException("Unsupported output format: " + this.format.getSelectedIndex());
@@ -572,30 +536,6 @@ public class ExportFrame extends JFrame {
         }
     }
 
-    private enum WavBitDepth {
-        PCM8("PCM 8", 8),
-        PCM16("PCM 16", 16),
-        PCM24("PCM 24", 24),
-        PCM32("PCM 32", 32);
-
-        private final String name;
-        private final int bitDepth;
-
-        WavBitDepth(final String name, final int bitDepth) {
-            this.name = name;
-            this.bitDepth = bitDepth;
-        }
-
-        public int getBitDepth() {
-            return this.bitDepth;
-        }
-
-        @Override
-        public String toString() {
-            return this.name;
-        }
-    }
-
     private enum Channels {
         MONO("Mono", 1),
         STEREO("Stereo", 2);
@@ -608,8 +548,56 @@ public class ExportFrame extends JFrame {
             this.channels = channels;
         }
 
-        public int getChannels() {
+        public int channels() {
             return this.channels;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
+        }
+    }
+
+    private enum WavSampleEncoding {
+        U8("Unsigned 8-Bit PCM", PcmSampleEncoding.U8),
+        S16_LE("Signed 16-Bit PCM", PcmSampleEncoding.S16_LE),
+        S24_LE("Signed 24-Bit PCM", PcmSampleEncoding.S24_LE),
+        S32_LE("Signed 32-Bit PCM", PcmSampleEncoding.S32_LE),
+        F32_LE("Float 32-Bit PCM", PcmSampleEncoding.F32_LE);
+
+        private final String name;
+        private final PcmSampleEncoding encoding;
+
+        WavSampleEncoding(final String name, final PcmSampleEncoding encoding) {
+            this.name = name;
+            this.encoding = encoding;
+        }
+
+        public PcmSampleEncoding encoding() {
+            return this.encoding;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
+        }
+    }
+
+    private enum Mp3Encoding {
+        CBR("Constant bitrate (CBR)", VbrMode.vbr_off),
+        ABR("Average bitrate (ABR)", VbrMode.vbr_abr),
+        VBR("Variable bitrate (VBR)", VbrMode.vbr_default);
+
+        private final String name;
+        private final VbrMode mode;
+
+        Mp3Encoding(final String name, final VbrMode mode) {
+            this.name = name;
+            this.mode = mode;
+        }
+
+        public VbrMode mode() {
+            return this.mode;
         }
 
         @Override

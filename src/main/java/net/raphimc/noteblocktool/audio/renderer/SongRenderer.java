@@ -20,14 +20,14 @@ package net.raphimc.noteblocktool.audio.renderer;
 import net.raphimc.audiomixer.LimitingAudioMixer;
 import net.raphimc.audiomixer.automation.finite.FiniteAutomation;
 import net.raphimc.audiomixer.automation.finite.ramp.impl.LinearRampAutomation;
-import net.raphimc.audiomixer.io.AudioIO;
+import net.raphimc.audiomixer.io.AudioIo;
 import net.raphimc.audiomixer.mixer.Mixer;
 import net.raphimc.audiomixer.mixer.MultithreadedMixer;
 import net.raphimc.audiomixer.processor.dynamics.GainProcessor;
 import net.raphimc.audiomixer.processor.spatial.GainPanProcessor;
 import net.raphimc.audiomixer.processor.spatial.PanProcessor;
 import net.raphimc.audiomixer.source.audio.impl.BufferedAudioSource;
-import net.raphimc.audiomixer.util.FloatAudioFormat;
+import net.raphimc.audiomixer.util.AudioFormat;
 import net.raphimc.audiomixer.util.buffer.AudioBuffer;
 import net.raphimc.audiomixer.util.buffer.AudioBufferBuilder;
 import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
@@ -38,7 +38,6 @@ import net.raphimc.noteblocklib.model.note.Note;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.player.SongPlayer;
 import net.raphimc.noteblocktool.audio.SoundMap;
-import net.raphimc.noteblocktool.util.AudioFileUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -58,12 +57,12 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     private boolean timingJitter;
     private long lastTickTime;
 
-    public SongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final FloatAudioFormat audioFormat) {
+    public SongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final AudioFormat audioFormat) {
         super(song);
         this.setCustomScheduler(null);
         try {
             for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(song).entrySet()) {
-                this.sounds.put(entry.getKey(), AudioIO.read(AudioFileUtil.readAudioFile(new ByteArrayInputStream(entry.getValue())), audioFormat.withChannels(1)));
+                this.sounds.put(entry.getKey(), AudioIo.read(new ByteArrayInputStream(entry.getValue()), audioFormat.withChannels(1)));
             }
         } catch (final Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
@@ -129,8 +128,8 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     }
 
     public AudioBuffer renderSong() throws InterruptedException {
-        final int expectedSampleCount = this.audioMixer.getAudioFormat().millisToSampleCount((this.getSong().getLengthInSeconds() + 1) * 1000F);
-        final AudioBufferBuilder bufferBuilder = new AudioBufferBuilder(this.audioMixer.getAudioFormat(), expectedSampleCount);
+        final int expectedSampleCount = this.audioMixer.getFormat().millisToSampleCount((this.getSong().getLengthInSeconds() + 1) * 1000F);
+        final AudioBufferBuilder bufferBuilder = new AudioBufferBuilder(this.audioMixer.getFormat(), expectedSampleCount);
         this.start();
         while (this.isRunning()) {
             bufferBuilder.append(this.renderTick());

@@ -19,7 +19,7 @@ package net.raphimc.noteblocktool.frames;
 
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
-import net.raphimc.audiomixer.util.FloatAudioFormat;
+import net.raphimc.audiomixer.util.AudioFormat;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocktool.audio.renderer.SongRenderer;
 import net.raphimc.noteblocktool.audio.renderer.impl.RealtimeSongRenderer;
@@ -58,7 +58,7 @@ public final class SongPlayerFrame extends JFrame {
 
     private static final String VISUALIZER_UNAVAILABLE_MESSAGE = "An error occurred while initializing the visualizer window.\nPlease make sure that your system supports at least OpenGL 4.1.";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
-    private static final FloatAudioFormat PLAYBACK_AUDIO_FORMAT = new FloatAudioFormat(48000, 2);
+    private static final AudioFormat PLAYBACK_AUDIO_FORMAT = new AudioFormat(48000, 2);
     private static SongPlayerFrame instance;
     private static Point lastPosition;
     private static int lastVolume = 50;
