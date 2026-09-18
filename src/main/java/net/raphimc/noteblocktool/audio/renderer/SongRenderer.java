@@ -26,6 +26,7 @@ import net.raphimc.audiomixer.mixer.MultithreadedMixer;
 import net.raphimc.audiomixer.processor.dynamics.GainProcessor;
 import net.raphimc.audiomixer.processor.spatial.GainPanProcessor;
 import net.raphimc.audiomixer.processor.spatial.PanProcessor;
+import net.raphimc.audiomixer.resampler.impl.LinearResampler;
 import net.raphimc.audiomixer.source.audio.impl.BufferedAudioSource;
 import net.raphimc.audiomixer.util.AudioFormat;
 import net.raphimc.audiomixer.util.buffer.AudioBuffer;
@@ -57,19 +58,19 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     private boolean timingJitter;
     private long lastTickTime;
 
-    public SongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final AudioFormat audioFormat) {
+    public SongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean multithreaded, final AudioFormat audioFormat) {
         super(song);
         this.setCustomScheduler(null);
         try {
             for (Map.Entry<String, byte[]> entry : SoundMap.loadSoundData(song).entrySet()) {
-                this.sounds.put(entry.getKey(), AudioIo.read(new ByteArrayInputStream(entry.getValue()), audioFormat.withChannels(1)));
+                this.sounds.put(entry.getKey(), AudioIo.read(new ByteArrayInputStream(entry.getValue()), audioFormat.withChannelCount(1)));
             }
         } catch (final Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
         }
         this.audioMixer = new LimitingAudioMixer(audioFormat);
         this.audioMixer.getLimiterProcessor().setEnabled(limited);
-        if (threaded) {
+        if (multithreaded) {
             this.masterMixer = new MultithreadedMixer();
             this.audioMixer.add(this.masterMixer);
         } else {
@@ -105,7 +106,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
                         final GainProcessor gainProcessor = new GainProcessor();
                         source.processors().add(gainProcessor);
                         final FiniteAutomation automation = new LinearRampAutomation(gainProcessor.gain(), 0F, 100F);
-                        automation.finishListeners().add(ignored1 -> this.audioMixer.preRenderActions().add(ignored2 -> this.masterMixer.remove(source)));
+                        automation.finishListeners().add(ignored1 -> this.audioMixer.preRenderTasks().add(() -> this.masterMixer.remove(source)));
                         source.automations().add(automation);
                     }
                 });
@@ -210,7 +211,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
         private final Note note;
 
         private NoteAudioSource(final AudioBuffer buffer, final Note note) {
-            super(buffer);
+            super(buffer, new LinearResampler());
             this.note = note;
             this.pitch().set(note.getPitch());
             if (note.getPanning() != 0F && note.getVolume() != 1F) {

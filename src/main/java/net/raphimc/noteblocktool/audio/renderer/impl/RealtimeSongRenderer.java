@@ -29,10 +29,10 @@ public class RealtimeSongRenderer extends SongRenderer {
 
     private final SourceDataLineWriter sourceDataLineWriter;
 
-    public RealtimeSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final AudioFormat audioFormat) {
-        super(song, maxSounds, limited, threaded, audioFormat);
+    public RealtimeSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean multithreaded, final AudioFormat audioFormat) {
+        super(song, maxSounds, limited, multithreaded, audioFormat);
         try {
-            final javax.sound.sampled.AudioFormat javaAudioFormat = new javax.sound.sampled.AudioFormat(audioFormat.sampleRate(), Short.SIZE, audioFormat.channels(), true, false);
+            final javax.sound.sampled.AudioFormat javaAudioFormat = new javax.sound.sampled.AudioFormat(audioFormat.sampleRate(), Short.SIZE, audioFormat.channelCount(), true, false);
             this.sourceDataLineWriter = new SourceDataLineWriter(AudioSystem.getSourceDataLine(javaAudioFormat), 50, this::renderTick);
             this.sourceDataLineWriter.start();
         } catch (final Throwable e) {

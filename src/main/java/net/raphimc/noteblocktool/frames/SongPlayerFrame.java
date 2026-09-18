@@ -64,14 +64,14 @@ public final class SongPlayerFrame extends JFrame {
     private static int lastVolume = 50;
     private static boolean lastTimingJitter = false;
     private static int lastMaxSounds = 4096;
-    private static boolean lastThreaded = false;
+    private static boolean lastMultithreaded = false;
 
     private final Song song;
     private final Timer updateTimer;
     private final JSlider volume = new JSlider(0, 100, lastVolume);
     private final JCheckBox timingJitter = new JCheckBox("Artificial Timing Jitter", lastTimingJitter);
     private final JSpinner maxSounds = new JSpinner(new SpinnerNumberModel(lastMaxSounds, 64, 131070, 64));
-    private final JCheckBox threaded = new JCheckBox("Multithreaded Rendering", lastThreaded);
+    private final JCheckBox multithreaded = new JCheckBox("Multithreaded Rendering", lastMultithreaded);
     private final JButton playStop = new JButton("Play");
     private final JButton pauseResume = new JButton("Pause");
     private final JButton openVisualizer = new JButton("Open Visualizer");
@@ -89,7 +89,7 @@ public final class SongPlayerFrame extends JFrame {
             lastVolume = instance.volume.getValue();
             lastTimingJitter = instance.timingJitter.isSelected();
             lastMaxSounds = (int) instance.maxSounds.getValue();
-            lastThreaded = instance.threaded.isSelected();
+            lastMultithreaded = instance.multithreaded.isSelected();
             instance.dispose();
         }
         SwingUtilities.invokeLater(() -> {
@@ -100,7 +100,7 @@ public final class SongPlayerFrame extends JFrame {
             instance.volume.setValue(lastVolume);
             instance.timingJitter.setSelected(lastTimingJitter);
             instance.maxSounds.setValue(lastMaxSounds);
-            instance.threaded.setSelected(lastThreaded);
+            instance.multithreaded.setSelected(lastMultithreaded);
             instance.playStop.doClick(0);
             instance.setVisible(true);
         });
@@ -272,8 +272,8 @@ public final class SongPlayerFrame extends JFrame {
                         this.maxSounds.addChangeListener(e -> lastMaxSounds = (int) this.maxSounds.getValue());
                     });
 
-                    GBC.create(rendererPanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.threaded, () -> {
-                        this.threaded.addChangeListener(e -> lastThreaded = this.threaded.isSelected());
+                    GBC.create(rendererPanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.multithreaded, () -> {
+                        this.multithreaded.addChangeListener(e -> lastMultithreaded = this.multithreaded.isSelected());
                     });
 
                     GBC.fillVerticalSpace(rendererPanel);
@@ -290,14 +290,14 @@ public final class SongPlayerFrame extends JFrame {
 
     private void initSongPlayer() {
         final int maxSounds = (int) this.maxSounds.getValue();
-        final boolean threaded = this.threaded.isSelected();
-        if (this.songRenderer == null || this.currentMaxSounds != maxSounds || this.currentThreaded != threaded) {
+        final boolean multithreaded = this.multithreaded.isSelected();
+        if (this.songRenderer == null || this.currentMaxSounds != maxSounds || this.currentThreaded != multithreaded) {
             this.closeSongPlayerAndVisualizer();
-            this.songRenderer = new RealtimeSongRenderer(this.song, maxSounds, true, threaded, PLAYBACK_AUDIO_FORMAT);
+            this.songRenderer = new RealtimeSongRenderer(this.song, maxSounds, true, multithreaded, PLAYBACK_AUDIO_FORMAT);
             this.songRenderer.setMasterVolume(this.volume.getValue());
             this.songRenderer.setTimingJitter(this.timingJitter.isSelected());
             this.currentMaxSounds = maxSounds;
-            this.currentThreaded = threaded;
+            this.currentThreaded = multithreaded;
         }
     }
 
@@ -320,7 +320,7 @@ public final class SongPlayerFrame extends JFrame {
     private void tick() {
         if (this.songRenderer != null && this.songRenderer.isRunning()) {
             this.maxSounds.setEnabled(false);
-            this.threaded.setEnabled(false);
+            this.multithreaded.setEnabled(false);
             this.pauseResume.setEnabled(true);
             this.progress.setEnabled(true);
             this.playStop.setText("Stop");
@@ -337,7 +337,7 @@ public final class SongPlayerFrame extends JFrame {
             this.statusLine.setText(String.join(", ", this.songRenderer.getStatusLines()));
         } else {
             this.maxSounds.setEnabled(true);
-            this.threaded.setEnabled(true);
+            this.multithreaded.setEnabled(true);
             this.pauseResume.setEnabled(false);
             this.progress.setEnabled(false);
             this.playStop.setText("Play");

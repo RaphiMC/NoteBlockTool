@@ -31,8 +31,8 @@ public class ProgressSongRenderer extends SongRenderer {
     private final int noteCount;
     private int processedNotes;
 
-    public ProgressSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean threaded, final AudioFormat audioFormat, final FloatConsumer progressConsumer) {
-        super(song, maxSounds, limited, threaded, audioFormat);
+    public ProgressSongRenderer(final Song song, final int maxSounds, final boolean limited, final boolean multithreaded, final AudioFormat audioFormat, final FloatConsumer progressConsumer) {
+        super(song, maxSounds, limited, multithreaded, audioFormat);
         this.noteCount = song.getNotes().getNoteCount();
         this.progressConsumer = progressConsumer;
     }

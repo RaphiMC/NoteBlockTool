@@ -17,16 +17,15 @@
  */
 package net.raphimc.noteblocktool.frames;
 
-import de.sciss.jump3r.mp3.VbrMode;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
 import net.raphimc.audiomixer.io.AudioOutputStream;
 import net.raphimc.audiomixer.io.mp3.Mp3AudioOutputStream;
-import net.raphimc.audiomixer.io.wav.WavPcmAudioOutputStream;
+import net.raphimc.audiomixer.io.ogg.opus.OggOpusAudioOutputStream;
+import net.raphimc.audiomixer.io.wav.pcm.WavPcmAudioOutputStream;
 import net.raphimc.audiomixer.util.AudioFormat;
-import net.raphimc.audiomixer.util.PcmAudioFormat;
 import net.raphimc.audiomixer.util.PcmSampleEncoding;
 import net.raphimc.audiomixer.util.buffer.AudioBuffer;
 import net.raphimc.audiomixer.util.io.seekable.SeekableBufferedOutputStream;
@@ -39,6 +38,7 @@ import net.raphimc.noteblocktool.audio.renderer.impl.ProgressSongRenderer;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.VerticalFileChooser;
 import net.raphimc.noteblocktool.util.filefilter.SingleFileFilter;
+import org.concentus.OpusSignal;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -65,6 +65,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -86,11 +87,17 @@ public class ExportFrame extends JFrame {
     private final JSpinner sampleRate = new JSpinner(new SpinnerNumberModel(48000, 8000, 192000, 8000));
     private final JComboBox<Channels> channels = new JComboBox<>(Channels.values());
     private final JLabel wavEncodingLabel = new JLabel("WAV Encoding:");
-    private final JComboBox<WavSampleEncoding> wavEncoding = new JComboBox<>(WavSampleEncoding.values());
+    private final JComboBox<WavEncoding> wavEncoding = new JComboBox<>(WavEncoding.values());
+    private final JLabel opusEncodingLabel = new JLabel("Opus Encoding:");
+    private final JComboBox<OpusEncoding> opusEncoding = new JComboBox<>(OpusEncoding.values());
+    private final JLabel opusBitrateLabel = new JLabel("Opus Bitrate (kbps):");
+    private final JSpinner opusBitrate = new JSpinner(new SpinnerNumberModel(128, 8, 384, 8));
     private final JLabel mp3EncodingLabel = new JLabel("MP3 Encoding:");
     private final JComboBox<Mp3Encoding> mp3Encoding = new JComboBox<>(Mp3Encoding.values());
+    private final JLabel mp3BitrateLabel = new JLabel("MP3 Bitrate (kbps):");
+    private final JSpinner mp3Bitrate = new JSpinner(new SpinnerNumberModel(224, 8, 320, 8));
     private final JLabel mp3QualityLabel = new JLabel("MP3 Quality:");
-    private final JSlider mp3Quality = new JSlider(0, 100, 60);
+    private final JSlider mp3Quality = new JSlider(0, 100, 80);
 
     // Playback settings
     private final JPanel playbackPanel = new JPanel(new GridBagLayout());
@@ -101,7 +108,7 @@ public class ExportFrame extends JFrame {
     private final JPanel rendererPanel = new JPanel(new GridBagLayout());
     private final JSpinner maxSounds = new JSpinner(new SpinnerNumberModel(16384, 64, 131070, 64));
     private final JCheckBox globalNormalization = new JCheckBox("Global Normalization");
-    private final JCheckBox threaded = new JCheckBox("Multithreaded Rendering");
+    private final JCheckBox multithreaded = new JCheckBox("Multithreaded Rendering");
 
     private final JPanel progressPanel = new JPanel();
     private final JProgressBar progressBar = new JProgressBar();
@@ -155,13 +162,22 @@ public class ExportFrame extends JFrame {
                     channels.setSelectedItem(Channels.STEREO);
                 });
                 GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.wavEncodingLabel);
-                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.wavEncoding, wavBitDepth -> {
-                    wavBitDepth.setSelectedItem(WavSampleEncoding.S16_LE);
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.wavEncoding, wavEncoding -> {
+                    wavEncoding.setSelectedItem(WavEncoding.S16_LE);
                 });
+                GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.opusEncodingLabel);
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.opusEncoding, opusEncoding -> {
+                    opusEncoding.setSelectedItem(OpusEncoding.VBR);
+                });
+                GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.opusBitrateLabel);
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.opusBitrate);
                 GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.mp3EncodingLabel);
-                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.mp3Encoding, mp3Encoding -> {
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.mp3Encoding, mp3Encoding -> {
+                    mp3Encoding.addActionListener(e -> this.updateVisibility(true));
                     mp3Encoding.setSelectedItem(Mp3Encoding.VBR);
                 });
+                GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.mp3BitrateLabel);
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.mp3Bitrate);
                 GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.mp3QualityLabel);
                 GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.mp3Quality, mp3Quality -> {
                     mp3Quality.setMajorTickSpacing(10);
@@ -190,7 +206,7 @@ public class ExportFrame extends JFrame {
                 GBC.create(rendererPanel).nextRow().insets(0, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
                 GBC.create(rendererPanel).nextColumn().insets(0, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSounds);
                 GBC.create(rendererPanel).nextRow().insets(5, 5, 0, 5).width(2).anchor(GBC.LINE_START).add(this.globalNormalization);
-                GBC.create(rendererPanel).nextRow().insets(5, 5, 5, 5).width(2).anchor(GBC.LINE_START).add(this.threaded);
+                GBC.create(rendererPanel).nextRow().insets(5, 5, 5, 5).width(2).anchor(GBC.LINE_START).add(this.multithreaded);
             });
 
             GBC.create(centerPanel).nextRow().insets(5, 5, 0, 5).width(1).width(2).weight(1, 1).fill(GBC.BOTH).add(this.progressPanel, progressPanel -> {
@@ -222,12 +238,19 @@ public class ExportFrame extends JFrame {
             this.rendererPanel.setVisible(outputFormat.isAudioFile());
             this.progressPanel.setVisible(false);
 
+            final Mp3Encoding mp3Encoding = (Mp3Encoding) this.mp3Encoding.getSelectedItem();
             this.wavEncodingLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
             this.wavEncoding.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
+            this.opusEncodingLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.OPUS));
+            this.opusEncoding.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.OPUS));
+            this.opusBitrateLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.OPUS));
+            this.opusBitrate.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.OPUS));
             this.mp3EncodingLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
             this.mp3Encoding.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
-            this.mp3QualityLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
-            this.mp3Quality.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
+            this.mp3BitrateLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3) && (mp3Encoding.equals(Mp3Encoding.CBR) || mp3Encoding.equals(Mp3Encoding.ABR)));
+            this.mp3Bitrate.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3) && (mp3Encoding.equals(Mp3Encoding.CBR) || mp3Encoding.equals(Mp3Encoding.ABR)));
+            this.mp3QualityLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3) && mp3Encoding.equals(Mp3Encoding.VBR));
+            this.mp3Quality.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3) && mp3Encoding.equals(Mp3Encoding.VBR));
         } else {
             this.formatLabel.setVisible(false);
             this.format.setVisible(false);
@@ -368,7 +391,7 @@ public class ExportFrame extends JFrame {
                 }
             } else {
                 final int threadCount;
-                if (this.threaded.isSelected() && ((OutputFormat) this.format.getSelectedItem()).isAudioFile()) {
+                if (this.multithreaded.isSelected() && ((OutputFormat) this.format.getSelectedItem()).isAudioFile()) {
                     threadCount = Math.min(this.loadedSongs.size(), Runtime.getRuntime().availableProcessors());
                 } else {
                     threadCount = 1;
@@ -452,7 +475,7 @@ public class ExportFrame extends JFrame {
             this.writeSong(song, file, outputFormat.getSongFormat());
         } else if (outputFormat.isAudioFile()) {
             final AudioFormat audioFormat = new AudioFormat(((Number) this.sampleRate.getValue()).floatValue(), ((Channels) this.channels.getSelectedItem()).channels());
-            final SongRenderer songRenderer = new ProgressSongRenderer(song.song(), (int) this.maxSounds.getValue(), !this.globalNormalization.isSelected(), this.threaded.isSelected(), audioFormat, progressConsumer);
+            final SongRenderer songRenderer = new ProgressSongRenderer(song.song(), (int) this.maxSounds.getValue(), !this.globalNormalization.isSelected(), this.multithreaded.isSelected(), audioFormat, progressConsumer);
             songRenderer.setMasterVolume(this.volume.getValue());
             songRenderer.setTimingJitter(this.timingJitter.isSelected());
             final AudioBuffer buffer;
@@ -464,18 +487,41 @@ public class ExportFrame extends JFrame {
             if (this.globalNormalization.isSelected()) {
                 buffer.limitToUnitRange();
             }
-            final AudioOutputStream audioOutputStream;
-            if (outputFormat.equals(OutputFormat.WAV)) {
-                audioOutputStream = new WavPcmAudioOutputStream(new BufferedOutputStream(new FileOutputStream(file), 1024 * 1024), new PcmAudioFormat(buffer.format(), ((WavSampleEncoding) this.wavEncoding.getSelectedItem()).encoding()), buffer.sampleCount());
-            } else if (outputFormat.equals(OutputFormat.MP3)) {
-                final Mp3AudioOutputStream.Id3Metadata id3Metadata = new Mp3AudioOutputStream.Id3Metadata()
-                    .withTitle(songRenderer.getSong().getTitle())
-                    .withArtist(songRenderer.getSong().getAuthor())
-                    .withComment(songRenderer.getSong().getDescription());
-                audioOutputStream = new Mp3AudioOutputStream(new SeekableBufferedOutputStream(new SeekableFileOutputStream(file), 1024 * 1024), buffer.format(), this.mp3Quality.getValue() / 100F, ((Mp3Encoding) this.mp3Encoding.getSelectedItem()).mode(), id3Metadata);
-            } else {
-                throw new UnsupportedOperationException("Unsupported output format: " + this.format.getSelectedIndex());
-            }
+            final AudioOutputStream audioOutputStream = switch (outputFormat) {
+                case WAV -> new WavPcmAudioOutputStream(new BufferedOutputStream(new FileOutputStream(file), 1024 * 1024), buffer.format(), ((WavEncoding) this.wavEncoding.getSelectedItem()).encoding(), buffer.sampleCount());
+                case OPUS -> {
+                    final OggOpusAudioOutputStream.Encoding encoding = switch ((OpusEncoding) this.opusEncoding.getSelectedItem()) {
+                        case CBR -> OggOpusAudioOutputStream.Encoding.cbr((int) this.opusBitrate.getValue());
+                        case ABR -> OggOpusAudioOutputStream.Encoding.abr((int) this.opusBitrate.getValue());
+                        case VBR -> OggOpusAudioOutputStream.Encoding.vbr((int) this.opusBitrate.getValue());
+                    };
+                    final Map<String, List<String>> tags = new LinkedHashMap<>();
+                    tags.put("RENDERER", List.of("NoteBlockTool"));
+                    if (songRenderer.getSong().getTitle() != null) {
+                        tags.put("TITLE", List.of(songRenderer.getSong().getTitle()));
+                    }
+                    if (songRenderer.getSong().getAuthor() != null) {
+                        tags.put("ARTIST", List.of(songRenderer.getSong().getAuthor()));
+                    }
+                    if (songRenderer.getSong().getDescription() != null) {
+                        tags.put("DESCRIPTION", List.of(songRenderer.getSong().getDescription()));
+                    }
+                    yield OggOpusAudioOutputStream.createCompatible(new BufferedOutputStream(new FileOutputStream(file), 1024 * 1024), buffer.format(), encoding, OpusSignal.OPUS_SIGNAL_MUSIC, tags);
+                }
+                case MP3 -> {
+                    final Mp3AudioOutputStream.Encoding encoding = switch ((Mp3Encoding) this.mp3Encoding.getSelectedItem()) {
+                        case CBR -> Mp3AudioOutputStream.Encoding.cbr((int) this.mp3Bitrate.getValue());
+                        case ABR -> Mp3AudioOutputStream.Encoding.abr((int) this.mp3Bitrate.getValue());
+                        case VBR -> Mp3AudioOutputStream.Encoding.vbr(this.mp3Quality.getValue() / 100F);
+                    };
+                    final Mp3AudioOutputStream.Id3Tags id3Tags = new Mp3AudioOutputStream.Id3Tags()
+                        .withTitle(songRenderer.getSong().getTitle())
+                        .withArtist(songRenderer.getSong().getAuthor())
+                        .withComment(songRenderer.getSong().getDescription());
+                    yield new Mp3AudioOutputStream(new SeekableBufferedOutputStream(new SeekableFileOutputStream(file), 1024 * 1024), buffer.format(), encoding, id3Tags);
+                }
+                default -> throw new UnsupportedOperationException("Unsupported output format: " + outputFormat);
+            };
             progressConsumer.accept(101F);
             try {
                 audioOutputStream.write(buffer.samples());
@@ -501,8 +547,9 @@ public class ExportFrame extends JFrame {
         NBS("NBS", "nbs", SongFormat.NBS),
         MCSP2("MCSP2", "mcsp2", SongFormat.MCSP2),
         TXT("TXT", "txt", SongFormat.TXT),
-        MP3("MP3 (Using LAME encoder)", "mp3", null),
-        WAV("WAV", "wav", null);
+        WAV("WAV", "wav", null),
+        OPUS("Ogg Opus", "opus", null),
+        MP3("MP3", "mp3", null);
 
         private final String name;
         private final String extension;
@@ -558,7 +605,7 @@ public class ExportFrame extends JFrame {
         }
     }
 
-    private enum WavSampleEncoding {
+    private enum WavEncoding {
         U8("Unsigned 8-Bit PCM", PcmSampleEncoding.U8),
         S16_LE("Signed 16-Bit PCM", PcmSampleEncoding.S16_LE),
         S24_LE("Signed 24-Bit PCM", PcmSampleEncoding.S24_LE),
@@ -568,7 +615,7 @@ public class ExportFrame extends JFrame {
         private final String name;
         private final PcmSampleEncoding encoding;
 
-        WavSampleEncoding(final String name, final PcmSampleEncoding encoding) {
+        WavEncoding(final String name, final PcmSampleEncoding encoding) {
             this.name = name;
             this.encoding = encoding;
         }
@@ -583,21 +630,32 @@ public class ExportFrame extends JFrame {
         }
     }
 
-    private enum Mp3Encoding {
-        CBR("Constant bitrate (CBR)", VbrMode.vbr_off),
-        ABR("Average bitrate (ABR)", VbrMode.vbr_abr),
-        VBR("Variable bitrate (VBR)", VbrMode.vbr_default);
+    private enum OpusEncoding {
+        CBR("Constant bitrate (CBR)"),
+        ABR("Average bitrate (ABR)"),
+        VBR("Variable bitrate (VBR)");
 
         private final String name;
-        private final VbrMode mode;
 
-        Mp3Encoding(final String name, final VbrMode mode) {
+        OpusEncoding(final String name) {
             this.name = name;
-            this.mode = mode;
         }
 
-        public VbrMode mode() {
-            return this.mode;
+        @Override
+        public String toString() {
+            return this.name;
+        }
+    }
+
+    private enum Mp3Encoding {
+        CBR("Constant bitrate (CBR)"),
+        ABR("Average bitrate (ABR)"),
+        VBR("Variable bitrate (VBR)");
+
+        private final String name;
+
+        Mp3Encoding(final String name) {
+            this.name = name;
         }
 
         @Override
