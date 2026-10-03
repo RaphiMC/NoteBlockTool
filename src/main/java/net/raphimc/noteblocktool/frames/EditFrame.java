@@ -68,7 +68,7 @@ public class EditFrame extends JFrame {
         root.setLayout(new BorderLayout());
         this.setContentPane(root);
 
-        { //Center Panel
+        { // Center Panel
             final JTabbedPane tabs = new JTabbedPane();
             root.add(tabs, BorderLayout.CENTER);
 
@@ -97,7 +97,7 @@ public class EditFrame extends JFrame {
                 tab.init();
             }
         }
-        { //South Panel
+        { // South Panel
             final JPanel south = new JPanel();
             south.setLayout(new FlowLayout(FlowLayout.RIGHT));
             this.add(south, BorderLayout.SOUTH);

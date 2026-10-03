@@ -128,7 +128,7 @@ public final class SongPlayerFrame extends JFrame {
         root.setLayout(new BorderLayout());
         this.setContentPane(root);
 
-        { //Center Panel
+        { // Center Panel
             final JScrollPane centerScrollPane = new FastScrollPane();
             final JPanel centerPanel = new ScrollPaneSizedPanel(centerScrollPane);
             centerScrollPane.setViewportView(centerPanel);
@@ -164,7 +164,7 @@ public final class SongPlayerFrame extends JFrame {
 
             GBC.fillVerticalSpace(centerPanel);
         }
-        { //South Panel
+        { // South Panel
             final JPanel southPanel = new JPanel();
             southPanel.setLayout(new GridBagLayout());
             root.add(southPanel, BorderLayout.SOUTH);
