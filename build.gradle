@@ -18,7 +18,7 @@ repositories {
 }
 
 dependencies {
-    includeInJar "net.raphimc:NoteBlockLib:3.3.0"
+    includeInJar "net.raphimc:NoteBlockLib:3.4.0-20261009.201152-2"
     includeInJar "net.raphimc:audio-mixer:3.1.0-20260918.204918-5"
     includeInJar "org.jcraft:jorbis:0.0.17"
     includeInJar "com.plasmoverse:concentus:1.0.0"
