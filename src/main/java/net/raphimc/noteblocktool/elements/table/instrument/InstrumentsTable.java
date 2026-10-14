@@ -26,13 +26,27 @@ import javax.swing.table.DefaultTableModel;
 
 public class InstrumentsTable extends JTable {
 
+    public static final Object KEEP = new Object() {
+        @Override
+        public String toString() {
+            return "";
+        }
+    };
+    public static final Object REMOVE = new Object() {
+        @Override
+        public String toString() {
+            return "<html><i>Remove";
+        }
+    };
+
     public InstrumentsTable(final boolean addEmptyEntry) {
         super(new InstrumentsModel("Original", "Replacement"));
         this.getTableHeader().setReorderingAllowed(false);
 
-        final JComboBox<MinecraftInstrument> instruments = new JComboBox<>();
+        final JComboBox instruments = new JComboBox<>();
         if (addEmptyEntry) {
-            instruments.addItem(null);
+            instruments.addItem(KEEP);
+            instruments.addItem(REMOVE);
         }
         for (MinecraftInstrument instrument : MinecraftInstrument.values()) {
             instruments.addItem(instrument);
@@ -40,8 +54,8 @@ public class InstrumentsTable extends JTable {
         this.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(instruments));
     }
 
-    public void addRow(final String original, final MinecraftInstrument instrument) {
-        ((DefaultTableModel) this.getModel()).addRow(new Object[]{original, instrument});
+    public void addRow(final String original) {
+        ((DefaultTableModel) this.getModel()).addRow(new Object[]{original, KEEP});
     }
 
     @Override

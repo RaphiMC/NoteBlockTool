@@ -27,6 +27,7 @@ import net.raphimc.noteblocktool.frames.ListFrame;
 
 import javax.swing.JPanel;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,17 +49,22 @@ public class CustomInstrumentsTab extends EditTab {
         this.add(new FastScrollPane(this.table));
         this.usedInstruments = SongUtil.getUsedNbsCustomInstruments(this.songs.get(0).song());
         for (NbsCustomInstrument customInstrument : this.usedInstruments) {
-            this.table.addRow(customInstrument.getNameOr("No Name") + " (" + customInstrument.getSoundFilePathOr("No Sound File") + ")", null);
+            this.table.addRow(customInstrument.getNameOr("No Name") + " (" + customInstrument.getSoundFilePathOr("No Sound File") + ")");
         }
     }
 
     @Override
     public void apply(final Song song) {
         final Map<NbsCustomInstrument, MinecraftInstrument> replacements = new HashMap<>();
+        final Set<NbsCustomInstrument> remove = new HashSet<>();
         int i = 0;
         for (NbsCustomInstrument customInstrument : this.usedInstruments) {
-            final MinecraftInstrument replacement = (MinecraftInstrument) this.table.getValueAt(i, 1);
-            replacements.put(customInstrument, replacement);
+            final Object rawReplacement = this.table.getValueAt(i, 1);
+            if (rawReplacement instanceof MinecraftInstrument replacement) {
+                replacements.put(customInstrument, replacement);
+            } else if (rawReplacement == InstrumentsTable.REMOVE) {
+                remove.add(customInstrument);
+            }
             i++;
         }
         song.getNotes().forEach(note -> {
@@ -67,6 +73,7 @@ public class CustomInstrumentsTab extends EditTab {
                 note.setInstrument(replacement);
             }
         });
+        song.getNotes().removeIf(note -> remove.contains(note.getInstrument()));
     }
 
 }

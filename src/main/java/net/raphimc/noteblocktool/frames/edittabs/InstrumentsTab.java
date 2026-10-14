@@ -27,6 +27,7 @@ import net.raphimc.noteblocktool.frames.ListFrame;
 import javax.swing.JPanel;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,17 +54,22 @@ public class InstrumentsTab extends EditTab {
                 return a;
             });
         for (MinecraftInstrument instrument : this.usedInstruments) {
-            this.table.addRow(instrument.name(), instrument);
+            this.table.addRow(instrument.name());
         }
     }
 
     @Override
     public void apply(final Song song) {
         final Map<MinecraftInstrument, MinecraftInstrument> replacements = new HashMap<>();
+        final Set<MinecraftInstrument> remove = new HashSet<>();
         int i = 0;
         for (MinecraftInstrument instrument : this.usedInstruments) {
-            final MinecraftInstrument replacement = (MinecraftInstrument) this.table.getValueAt(i, 1);
-            replacements.put(instrument, replacement);
+            final Object rawReplacement = this.table.getValueAt(i, 1);
+            if (rawReplacement instanceof MinecraftInstrument replacement) {
+                replacements.put(instrument, replacement);
+            } else if (rawReplacement == InstrumentsTable.REMOVE) {
+                remove.add(instrument);
+            }
             i++;
         }
         song.getNotes().forEach(note -> {
@@ -72,7 +78,7 @@ public class InstrumentsTab extends EditTab {
                 note.setInstrument(replacement);
             }
         });
-        song.getNotes().removeIf(note -> replacements.containsKey(note.getInstrument()) && replacements.get(note.getInstrument()) == null);
+        song.getNotes().removeIf(note -> remove.contains(note.getInstrument()));
     }
 
 }
