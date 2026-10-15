@@ -496,7 +496,6 @@ public class ExportFrame extends JFrame {
                         case VBR -> OggOpusAudioOutputStream.Encoding.vbr((int) this.opusBitrate.getValue());
                     };
                     final Map<String, List<String>> tags = new LinkedHashMap<>();
-                    tags.put("RENDERER", List.of("NoteBlockTool"));
                     if (songRenderer.getSong().getTitle() != null) {
                         tags.put("TITLE", List.of(songRenderer.getSong().getTitle()));
                     }
@@ -506,6 +505,7 @@ public class ExportFrame extends JFrame {
                     if (songRenderer.getSong().getDescription() != null) {
                         tags.put("DESCRIPTION", List.of(songRenderer.getSong().getDescription()));
                     }
+                    tags.put("Renderer", List.of("NoteBlockTool"));
                     yield OggOpusAudioOutputStream.createCompatible(new BufferedOutputStream(new FileOutputStream(file), 1024 * 1024), buffer.format(), encoding, OpusSignal.OPUS_SIGNAL_MUSIC, tags);
                 }
                 case MP3 -> {
@@ -517,7 +517,8 @@ public class ExportFrame extends JFrame {
                     final Mp3AudioOutputStream.Id3Tags id3Tags = new Mp3AudioOutputStream.Id3Tags()
                         .withTitle(songRenderer.getSong().getTitle())
                         .withArtist(songRenderer.getSong().getAuthor())
-                        .withComment(songRenderer.getSong().getDescription());
+                        .withComment(songRenderer.getSong().getDescription())
+                        .withCustomField("Renderer", "NoteBlockTool");
                     yield new Mp3AudioOutputStream(new SeekableBufferedOutputStream(new SeekableFileOutputStream(file), 1024 * 1024), buffer.format(), encoding, id3Tags);
                 }
                 default -> throw new UnsupportedOperationException("Unsupported output format: " + outputFormat);
