@@ -38,7 +38,7 @@ import net.raphimc.noteblocklib.model.event.Event;
 import net.raphimc.noteblocklib.model.note.Note;
 import net.raphimc.noteblocklib.model.song.Song;
 import net.raphimc.noteblocklib.player.SongPlayer;
-import net.raphimc.noteblocktool.audio.SoundMap;
+import net.raphimc.noteblocktool.audio.util.SoundMap;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;

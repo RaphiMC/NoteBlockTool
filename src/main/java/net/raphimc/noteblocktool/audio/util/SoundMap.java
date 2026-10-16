@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.raphimc.noteblocktool.audio;
+package net.raphimc.noteblocktool.audio.util;
 
 import net.raphimc.noteblocklib.format.minecraft.MinecraftInstrument;
 import net.raphimc.noteblocklib.format.nbs.model.NbsCustomInstrument;
@@ -39,7 +39,7 @@ public final class SoundMap {
     }
 
     static {
-        INSTRUMENT_SOUNDS.put(MinecraftInstrument.HARP, "harp2.ogg");
+        INSTRUMENT_SOUNDS.put(MinecraftInstrument.HARP, "harp2.ogg"); // TODO: Improve
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.BASS, "bassattack.ogg");
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.BASS_DRUM, "bd.ogg");
         INSTRUMENT_SOUNDS.put(MinecraftInstrument.SNARE, "snare.ogg");

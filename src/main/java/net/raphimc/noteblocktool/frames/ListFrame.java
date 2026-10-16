@@ -22,7 +22,7 @@ import net.lenni0451.commons.swing.GBC;
 import net.raphimc.noteblocklib.NoteBlockLib;
 import net.raphimc.noteblocklib.format.SongFormat;
 import net.raphimc.noteblocklib.model.song.Song;
-import net.raphimc.noteblocktool.audio.SoundMap;
+import net.raphimc.noteblocktool.audio.util.SoundMap;
 import net.raphimc.noteblocktool.elements.FastScrollPane;
 import net.raphimc.noteblocktool.elements.TextOverlayPanel;
 import net.raphimc.noteblocktool.elements.VerticalFileChooser;
