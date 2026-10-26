@@ -112,7 +112,7 @@ public class ExportFrame extends JFrame {
     // Renderer settings
     private final JPanel rendererPanel = new JPanel(new GridBagLayout());
     private final JSpinner maxSounds = new JSpinner(new SpinnerNumberModel(16384, 64, 131070, 64));
-    private final JCheckBox globalNormalization = new JCheckBox("Global Normalization");
+    private final JComboBox<Limiter> limiter = new JComboBox<>(Limiter.values());
     private final JCheckBox multithreaded = new JCheckBox("Multithreaded Rendering");
 
     private final JPanel progressPanel = new JPanel();
@@ -209,7 +209,8 @@ public class ExportFrame extends JFrame {
                 rendererPanel.setBorder(BorderFactory.createTitledBorder("Renderer"));
                 GBC.create(rendererPanel).nextRow().insets(0, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Max Sounds:"));
                 GBC.create(rendererPanel).nextColumn().insets(0, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.maxSounds);
-                GBC.create(rendererPanel).nextRow().insets(5, 5, 0, 5).width(2).anchor(GBC.LINE_START).add(this.globalNormalization);
+                GBC.create(rendererPanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(new JLabel("Limiter:"));
+                GBC.create(rendererPanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.limiter);
                 GBC.create(rendererPanel).nextRow().insets(5, 5, 5, 5).width(2).anchor(GBC.LINE_START).add(this.multithreaded);
             });
 
@@ -483,7 +484,8 @@ public class ExportFrame extends JFrame {
             this.writeSong(song, file, outputFormat.getSongFormat());
         } else if (outputFormat.isAudioFile()) {
             final AudioFormat audioFormat = new AudioFormat(((Number) this.sampleRate.getValue()).floatValue(), ((Channels) this.channels.getSelectedItem()).channels());
-            final SongRenderer songRenderer = new ProgressSongRenderer(song.song(), (int) this.maxSounds.getValue(), !this.globalNormalization.isSelected(), this.multithreaded.isSelected(), audioFormat, progressConsumer);
+            final Limiter limiter = (Limiter) this.limiter.getSelectedItem();
+            final SongRenderer songRenderer = new ProgressSongRenderer(song.song(), (int) this.maxSounds.getValue(), limiter == Limiter.WINDOWED, this.multithreaded.isSelected(), audioFormat, progressConsumer);
             songRenderer.setMasterVolume(this.volume.getValue());
             songRenderer.setTimingJitter(this.timingJitter.isSelected());
             final AudioBuffer buffer;
@@ -492,7 +494,7 @@ public class ExportFrame extends JFrame {
             } finally {
                 songRenderer.close();
             }
-            if (this.globalNormalization.isSelected()) {
+            if (limiter == Limiter.GLOBAL) {
                 buffer.limitToUnitRange();
             }
             final AudioOutputStream audioOutputStream = switch (outputFormat) {
@@ -680,6 +682,23 @@ public class ExportFrame extends JFrame {
         private final String name;
 
         Mp3Encoding(final String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return this.name;
+        }
+    }
+
+    private enum Limiter {
+        WINDOWED("Windowed"),
+        GLOBAL("Global"),
+        NONE("None");
+
+        private final String name;
+
+        Limiter(final String name) {
             this.name = name;
         }
 

@@ -17,6 +17,7 @@
  */
 package net.raphimc.noteblocktool.audio.renderer;
 
+import net.raphimc.audiomixer.AudioMixer;
 import net.raphimc.audiomixer.LimitingAudioMixer;
 import net.raphimc.audiomixer.automation.finite.FiniteAutomation;
 import net.raphimc.audiomixer.automation.finite.ramp.impl.LinearRampAutomation;
@@ -51,7 +52,8 @@ import java.util.concurrent.ThreadLocalRandom;
 public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
 
     private final Map<String, AudioBuffer> sounds = new HashMap<>();
-    private final LimitingAudioMixer audioMixer;
+    private final AudioMixer audioMixer;
+    private final GainProcessor masterGainProcessor;
     private final Mixer masterMixer;
     private final int maxSourceCount;
     private boolean running;
@@ -68,8 +70,14 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
         } catch (final Throwable e) {
             throw new RuntimeException("Failed to load sound samples", e);
         }
-        this.audioMixer = new LimitingAudioMixer(audioFormat);
-        this.audioMixer.getLimiterProcessor().setEnabled(limited);
+        if (limited) {
+            this.audioMixer = new LimitingAudioMixer(audioFormat);
+            this.masterGainProcessor = ((LimitingAudioMixer) this.audioMixer).getGainProcessor();
+        } else {
+            this.audioMixer = new AudioMixer(audioFormat);
+            this.masterGainProcessor = new GainProcessor();
+            this.audioMixer.processors().add(this.masterGainProcessor);
+        }
         if (multithreaded) {
             this.masterMixer = new MultithreadedMixer();
             this.audioMixer.add(this.masterMixer);
@@ -184,7 +192,7 @@ public abstract class SongRenderer extends SongPlayer implements AutoCloseable {
     }
 
     public void setMasterVolume(final int volume) {
-        this.audioMixer.gain().set(volume / 100F);
+        this.masterGainProcessor.gain().set(volume / 100F);
     }
 
     public void stopAllSounds() {
