@@ -8,7 +8,7 @@ Using it is very simple, just run the jar file, and it will start a user interfa
 
 ## Features
 - Can import .nbs, .mcsp2, .mid, .txt and .notebot files
-- Can export all of the above as .nbs, .txt, .mcsp2, .mp3 and .wav files
+- Can export all of the above as .nbs, .txt, .mcsp2, .wav, .flac, .mp3 and .opus files
 - Work with multiple songs at once (Batch processing)
 - High performance and accurate song player
   - Lag free playback of very large songs

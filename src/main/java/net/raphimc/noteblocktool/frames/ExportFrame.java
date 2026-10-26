@@ -22,6 +22,7 @@ import net.lenni0451.commons.swing.GBC;
 import net.lenni0451.commons.swing.components.ScrollPaneSizedPanel;
 import net.lenni0451.commons.swing.layouts.VerticalLayout;
 import net.raphimc.audiomixer.io.AudioOutputStream;
+import net.raphimc.audiomixer.io.flac.FlacAudioOutputStream;
 import net.raphimc.audiomixer.io.mp3.Mp3AudioOutputStream;
 import net.raphimc.audiomixer.io.ogg.opus.OggOpusAudioOutputStream;
 import net.raphimc.audiomixer.io.wav.pcm.WavPcmAudioOutputStream;
@@ -88,6 +89,10 @@ public class ExportFrame extends JFrame {
     private final JComboBox<Channels> channels = new JComboBox<>(Channels.values());
     private final JLabel wavEncodingLabel = new JLabel("WAV Encoding:");
     private final JComboBox<WavEncoding> wavEncoding = new JComboBox<>(WavEncoding.values());
+    private final JLabel flacBitsPerSampleLabel = new JLabel("FLAC Bits per Sample:");
+    private final JSpinner flacBitsPerSample = new JSpinner(new SpinnerNumberModel(16, 4, 32, 1));
+    private final JLabel flacCompressionLevelLabel = new JLabel("FLAC Compression Level:");
+    private final JSpinner flacCompressionLevel = new JSpinner(new SpinnerNumberModel(6, 0, 8, 1));
     private final JLabel mp3EncodingLabel = new JLabel("MP3 Encoding:");
     private final JComboBox<Mp3Encoding> mp3Encoding = new JComboBox<>(Mp3Encoding.values());
     private final JLabel mp3BitrateLabel = new JLabel("MP3 Bitrate (kbps):");
@@ -165,6 +170,10 @@ public class ExportFrame extends JFrame {
                 GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.wavEncoding, wavEncoding -> {
                     wavEncoding.setSelectedItem(WavEncoding.S16_LE);
                 });
+                GBC.create(audioFilePanel).nextRow().insets(5, 5, 0, 5).anchor(GBC.LINE_START).add(this.flacBitsPerSampleLabel);
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.flacBitsPerSample);
+                GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.flacCompressionLevelLabel);
+                GBC.create(audioFilePanel).nextColumn().insets(5, 0, 5, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.flacCompressionLevel);
                 GBC.create(audioFilePanel).nextRow().insets(5, 5, 5, 5).anchor(GBC.LINE_START).add(this.mp3EncodingLabel);
                 GBC.create(audioFilePanel).nextColumn().insets(5, 0, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.mp3Encoding, mp3Encoding -> {
                     mp3Encoding.addActionListener(e -> this.updateVisibility(true));
@@ -236,6 +245,10 @@ public class ExportFrame extends JFrame {
             final Mp3Encoding mp3Encoding = (Mp3Encoding) this.mp3Encoding.getSelectedItem();
             this.wavEncodingLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
             this.wavEncoding.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.WAV));
+            this.flacBitsPerSampleLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.FLAC));
+            this.flacBitsPerSample.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.FLAC));
+            this.flacCompressionLevelLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.FLAC));
+            this.flacCompressionLevel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.FLAC));
             this.mp3EncodingLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
             this.mp3Encoding.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3));
             this.mp3BitrateLabel.setVisible(outputFormat.isAudioFile() && outputFormat.equals(OutputFormat.MP3) && (mp3Encoding.equals(Mp3Encoding.CBR) || mp3Encoding.equals(Mp3Encoding.ABR)));
@@ -483,7 +496,22 @@ public class ExportFrame extends JFrame {
                 buffer.limitToUnitRange();
             }
             final AudioOutputStream audioOutputStream = switch (outputFormat) {
-                case WAV -> new WavPcmAudioOutputStream(new BufferedOutputStream(new FileOutputStream(file), 1024 * 1024), buffer.format(), ((WavEncoding) this.wavEncoding.getSelectedItem()).encoding(), buffer.sampleCount());
+                case WAV -> new WavPcmAudioOutputStream(new BufferedOutputStream(new FileOutputStream(file)), buffer.format(), ((WavEncoding) this.wavEncoding.getSelectedItem()).encoding(), buffer.sampleCount());
+                case FLAC -> {
+                    final FlacAudioOutputStream.Encoding encoding = new FlacAudioOutputStream.Encoding((int) this.flacBitsPerSample.getValue(), (int) this.flacCompressionLevel.getValue());
+                    final Map<String, List<String>> tags = new LinkedHashMap<>();
+                    if (songRenderer.getSong().getTitle() != null) {
+                        tags.put("TITLE", List.of(songRenderer.getSong().getTitle()));
+                    }
+                    if (songRenderer.getSong().getAuthor() != null) {
+                        tags.put("ARTIST", List.of(songRenderer.getSong().getAuthor()));
+                    }
+                    if (songRenderer.getSong().getDescription() != null) {
+                        tags.put("DESCRIPTION", List.of(songRenderer.getSong().getDescription()));
+                    }
+                    tags.put("Renderer", List.of("NoteBlockTool"));
+                    yield new FlacAudioOutputStream(new SeekableBufferedOutputStream(new SeekableFileOutputStream(file)), buffer.format(), encoding, tags);
+                }
                 case MP3 -> {
                     final Mp3AudioOutputStream.Encoding encoding = switch ((Mp3Encoding) this.mp3Encoding.getSelectedItem()) {
                         case CBR -> Mp3AudioOutputStream.Encoding.cbr((int) this.mp3Bitrate.getValue());
@@ -495,7 +523,7 @@ public class ExportFrame extends JFrame {
                         .withArtist(songRenderer.getSong().getAuthor())
                         .withComment(songRenderer.getSong().getDescription())
                         .withCustomField("Renderer", "NoteBlockTool");
-                    yield new Mp3AudioOutputStream(new SeekableBufferedOutputStream(new SeekableFileOutputStream(file), 1024 * 1024), buffer.format(), encoding, id3Tags);
+                    yield new Mp3AudioOutputStream(new SeekableBufferedOutputStream(new SeekableFileOutputStream(file)), buffer.format(), encoding, id3Tags);
                 }
                 case OPUS -> {
                     final OggOpusAudioOutputStream.Encoding encoding = switch ((OpusEncoding) this.opusEncoding.getSelectedItem()) {
@@ -514,7 +542,7 @@ public class ExportFrame extends JFrame {
                         tags.put("DESCRIPTION", List.of(songRenderer.getSong().getDescription()));
                     }
                     tags.put("Renderer", List.of("NoteBlockTool"));
-                    yield OggOpusAudioOutputStream.createCompatible(new BufferedOutputStream(new FileOutputStream(file), 1024 * 1024), buffer.format(), encoding, OpusSignal.OPUS_SIGNAL_MUSIC, tags);
+                    yield OggOpusAudioOutputStream.createCompatible(new BufferedOutputStream(new FileOutputStream(file)), buffer.format(), encoding, OpusSignal.OPUS_SIGNAL_MUSIC, tags);
                 }
                 default -> throw new UnsupportedOperationException("Unsupported output format: " + outputFormat);
             };
@@ -544,6 +572,7 @@ public class ExportFrame extends JFrame {
         MCSP2("MCSP2", "mcsp2", SongFormat.MCSP2),
         TXT("TXT", "txt", SongFormat.TXT),
         WAV("WAV", "wav", null),
+        FLAC("FLAC", "flac", null),
         MP3("MP3", "mp3", null),
         OPUS("Ogg Opus", "opus", null);
 

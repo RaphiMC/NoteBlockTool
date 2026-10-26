@@ -23,6 +23,7 @@ dependencies {
     includeInJar "org.jcraft:jorbis:0.0.17"
     includeInJar "com.plasmoverse:concentus:1.0.0"
     includeInJar "io.github.raphimc:jump3r:1.0.6"
+    includeInJar "io.github.raphimc:libflac-java:1.4.3.1"
     includeInJar "com.formdev:flatlaf:3.7.2"
     includeInJar "net.lenni0451.commons:swing:1.9.2"
     includeInJar "net.raphimc:thingl:0.2.0-20260728.221330-13:java17"
